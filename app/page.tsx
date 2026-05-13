@@ -680,7 +680,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                     },
                     {
                       title: '💡 Sugestões Acionáveis',
-                      data: [...new Set(allInsights)]
+                      data: Array.from(new Set(allInsights))
                         .slice(0, 6)
                         .map((x) => [x, 0] as [string, number]),
                       color: C.accent,
