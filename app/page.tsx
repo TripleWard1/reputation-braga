@@ -658,7 +658,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                   </div>
                 </div>
 
-                {/* Themes */}
+                {/* Themes  */}
                 <div
                   style={{
                     display: 'grid',
