@@ -605,7 +605,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                         <YAxis type="category" dataKey="name" tick={{ fill: C.textMuted, fontSize: 12 }} width={140} axisLine={false} tickLine={false} />
                         <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12 }} />
                         <Bar dataKey="score" radius={[0, 6, 6, 0]} barSize={22}
-                          label={{ position: 'right', fill: C.textMuted, fontSize: 11, formatter: (v: number) => v + '/10' }}>
+                          label={{ position: 'right', fill: C.textMuted, fontSize: 11, formatter: (v) => `${v}/10` }}>
                           {barData.map((e, i) => <Cell key={i} fill={e.fill} fillOpacity={0.9} />)}
                         </Bar>
                       </BarChart>
