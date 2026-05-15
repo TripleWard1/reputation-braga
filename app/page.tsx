@@ -2,35 +2,126 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip,
 } from 'recharts';
 import { db } from './firebase';
 import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
+const LOGO_URL = 'https://i.imgur.com/Yakcz6G.png';
+
 const CATEGORIES = ['Monumento', 'Museu', 'Restaurante', 'Alojamento', 'Experiência', 'Espaço Público', 'Outro'];
 const PLATFORMS = ['Google Maps', 'TripAdvisor', 'Booking.com', 'Outro'];
 
+// Curated list of canonical POI names for autocomplete
+const KNOWN_POI_NAMES = [
+  'Santuário do Bom Jesus do Monte',
+  'Elevador do Bom Jesus do Monte',
+  'Sé Catedral de Braga',
+  'Tesouro-Museu da Sé de Braga',
+  'Museu dos Biscainhos',
+  'Termas Romanas do Alto da Cividade',
+  'Fonte do Ídolo',
+  'Museu de Arqueologia D. Diogo de Sousa',
+  'Museu Pio XII',
+  'Museu Nogueira da Silva',
+  'Igreja de Santa Cruz',
+  'Posto de Turismo de Braga',
+  'Posto de Turismo de Guimarães',
+  'Mosteiro de Tibães',
+  'Capela e Casa dos Coimbras',
+  'Palácio do Raio',
+  'Picoto Park',
+  'Núcleo Museológico de São Martinho de Dume',
+  'Estádio Municipal de Braga',
+  'Igreja dos Congregados',
+  'Jardim de Santa Bárbara',
+  'Arco da Porta Nova',
+  'Praça da República',
+  'Largo do Paço',
+  'Theatro Circo de Braga',
+  'Mosteiro de São Martinho de Tibães',
+  'Igreja do Pópulo',
+  'Capela de São Frutuoso',
+  'Casa do Avelar',
+  'Casa Museu Monsenhor Airosa',
+  'MUZEU',
+  'OzNatura',
+  'Get Bus Braga',
+];
+
+// Accurate coordinates for major Braga POIs (geographically spread)
 const BRAGA_KNOWN_COORDS: Record<string, [number, number]> = {
-  'bom jesus': [41.5531, -8.3810],
-  'sé catedral': [41.5501, -8.4271],
-  'catedral de braga': [41.5501, -8.4271],
-  'biscainhos': [41.5497, -8.4310],
-  'termas romanas': [41.5512, -8.4289],
-  'alto da cividade': [41.5512, -8.4289],
-  'fonte do ídolo': [41.5497, -8.4293],
-  'diogo de sousa': [41.5520, -8.4276],
-  'museu de arqueologia': [41.5520, -8.4276],
-  'pio xii': [41.5487, -8.4261],
-  'nogueira da silva': [41.5485, -8.4278],
-  'tesouro': [41.5501, -8.4271],
-  'museu da sé': [41.5501, -8.4271],
-  'santa cruz': [41.5490, -8.4267],
-  'posto de turismo': [41.5488, -8.4277],
-  'elevador': [41.5531, -8.3810],
-  'funicular': [41.5531, -8.3810],
+  // Bom Jesus area (~5km east of city center)
+  'santuário do bom jesus': [41.5547, -8.3781],
+  'bom jesus do monte': [41.5547, -8.3781],
+  'elevador do bom jesus': [41.5544, -8.3804],
+  'funicular do bom jesus': [41.5544, -8.3804],
+
+  // City center cluster
+  'sé catedral de braga': [41.5503, -8.4275],
+  'catedral de braga': [41.5503, -8.4275],
+  'sé de braga': [41.5503, -8.4275],
+  'tesouro-museu da sé': [41.5503, -8.4275],
+  'museu da sé': [41.5503, -8.4275],
+
+  'museu dos biscainhos': [41.5523, -8.4299],
+  'biscainhos': [41.5523, -8.4299],
+
+  'termas romanas do alto da cividade': [41.5494, -8.4296],
+  'termas romanas': [41.5494, -8.4296],
+  'alto da cividade': [41.5494, -8.4296],
+
+  'fonte do ídolo': [41.5482, -8.4274],
+
+  'museu de arqueologia d. diogo de sousa': [41.5476, -8.4294],
+  'museu de arqueologia': [41.5476, -8.4294],
+  'diogo de sousa': [41.5476, -8.4294],
+
+  'museu pio xii': [41.5503, -8.4296],
+  'pio xii': [41.5503, -8.4296],
+
+  'museu nogueira da silva': [41.5485, -8.4219],
+  'nogueira da silva': [41.5485, -8.4219],
+
+  'igreja de santa cruz': [41.5512, -8.4250],
+  'santa cruz': [41.5512, -8.4250],
+
+  'posto de turismo de braga': [41.5499, -8.4256],
+
+  'posto de turismo de guimarães': [41.4421, -8.2929],
+  'turismo de guimarães': [41.4421, -8.2929],
+
+  'mosteiro de tibães': [41.5666, -8.4634],
+  'mosteiro de são martinho de tibães': [41.5666, -8.4634],
+  'tibães': [41.5666, -8.4634],
+
+  'capela e casa dos coimbras': [41.5512, -8.4283],
+  'coimbras': [41.5512, -8.4283],
+
+  'palácio do raio': [41.5483, -8.4265],
+
+  'picoto park': [41.5333, -8.4131],
+  'picoto': [41.5333, -8.4131],
+
+  'núcleo museológico de são martinho de dume': [41.5752, -8.4123],
+  'são martinho de dume': [41.5752, -8.4123],
+
+  'estádio municipal de braga': [41.5641, -8.4319],
+  'estádio municipal': [41.5641, -8.4319],
+
+  // Other Braga POIs
+  'igreja dos congregados': [41.5495, -8.4258],
+  'jardim de santa bárbara': [41.5511, -8.4263],
+  'arco da porta nova': [41.5505, -8.4291],
+  'praça da república': [41.5497, -8.4243],
+  'largo do paço': [41.5503, -8.4253],
+  'theatro circo': [41.5485, -8.4232],
+  'igreja do pópulo': [41.5497, -8.4319],
+  'capela de são frutuoso': [41.5552, -8.4347],
+  'casa do avelar': [41.5475, -8.4283],
+  'monsenhor airosa': [41.5512, -8.4256],
 };
 
 const C = {
@@ -62,11 +153,7 @@ const C = {
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
-interface Review {
-  id: string;
-  text: string;
-  addedAt: string;
-}
+interface Review { id: string; text: string; addedAt: string; }
 
 interface Analysis {
   sentimentScore: number;
@@ -105,12 +192,16 @@ const scoreLabel = (s: number) =>
 const categoryIcon = (cat: string) =>
   (({ Monumento: '🏛', Museu: '🖼', Restaurante: '🍽', Alojamento: '🏨', Experiência: '🎭', 'Espaço Público': '🌳' } as Record<string, string>)[cat] || '📍');
 
+// Returns coords matching the LONGEST key in name (so specific overrides generic)
 function getKnownCoords(name: string): [number, number] | null {
   const lower = name.toLowerCase();
+  let best: { key: string; coords: [number, number] } | null = null;
   for (const [key, coords] of Object.entries(BRAGA_KNOWN_COORDS)) {
-    if (lower.includes(key)) return coords;
+    if (lower.includes(key) && (!best || key.length > best.key.length)) {
+      best = { key, coords };
+    }
   }
-  return null;
+  return best?.coords || null;
 }
 
 function countTop(arr: string[], n = 8): [string, number][] {
@@ -129,19 +220,35 @@ export default function Home() {
   const [view, setView] = useState<ViewType>('overview');
   const [selId, setSelId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [analyzing, setAnalyzing] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQ, setSearchQ] = useState('');
   const [filterCat, setFilterCat] = useState('Todos');
   const [compareIds, setCompareIds] = useState<string[]>([]);
-  const [newLoc, setNewLoc] = useState({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0] });
+  const [newLoc, setNewLoc] = useState({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0], lat: '', lng: '' });
   const [reviewText, setReviewText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [copiedReport, setCopiedReport] = useState(false);
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [publicMode, setPublicMode] = useState(false);
+  const [reportLocId, setReportLocId] = useState<string | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
+  const locationsRef = useRef<Location[]>([]);
+
+  // Keep ref in sync with locations for use in stale closures
+  useEffect(() => { locationsRef.current = locations; }, [locations]);
+
+  // Toast helper
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2800);
+  }, []);
 
   // ── Load from Firestore ──
   useEffect(() => {
@@ -166,6 +273,18 @@ export default function Home() {
     })();
   }, []);
 
+  // ── Check URL for public report mode ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const reportId = params.get('r');
+    if (reportId) {
+      setPublicMode(true);
+      setDetailId(reportId);
+      setView('detalhe');
+    }
+  }, []);
+
   // ── Save ──
   const save = useCallback(async (locs: Location[]) => {
     setLocations(locs);
@@ -178,6 +297,9 @@ export default function Home() {
 
   const addLocation = () => {
     if (!newLoc.name.trim()) return;
+    const manualCoords = newLoc.lat && newLoc.lng
+      ? [parseFloat(newLoc.lat), parseFloat(newLoc.lng)] as [number, number]
+      : null;
     const loc: Location = {
       id: Date.now().toString(),
       name: newLoc.name.trim(),
@@ -186,11 +308,46 @@ export default function Home() {
       reviews: [],
       analysis: null,
       lastAnalyzed: null,
-      coords: getKnownCoords(newLoc.name) || undefined,
+      coords: manualCoords || getKnownCoords(newLoc.name) || undefined,
     };
     save([...locations, loc]);
-    setNewLoc({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0] });
+    setNewLoc({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0], lat: '', lng: '' });
     setShowAdd(false);
+    showToast(`✓ ${loc.name} adicionado`);
+  };
+
+  const startEdit = (loc: Location) => {
+    setEditId(loc.id);
+    setNewLoc({
+      name: loc.name,
+      category: loc.category,
+      platform: loc.platform,
+      lat: loc.coords ? String(loc.coords[0]) : '',
+      lng: loc.coords ? String(loc.coords[1]) : '',
+    });
+    setShowEdit(true);
+  };
+
+  const updateLocation = () => {
+    if (!newLoc.name.trim() || !editId) return;
+    const manualCoords = newLoc.lat && newLoc.lng
+      ? [parseFloat(newLoc.lat), parseFloat(newLoc.lng)] as [number, number]
+      : undefined;
+    save(locations.map((l) =>
+      l.id === editId
+        ? {
+            ...l,
+            name: newLoc.name.trim(),
+            category: newLoc.category,
+            platform: newLoc.platform,
+            coords: manualCoords || l.coords,
+          }
+        : l
+    ));
+    setShowEdit(false);
+    setEditId(null);
+    setNewLoc({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0], lat: '', lng: '' });
+    showToast('✓ Local atualizado');
   };
 
   const deleteLoc = async (id: string) => {
@@ -217,6 +374,7 @@ export default function Home() {
     ));
     setReviewText('');
     setShowReview(false);
+    showToast(`✓ ${newRevs.length} review${newRevs.length !== 1 ? 's' : ''} adicionadas`);
   };
 
   const deleteReview = (locId: string, reviewId: string) => {
@@ -225,7 +383,6 @@ export default function Home() {
     ));
   };
 
-  // ── Analyze with Groq ──
   const analyze = async (id: string) => {
     const loc = locations.find((l) => l.id === id);
     if (!loc || loc.reviews.length === 0) return;
@@ -264,12 +421,8 @@ Responde APENAS com JSON válido, sem markdown, sem backticks. Estrutura:
   "summaryPT": "Resumo analítico de 4-5 frases em português. Inclui pontos fortes, fracos e mercados emissores identificados.",
   "reviewCount": <número real de reviews analisadas>,
   "dimensions": {
-    "localizacao": <1-10>,
-    "servico": <1-10>,
-    "precoQualidade": <1-10>,
-    "limpeza": <1-10>,
-    "experiencia": <1-10>,
-    "acessibilidade": <1-10>
+    "localizacao": <1-10>, "servico": <1-10>, "precoQualidade": <1-10>,
+    "limpeza": <1-10>, "experiencia": <1-10>, "acessibilidade": <1-10>
   },
   "marketSources": ["lista de idiomas/países detetados nas reviews"]
 }
@@ -286,6 +439,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
       save(locations.map((l) =>
         l.id === id ? { ...l, analysis, lastAnalyzed: new Date().toISOString() } : l
       ));
+      showToast('✓ Análise concluída');
     } catch {
       setError('Erro na análise. Verifica a API key Groq e tenta novamente.');
     } finally {
@@ -293,22 +447,35 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
     }
   };
 
-  // ── Leaflet Map ──
+  // ── Share link ──
+  const copyShareLink = (locId: string) => {
+    if (typeof window === 'undefined') return;
+    const url = `${window.location.origin}${window.location.pathname}?r=${locId}`;
+    navigator.clipboard.writeText(url);
+    setCopiedLinkId(locId);
+    setTimeout(() => setCopiedLinkId(null), 2000);
+    showToast('✓ Link partilhável copiado!');
+  };
+
+  // ── Leaflet Map with draggable markers ──
   useEffect(() => {
-    if (view !== 'mapa') return;
+    if (view !== 'mapa' && !publicMode) return;
+    if (publicMode) return; // No map in public mode
 
     const initMap = () => {
       const L = (window as any).L;
       if (!L || !mapRef.current) return;
       if (mapInstance.current) { mapInstance.current.remove(); mapInstance.current = null; }
 
-      const map = L.map(mapRef.current, { center: [41.548, -8.426], zoom: 14 });
+      const map = L.map(mapRef.current, { center: [41.548, -8.426], zoom: 13 });
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
         maxZoom: 19,
       }).addTo(map);
 
       const allLocs = locations.filter((l) => l.coords || getKnownCoords(l.name));
+      const markers: any[] = [];
+
       allLocs.forEach((loc) => {
         const coords = loc.coords || getKnownCoords(loc.name);
         if (!coords) return;
@@ -317,18 +484,39 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
         const labelText = score != null ? String(score) : categoryIcon(loc.category);
         const icon = L.divIcon({
           className: '',
-          html: `<div style="width:40px;height:40px;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;box-shadow:0 3px 12px rgba(0,0,0,0.6);cursor:pointer;">${labelText}</div>`,
+          html: `<div style="width:40px;height:40px;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;box-shadow:0 3px 12px rgba(0,0,0,0.6);cursor:grab;">${labelText}</div>`,
           iconSize: [40, 40], iconAnchor: [20, 20],
         });
+
+        const marker = L.marker(coords, { icon, draggable: true });
         const pop = `<div style="min-width:220px">
           <div style="font-size:15px;font-weight:700;color:#e2e0db;margin-bottom:4px">${loc.name}</div>
           <div style="font-size:11px;color:#8b8a8f;margin-bottom:10px">${loc.category} · ${loc.platform}</div>
           ${score != null ? `<div style="margin-bottom:8px"><span style="background:${color};color:#000;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:700">${score}/10 — ${scoreLabel(score)}</span></div>` : '<div style="font-size:11px;color:#8b8a8f">Sem análise ainda</div>'}
           ${loc.analysis?.summaryPT ? `<div style="font-size:12px;color:#8b8a8f;line-height:1.5;margin-top:6px">${loc.analysis.summaryPT.slice(0, 180)}…</div>` : ''}
-          <div style="font-size:11px;color:#4a4960;margin-top:8px">${loc.reviews.length} reviews coladas</div>
+          <div style="font-size:10px;color:#4a4960;margin-top:10px;border-top:1px solid #252836;padding-top:8px">📍 Arrasta para reposicionar</div>
         </div>`;
-        L.marker(coords, { icon }).addTo(map).bindPopup(pop, { maxWidth: 280 });
+        marker.bindPopup(pop, { maxWidth: 280 });
+
+        marker.on('dragend', async (e: any) => {
+          const ll = e.target.getLatLng();
+          const newCoords: [number, number] = [ll.lat, ll.lng];
+          const updated = locationsRef.current.map((l) =>
+            l.id === loc.id ? { ...l, coords: newCoords } : l
+          );
+          await save(updated);
+          showToast(`📍 ${loc.name} reposicionado`);
+        });
+
+        marker.addTo(map);
+        markers.push(marker);
       });
+
+      // Fit bounds if there are markers
+      if (markers.length > 0) {
+        const bounds = L.featureGroup(markers).getBounds();
+        if (bounds.isValid()) map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
+      }
 
       mapInstance.current = map;
     };
@@ -348,7 +536,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
       clearTimeout(timer);
       if (mapInstance.current) { mapInstance.current.remove(); mapInstance.current = null; }
     };
-  }, [view, locations]);
+  }, [view, locations, publicMode, save, showToast]);
 
   // ── Derived ──
   const analyzed = locations.filter((l) => l.analysis);
@@ -370,17 +558,19 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
 
   const totalReviews = analyzed.reduce((s, l) => s + (l.analysis?.reviewCount || l.reviews.length), 0);
 
+  // Category stats
+  const categoryStats = CATEGORIES.map((cat) => {
+    const inCat = analyzed.filter((l) => l.category === cat);
+    if (inCat.length === 0) return null;
+    const avg = inCat.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / inCat.length;
+    return { cat, count: inCat.length, avg: +avg.toFixed(1) };
+  }).filter(Boolean) as { cat: string; count: number; avg: number }[];
+
   const radarData = DIMS.map((d, i) => ({
     dimension: DIM_LABELS[i].replace('/Qualidade', '/Qual.'),
     value: analyzed.length > 0
       ? +(analyzed.reduce((s, l) => s + (l.analysis?.dimensions?.[d] || 0), 0) / analyzed.length).toFixed(1)
       : 0,
-  }));
-
-  const barData = sortedAnalyzed.map((l) => ({
-    name: l.name.length > 24 ? l.name.slice(0, 22) + '…' : l.name,
-    score: l.analysis?.sentimentScore || 0,
-    fill: scoreColor(l.analysis?.sentimentScore || 0),
   }));
 
   const filteredLocations = locations.filter((l) => {
@@ -391,8 +581,8 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
 
   const detailLoc = locations.find((l) => l.id === detailId);
   const selLoc = locations.find((l) => l.id === selId);
+  const reportLoc = locations.find((l) => l.id === reportLocId);
 
-  // ── Input style ──
   const IS: React.CSSProperties = {
     width: '100%', padding: '10px 14px', borderRadius: 8,
     border: `1px solid ${C.border}`, background: C.bg, color: C.text,
@@ -408,31 +598,40 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
   ];
 
   // ── Report generator ──
-  const generateReport = () => {
+  const generateReport = (locFilter?: Location[]) => {
+    const targets = locFilter || sortedAnalyzed;
     const date = new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' });
-    const uniqMarkets = Array.from(new Set(allMarkets));
+    const reportTotalReviews = targets.reduce((s, l) => s + (l.analysis?.reviewCount || l.reviews.length), 0);
+    const reportAvgScore = targets.length > 0
+      ? targets.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / targets.length
+      : null;
+    const reportMarkets = Array.from(new Set(targets.flatMap((l) => l.analysis?.marketSources || [])));
+    const reportProblems = countTop(targets.flatMap((l) => l.analysis?.topThemesNegative || []), 8);
+    const reportPraises = countTop(targets.flatMap((l) => l.analysis?.topThemesPositive || []), 8);
+    const reportInsights = Array.from(new Set(targets.flatMap((l) => l.analysis?.actionableInsights || []))).slice(0, 9);
+
     return [
       `RELATÓRIO DE REPUTAÇÃO TURÍSTICA — BRAGA`,
       `${'═'.repeat(50)}`,
-      `Data: ${date}  |  Gerado por: Painel Reputação Braga`,
+      `Data: ${date}  |  Município de Braga`,
       `${'═'.repeat(50)}`,
       ``,
       `RESUMO EXECUTIVO`,
       `${'─'.repeat(40)}`,
-      `• Locais analisados:        ${analyzed.length} de ${locations.length}`,
-      `• Reviews processadas:      ${totalReviews}`,
-      `• Score global:             ${avgScore?.toFixed(1) || 'N/D'}/10  (${avgScore ? scoreLabel(avgScore) : '—'})`,
-      `• Mercados emissores:       ${uniqMarkets.join(', ') || 'N/D'}`,
+      `• Locais analisados:        ${targets.length}`,
+      `• Reviews processadas:      ${reportTotalReviews}`,
+      `• Score global:             ${reportAvgScore?.toFixed(1) || 'N/D'}/10  (${reportAvgScore ? scoreLabel(reportAvgScore) : '—'})`,
+      `• Mercados emissores:       ${reportMarkets.join(', ') || 'N/D'}`,
       ``,
       `RANKING POR LOCAL`,
       `${'─'.repeat(40)}`,
-      ...sortedAnalyzed.map((l, i) =>
+      ...targets.map((l, i) =>
         `${String(i + 1).padStart(2)}. ${l.name.padEnd(38)} ${l.analysis!.sentimentScore}/10  (${l.analysis!.reviewCount || l.reviews.length} reviews)`
       ),
       ``,
       `ANÁLISE DETALHADA`,
       `${'─'.repeat(40)}`,
-      ...sortedAnalyzed.flatMap((l) => [
+      ...targets.flatMap((l) => [
         ``,
         `▶ ${l.name.toUpperCase()}`,
         `   Categoria: ${l.category}  ·  Plataforma: ${l.platform}`,
@@ -456,17 +655,17 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
         `   ${'─'.repeat(46)}`,
       ]),
       ``,
-      `PROBLEMAS SISTÉMICOS (MÚLTIPLOS LOCAIS)`,
+      `PROBLEMAS SISTÉMICOS`,
       `${'─'.repeat(40)}`,
-      ...topProblems.map(([p, c]) => `• ${p}${c > 1 ? `  [${c} locais]` : ''}`),
+      ...reportProblems.map(([p, c]) => `• ${p}${c > 1 ? `  [${c} locais]` : ''}`),
       ``,
       `ELOGIOS MAIS FREQUENTES`,
       `${'─'.repeat(40)}`,
-      ...topPraises.map(([p, c]) => `• ${p}${c > 1 ? `  [${c} locais]` : ''}`),
+      ...reportPraises.map(([p, c]) => `• ${p}${c > 1 ? `  [${c} locais]` : ''}`),
       ``,
       `AÇÕES PRIORITÁRIAS PARA O MUNICÍPIO`,
       `${'─'.repeat(40)}`,
-      ...insightDeduped.map((ins, i) => `${i + 1}. ${ins}`),
+      ...reportInsights.map((ins, i) => `${i + 1}. ${ins}`),
       ``,
       `${'═'.repeat(50)}`,
       `Relatório gerado automaticamente — Município de Braga`,
@@ -477,13 +676,183 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
     return (
       <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center', color: C.textMuted }}>
-          <div style={{ fontSize: 36, marginBottom: 16, color: C.accent }}>⚜</div>
+          <img src={LOGO_URL} alt="Visit Braga" style={{ width: 80, height: 'auto', marginBottom: 16, opacity: 0.8 }} />
           <div style={{ fontSize: 14 }}>A carregar dados…</div>
         </div>
       </div>
     );
   }
 
+  // ─── PUBLIC REPORT VIEW ─── (when ?r=<id> in URL)
+  if (publicMode) {
+    if (!detailLoc || !detailLoc.analysis) {
+      return (
+        <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+          <img src={LOGO_URL} alt="Visit Braga" style={{ width: 120, height: 'auto', opacity: 0.6 }} />
+          <p style={{ color: C.textMuted, fontSize: 14 }}>Relatório não encontrado.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ background: C.bg, minHeight: '100vh', color: C.text }}>
+        {/* Public Header */}
+        <header style={{
+          background: `linear-gradient(180deg, ${C.card} 0%, ${C.bg} 100%)`,
+          borderBottom: `1px solid ${C.border}`, padding: '32px 40px 28px',
+          textAlign: 'center',
+        }}>
+          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 64, width: 'auto', marginBottom: 20 }} />
+          <div style={{ fontSize: 11, color: C.accent, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>
+            Relatório de Reputação Turística
+          </div>
+          <h1 style={{ fontSize: 30, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>{detailLoc.name}</h1>
+          <div style={{ fontSize: 13, color: C.textMuted, marginTop: 8 }}>
+            {detailLoc.category} · {detailLoc.platform} · {detailLoc.analysis.reviewCount || detailLoc.reviews.length} reviews analisadas
+          </div>
+        </header>
+
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 30px' }}>
+
+          {/* Hero score */}
+          <div style={{
+            background: scoreBg(detailLoc.analysis.sentimentScore),
+            border: `1px solid ${scoreColor(detailLoc.analysis.sentimentScore)}40`,
+            borderRadius: 14, padding: '28px 32px', marginBottom: 20,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20,
+          }}>
+            <div>
+              <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Score de Reputação</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ fontSize: 56, fontWeight: 700, color: scoreColor(detailLoc.analysis.sentimentScore), lineHeight: 1 }}>
+                  {detailLoc.analysis.sentimentScore}
+                </span>
+                <span style={{ fontSize: 22, color: C.textDim }}>/10</span>
+                <span style={{ fontSize: 16, color: scoreColor(detailLoc.analysis.sentimentScore), marginLeft: 12, fontWeight: 600 }}>
+                  {scoreLabel(detailLoc.analysis.sentimentScore)}
+                </span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 24 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: C.positive }}>{detailLoc.analysis.sentimentBreakdown.positive}%</div>
+                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Positivo</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: C.neutral }}>{detailLoc.analysis.sentimentBreakdown.neutral}%</div>
+                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Neutro</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: C.negative }}>{detailLoc.analysis.sentimentBreakdown.negative}%</div>
+                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Negativo</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 28px', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Resumo Analítico</div>
+            <p style={{ fontSize: 15, color: C.text, lineHeight: 1.8, margin: 0 }}>{detailLoc.analysis.summaryPT}</p>
+            {detailLoc.analysis.marketSources && detailLoc.analysis.marketSources.length > 0 && (
+              <div style={{ marginTop: 16, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: C.textDim }}>Mercados emissores:</span>
+                {detailLoc.analysis.marketSources.map((m, i) => (
+                  <span key={i} style={{ fontSize: 11, background: C.infoBg, color: C.info, padding: '3px 10px', borderRadius: 8 }}>{m}</span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Dimensions */}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 28px', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 18 }}>Dimensões de Avaliação</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+              {DIMS.map((d, i) => {
+                const val = detailLoc.analysis!.dimensions?.[d] || 0;
+                return (
+                  <div key={i}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <span style={{ fontSize: 13, color: C.textMuted }}>{DIM_LABELS[i]}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(val) }}>{val}/10</span>
+                    </div>
+                    <div style={{ height: 8, borderRadius: 4, background: C.border, overflow: 'hidden' }}>
+                      <div style={{ width: `${val * 10}%`, height: '100%', background: scoreColor(val), borderRadius: 4 }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Praises + Issues */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+            {[
+              { title: '✦ Pontos Fortes', items: detailLoc.analysis.keyPraises || [], color: C.positive, sign: '+' },
+              { title: '⚠ Problemas Identificados', items: detailLoc.analysis.keyIssues || [], color: C.negative, sign: '−' },
+            ].map((col, ci) => (
+              <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 26px' }}>
+                <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{col.title}</div>
+                {col.items.map((p, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, padding: '9px 0', borderBottom: i < col.items.length - 1 ? `1px solid ${C.border}` : 'none', alignItems: 'flex-start' }}>
+                    <span style={{ color: col.color, fontSize: 14, flexShrink: 0, marginTop: 1, fontWeight: 700 }}>{col.sign}</span>
+                    <span style={{ fontSize: 13, lineHeight: 1.6 }}>{p}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Actionable Insights */}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 28px', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>💡 Sugestões Acionáveis para a Gestão</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+              {(detailLoc.analysis.actionableInsights || []).map((ins, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, padding: '12px 16px', background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 12, color: C.accent, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>{i + 1}.</span>
+                  <span style={{ fontSize: 13, lineHeight: 1.6 }}>{ins}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Themes */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
+            {[
+              { title: 'Temas Positivos', items: detailLoc.analysis.topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
+              { title: 'Temas Negativos', items: detailLoc.analysis.topThemesNegative || [], color: C.negative, bg: C.negativeBg, prefix: '−' },
+            ].map((col, ci) => (
+              <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 26px' }}>
+                <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{col.title}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {col.items.map((t, i) => (
+                    <span key={i} style={{ fontSize: 12, background: col.bg, color: col.color, padding: '6px 12px', borderRadius: 20 }}>{col.prefix} {t}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <footer style={{
+            textAlign: 'center', padding: '20px 0 40px',
+            borderTop: `1px solid ${C.border}`, marginTop: 20,
+          }}>
+            <img src={LOGO_URL} alt="Visit Braga" style={{ height: 36, width: 'auto', opacity: 0.7, marginBottom: 8 }} />
+            <div style={{ fontSize: 11, color: C.textDim, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              Município de Braga · Reputação Turística
+            </div>
+            {detailLoc.lastAnalyzed && (
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>
+                Análise gerada em {new Date(detailLoc.lastAnalyzed).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })}
+              </div>
+            )}
+          </footer>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── NORMAL APP VIEW ───
   return (
     <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', color: C.text }}>
 
@@ -494,19 +863,9 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
         display: 'flex', flexDirection: 'column',
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 20,
       }}>
-        <div style={{ padding: '20px 18px 16px', borderBottom: `1px solid ${C.sidebarBorder}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 34, height: 34, borderRadius: 8,
-              background: `linear-gradient(135deg, ${C.accent}, ${C.accentDim})`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16, flexShrink: 0,
-            }}>⚜</div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.01em' }}>Reputação</div>
-              <div style={{ fontSize: 10, color: C.accent, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Braga</div>
-            </div>
-          </div>
+        <div style={{ padding: '22px 18px 18px', borderBottom: `1px solid ${C.sidebarBorder}`, textAlign: 'center' }}>
+          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 44, width: 'auto', marginBottom: 8 }} />
+          <div style={{ fontSize: 10, color: C.accent, letterSpacing: '0.18em', textTransform: 'uppercase' }}>Reputação</div>
         </div>
 
         <nav style={{ padding: '12px 8px', flex: 1 }}>
@@ -595,37 +954,77 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                   ))}
                 </div>
 
-                {/* Charts row */}
+                {/* Category Stats */}
+                {categoryStats.length > 0 && (
+                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 22px', marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>Score Médio por Categoria</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(categoryStats.length, 6)}, 1fr)`, gap: 12 }}>
+                      {categoryStats.map((s) => (
+                        <div key={s.cat} style={{ background: C.bg, borderRadius: 8, padding: '14px 16px', border: `1px solid ${C.border}` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                            <span style={{ fontSize: 14 }}>{categoryIcon(s.cat)}</span>
+                            <span style={{ fontSize: 11, color: C.textMuted }}>{s.cat}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                            <span style={{ fontSize: 20, fontWeight: 700, color: scoreColor(s.avg) }}>{s.avg}</span>
+                            <span style={{ fontSize: 11, color: C.textDim }}>/10</span>
+                          </div>
+                          <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{s.count} local{s.count !== 1 ? 'is' : ''}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Compact Ranking + Radar */}
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
+                  {/* Compact ranking list */}
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 18 }}>Ranking por Sentimento</div>
-                    <ResponsiveContainer width="100%" height={Math.max(200, analyzed.length * 46)}>
-                      <BarChart data={barData} layout="vertical" margin={{ left: 0, right: 40, top: 0, bottom: 0 }}>
-                        <XAxis type="number" domain={[0, 10]} tick={{ fill: C.textDim, fontSize: 11 }} axisLine={{ stroke: C.border }} tickLine={false} />
-                        <YAxis type="category" dataKey="name" tick={{ fill: C.textMuted, fontSize: 12 }} width={140} axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12 }} />
-                        <Bar dataKey="score" radius={[0, 6, 6, 0]} barSize={22}
-                          label={{ position: 'right', fill: C.textMuted, fontSize: 11, formatter: (v) => `${v}/10` }}>
-                          {barData.map((e, i) => <Cell key={i} fill={e.fill} fillOpacity={0.9} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Ranking por Sentimento</div>
+                      <div style={{ fontSize: 11, color: C.textDim }}>{sortedAnalyzed.length} locais</div>
+                    </div>
+                    <div style={{ maxHeight: 560, overflowY: 'auto', paddingRight: 4 }}>
+                      {sortedAnalyzed.map((loc, i) => {
+                        const sc = loc.analysis!.sentimentScore;
+                        return (
+                          <div key={loc.id} onClick={() => { setDetailId(loc.id); setView('detalhe'); }}
+                            style={{
+                              display: 'grid', gridTemplateColumns: '28px 1fr 110px 50px',
+                              gap: 12, alignItems: 'center', padding: '7px 8px',
+                              borderRadius: 6, cursor: 'pointer', transition: 'background 0.1s',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = C.bg)}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                            <span style={{ fontSize: 11, color: C.textDim, textAlign: 'right' }}>{i + 1}.</span>
+                            <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <span style={{ marginRight: 6 }}>{categoryIcon(loc.category)}</span>{loc.name}
+                            </span>
+                            <div style={{ height: 6, borderRadius: 3, background: C.border, overflow: 'hidden' }}>
+                              <div style={{ width: `${sc * 10}%`, height: '100%', background: scoreColor(sc), borderRadius: 3 }} />
+                            </div>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: scoreColor(sc), textAlign: 'right' }}>{sc}/10</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
+                  {/* Radar */}
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Dimensões Médias</div>
-                    <ResponsiveContainer width="100%" height={220}>
-                      <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="65%">
+                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Dimensões Médias</div>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="78%">
                         <PolarGrid stroke={C.border} />
                         <PolarAngleAxis dataKey="dimension" tick={{ fill: C.textMuted, fontSize: 10 }} />
                         <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-                        <Radar dataKey="value" stroke={C.accent} fill={C.accent} fillOpacity={0.18} strokeWidth={2} dot={{ fill: C.accent, r: 3 }} />
+                        <Radar dataKey="value" stroke={C.accent} fill={C.accent} fillOpacity={0.22} strokeWidth={2} dot={{ fill: C.accent, r: 4 }} />
                         <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12 }} />
                       </RadarChart>
                     </ResponsiveContainer>
-                    <div style={{ marginTop: 4 }}>
+                    <div style={{ marginTop: 8 }}>
                       {radarData.map((d, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: i < radarData.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: i < radarData.length - 1 ? `1px solid ${C.border}` : 'none' }}>
                           <span style={{ fontSize: 11, color: C.textMuted }}>{d.dimension}</span>
                           <span style={{ fontSize: 11, fontWeight: 600, color: scoreColor(d.value) }}>{d.value}</span>
                         </div>
@@ -634,7 +1033,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                   </div>
                 </div>
 
-                {/* Three columns */}
+                {/* Three-col panels */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
                   {[
                     { title: '✦ Elogios Frequentes', items: topPraises, color: C.positive, bg: C.positiveBg },
@@ -733,7 +1132,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
         {/* ── LOCAIS ── */}
         {view === 'locais' && (
           <div style={{ padding: '28px 30px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
               <div>
                 <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em' }}>Locais Monitorizados</h1>
                 <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{locations.length} local{locations.length !== 1 ? 'is' : ''} · {analyzed.length} analisado{analyzed.length !== 1 ? 's' : ''}</p>
@@ -746,7 +1145,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
               <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="🔍  Pesquisar locais…"
-                style={{ ...IS, maxWidth: 300, flex: 1 }} />
+                style={{ ...IS, maxWidth: 320, flex: 1 }} />
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {['Todos', ...CATEGORIES].map((cat) => (
                   <button key={cat} onClick={() => setFilterCat(cat)}
@@ -762,6 +1161,12 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                 ))}
               </div>
             </div>
+
+            {searchQ && (
+              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
+                {filteredLocations.length} resultado{filteredLocations.length !== 1 ? 's' : ''} para "{searchQ}"
+              </div>
+            )}
 
             {filteredLocations.length === 0 && (
               <p style={{ textAlign: 'center', padding: 60, color: C.textMuted, fontSize: 14 }}>
@@ -786,7 +1191,10 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                         }}>{categoryIcon(loc.category)}</div>
                         <div>
                           <h4 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 3px' }}>{loc.name}</h4>
-                          <span style={{ fontSize: 11, color: C.textDim }}>{loc.category} · {loc.platform} · {loc.reviews.length} review{loc.reviews.length !== 1 ? 's' : ''}</span>
+                          <span style={{ fontSize: 11, color: C.textDim }}>
+                            {loc.category} · {loc.platform} · {loc.reviews.length} review{loc.reviews.length !== 1 ? 's' : ''}
+                            {loc.coords && <span style={{ marginLeft: 6, color: C.info }}>· 📍 geo</span>}
+                          </span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -800,7 +1208,11 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                         ) : (
                           <span style={{ fontSize: 11, color: C.textDim, background: C.border, padding: '4px 10px', borderRadius: 8 }}>Sem reviews</span>
                         )}
-                        <button onClick={(e) => { e.stopPropagation(); deleteLoc(loc.id); }}
+                        <button onClick={(e) => { e.stopPropagation(); startEdit(loc); }}
+                          title="Editar"
+                          style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 12 }}>✎</button>
+                        <button onClick={(e) => { e.stopPropagation(); if (confirm(`Apagar "${loc.name}"?`)) deleteLoc(loc.id); }}
+                          title="Apagar"
                           style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, cursor: 'pointer', fontSize: 12 }}>✕</button>
                       </div>
                     </div>
@@ -824,10 +1236,16 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                             {isAnalyzing ? '⏳ A analisar…' : '🤖 Analisar com IA'}
                           </button>
                           {loc.analysis && (
-                            <button onClick={(e) => { e.stopPropagation(); setDetailId(loc.id); setView('detalhe'); }}
-                              style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 12 }}>
-                              Ver Análise Completa →
-                            </button>
+                            <>
+                              <button onClick={(e) => { e.stopPropagation(); setDetailId(loc.id); setView('detalhe'); }}
+                                style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 12 }}>
+                                Ver Análise Completa →
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); copyShareLink(loc.id); }}
+                                style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${copiedLinkId === loc.id ? C.positive : C.border}`, background: copiedLinkId === loc.id ? C.positiveBg : 'transparent', color: copiedLinkId === loc.id ? C.positive : C.textMuted, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
+                                {copiedLinkId === loc.id ? '✓ Link copiado' : '🔗 Link Partilhável'}
+                              </button>
+                            </>
                           )}
                         </div>
 
@@ -891,7 +1309,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
               <div>
                 <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 2px' }}>Mapa de Reputação</h1>
                 <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>
-                  {analyzed.length} local{analyzed.length !== 1 ? 'is' : ''} com análise · Clica num marcador para ver detalhes
+                  {analyzed.length} local{analyzed.length !== 1 ? 'is' : ''} com análise · <span style={{ color: C.accent }}>arrasta marcadores para reposicionar</span>
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -932,6 +1350,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                         <span style={{ fontSize: 12, color: C.textDim, background: C.border, padding: '3px 10px', borderRadius: 8 }}>{detailLoc.category}</span>
                         <span style={{ fontSize: 12, color: C.textDim, background: C.border, padding: '3px 10px', borderRadius: 8 }}>{detailLoc.platform}</span>
+                        {detailLoc.coords && <span style={{ fontSize: 11, color: C.info }}>📍 {detailLoc.coords[0].toFixed(4)}, {detailLoc.coords[1].toFixed(4)}</span>}
                         {detailLoc.lastAnalyzed && <span style={{ fontSize: 11, color: C.textDim }}>Analisado a {new Date(detailLoc.lastAnalyzed).toLocaleString('pt-PT')}</span>}
                       </div>
                     </div>
@@ -952,11 +1371,17 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                       {analyzing === detailLoc.id ? '⏳ A analisar…' : '🤖 Reanalisar com IA'}
                     </button>
                     {detailLoc.analysis && (
-                      <div style={{ background: scoreBg(detailLoc.analysis.sentimentScore), border: `1px solid ${scoreColor(detailLoc.analysis.sentimentScore)}40`, borderRadius: 10, padding: '10px 18px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 36, fontWeight: 700, color: scoreColor(detailLoc.analysis.sentimentScore), lineHeight: 1 }}>{detailLoc.analysis.sentimentScore}</div>
-                        <div style={{ fontSize: 11, color: scoreColor(detailLoc.analysis.sentimentScore), marginTop: 2 }}>/10 — {scoreLabel(detailLoc.analysis.sentimentScore)}</div>
-                        <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>{detailLoc.analysis.reviewCount || detailLoc.reviews.length} reviews</div>
-                      </div>
+                      <>
+                        <button onClick={() => copyShareLink(detailLoc.id)}
+                          style={{ padding: '9px 16px', borderRadius: 8, border: `1px solid ${copiedLinkId === detailLoc.id ? C.positive : C.border}`, background: copiedLinkId === detailLoc.id ? C.positiveBg : 'transparent', color: copiedLinkId === detailLoc.id ? C.positive : C.textMuted, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
+                          {copiedLinkId === detailLoc.id ? '✓ Link copiado' : '🔗 Link Partilhável'}
+                        </button>
+                        <div style={{ background: scoreBg(detailLoc.analysis.sentimentScore), border: `1px solid ${scoreColor(detailLoc.analysis.sentimentScore)}40`, borderRadius: 10, padding: '10px 18px', textAlign: 'center' }}>
+                          <div style={{ fontSize: 36, fontWeight: 700, color: scoreColor(detailLoc.analysis.sentimentScore), lineHeight: 1 }}>{detailLoc.analysis.sentimentScore}</div>
+                          <div style={{ fontSize: 11, color: scoreColor(detailLoc.analysis.sentimentScore), marginTop: 2 }}>/10 — {scoreLabel(detailLoc.analysis.sentimentScore)}</div>
+                          <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>{detailLoc.analysis.reviewCount || detailLoc.reviews.length} reviews</div>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -971,7 +1396,6 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                   </div>
                 ) : (
                   <>
-                    {/* Summary */}
                     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
                       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Resumo Analítico</div>
                       <p style={{ fontSize: 14, color: C.text, lineHeight: 1.75, margin: 0 }}>{detailLoc.analysis.summaryPT}</p>
@@ -985,7 +1409,6 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                       )}
                     </div>
 
-                    {/* Sentiment + Dimensions */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
                         <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Distribuição de Sentimento</div>
@@ -1027,7 +1450,6 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                       </div>
                     </div>
 
-                    {/* Praises + Issues */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                       {[
                         { title: '✦ Pontos Fortes', items: detailLoc.analysis.keyPraises || [], color: C.positive, sign: '+' },
@@ -1045,7 +1467,6 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                       ))}
                     </div>
 
-                    {/* Actionable */}
                     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
                       <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>💡 Sugestões Acionáveis para a Gestão</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
@@ -1058,7 +1479,6 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                       </div>
                     </div>
 
-                    {/* Themes */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                       {[
                         { title: 'Temas Positivos', items: detailLoc.analysis.topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
@@ -1075,7 +1495,6 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
                       ))}
                     </div>
 
-                    {/* All reviews */}
                     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
                       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
                         Todas as Reviews ({detailLoc.reviews.length})
@@ -1228,35 +1647,101 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
         {/* ── RELATÓRIO ── */}
         {view === 'relatorio' && (
           <div style={{ padding: '28px 30px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-              <div>
-                <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em' }}>Relatório de Reputação</h1>
-                <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Documento completo para partilha ou arquivo institucional</p>
-              </div>
-              <button
-                onClick={() => { navigator.clipboard.writeText(generateReport()); setCopiedReport(true); setTimeout(() => setCopiedReport(false), 2000); }}
-                disabled={analyzed.length === 0}
-                style={{
-                  padding: '10px 20px', borderRadius: 8, border: 'none',
-                  background: copiedReport ? C.positive : analyzed.length > 0 ? C.accent : C.border,
-                  color: copiedReport ? '#000' : analyzed.length > 0 ? C.bg : C.textDim,
-                  cursor: analyzed.length > 0 ? 'pointer' : 'not-allowed',
-                  fontSize: 13, fontWeight: 600, transition: 'all 0.3s',
-                }}>
-                {copiedReport ? '✓ Copiado!' : '📋 Copiar Relatório'}
-              </button>
+            <div style={{ marginBottom: 22 }}>
+              <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em' }}>Relatórios e Partilha</h1>
+              <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Gera relatórios completos ou links públicos partilháveis por POI</p>
             </div>
 
             {analyzed.length === 0 ? (
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 60, textAlign: 'center' }}>
-                <p style={{ color: C.textMuted, fontSize: 14 }}>Analisa locais para gerar o relatório.</p>
+                <p style={{ color: C.textMuted, fontSize: 14 }}>Analisa locais para gerar relatórios.</p>
               </div>
             ) : (
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 28 }}>
-                <pre style={{ fontSize: 12, lineHeight: 1.8, color: C.text, whiteSpace: 'pre-wrap', fontFamily: 'DM Mono, "Courier New", monospace', margin: 0, wordBreak: 'break-word' }}>
-                  {generateReport()}
-                </pre>
-              </div>
+              <>
+                {/* Per-POI shareable links */}
+                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>🔗 Links Partilháveis por POI</div>
+                      <div style={{ fontSize: 11, color: C.textDim }}>Cada link mostra um relatório institucional público com a marca Visit Braga</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 8 }}>
+                    {sortedAnalyzed.map((loc) => (
+                      <div key={loc.id} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        gap: 10, padding: '10px 14px', background: C.bg,
+                        borderRadius: 8, border: `1px solid ${C.border}`,
+                      }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                            <span style={{ fontSize: 14 }}>{categoryIcon(loc.category)}</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc.name}</span>
+                          </div>
+                          <div style={{ fontSize: 10, color: C.textDim }}>
+                            <span style={{ color: scoreColor(loc.analysis!.sentimentScore) }}>{loc.analysis!.sentimentScore}/10</span> · {loc.analysis!.reviewCount || loc.reviews.length} reviews
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          <button onClick={() => { setDetailId(loc.id); setView('detalhe'); }}
+                            title="Ver"
+                            style={{ padding: '6px 10px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 11 }}>
+                            👁
+                          </button>
+                          <button onClick={() => copyShareLink(loc.id)}
+                            style={{
+                              padding: '6px 12px', borderRadius: 6,
+                              border: `1px solid ${copiedLinkId === loc.id ? C.positive : C.accent}`,
+                              background: copiedLinkId === loc.id ? C.positiveBg : C.accentBg,
+                              color: copiedLinkId === loc.id ? C.positive : C.accent,
+                              cursor: 'pointer', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                            }}>
+                            {copiedLinkId === loc.id ? '✓' : '🔗'} Copiar Link
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Full report */}
+                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>📄 Relatório Consolidado</div>
+                      <div style={{ fontSize: 11, color: C.textDim }}>
+                        Relatório completo {reportLocId ? `de "${reportLoc?.name}"` : `com todos os ${analyzed.length} locais analisados`}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <select value={reportLocId || ''} onChange={(e) => setReportLocId(e.target.value || null)}
+                        style={{ ...IS, width: 'auto', minWidth: 200 }}>
+                        <option value="">— Todos os locais —</option>
+                        {sortedAnalyzed.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                      </select>
+                      <button onClick={() => {
+                        const targets = reportLocId ? sortedAnalyzed.filter((l) => l.id === reportLocId) : sortedAnalyzed;
+                        navigator.clipboard.writeText(generateReport(targets));
+                        setCopiedReport(true);
+                        setTimeout(() => setCopiedReport(false), 2000);
+                      }}
+                        style={{
+                          padding: '10px 18px', borderRadius: 8, border: 'none',
+                          background: copiedReport ? C.positive : C.accent,
+                          color: copiedReport ? '#000' : C.bg,
+                          cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.3s',
+                        }}>
+                        {copiedReport ? '✓ Copiado!' : '📋 Copiar Relatório'}
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: 20, maxHeight: 600, overflowY: 'auto' }}>
+                    <pre style={{ fontSize: 11, lineHeight: 1.8, color: C.text, whiteSpace: 'pre-wrap', fontFamily: 'DM Mono, "Courier New", monospace', margin: 0, wordBreak: 'break-word' }}>
+                      {generateReport(reportLocId ? sortedAnalyzed.filter((l) => l.id === reportLocId) : sortedAnalyzed)}
+                    </pre>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -1266,33 +1751,50 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
           onClick={() => setShowAdd(false)}>
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 28, width: 400, maxWidth: '90vw' }}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 28, width: 440, maxWidth: '90vw' }}
             onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 20px' }}>Novo Local</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Nome do Local</label>
-                <input value={newLoc.name} onChange={(e) => setNewLoc({ ...newLoc, name: e.target.value })}
+                <input value={newLoc.name} list="braga-pois-list" onChange={(e) => setNewLoc({ ...newLoc, name: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && addLocation()}
-                  placeholder="Ex: Bom Jesus do Monte" style={IS} />
+                  placeholder="Começa a escrever — sugestões aparecem" style={IS} autoFocus />
+                <datalist id="braga-pois-list">
+                  {KNOWN_POI_NAMES.map((name) => <option key={name} value={name} />)}
+                </datalist>
               </div>
-              <div>
-                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Categoria</label>
-                <select value={newLoc.category} onChange={(e) => setNewLoc({ ...newLoc, category: e.target.value })} style={IS}>
-                  {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Plataforma de Origem</label>
-                <select value={newLoc.platform} onChange={(e) => setNewLoc({ ...newLoc, platform: e.target.value })} style={IS}>
-                  {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
-                </select>
-              </div>
-              {getKnownCoords(newLoc.name) && (
-                <div style={{ background: C.positiveBg, border: `1px solid ${C.positive}30`, borderRadius: 8, padding: '8px 12px', fontSize: 12, color: C.positive }}>
-                  ✓ Coordenadas automáticas detetadas — aparecerá no mapa
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Categoria</label>
+                  <select value={newLoc.category} onChange={(e) => setNewLoc({ ...newLoc, category: e.target.value })} style={IS}>
+                    {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                  </select>
                 </div>
-              )}
+                <div>
+                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Plataforma</label>
+                  <select value={newLoc.platform} onChange={(e) => setNewLoc({ ...newLoc, platform: e.target.value })} style={IS}>
+                    {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>
+                  Coordenadas (opcional)
+                  {getKnownCoords(newLoc.name) && !newLoc.lat && (
+                    <span style={{ marginLeft: 8, color: C.positive, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>
+                      ✓ auto-detetadas: {getKnownCoords(newLoc.name)![0].toFixed(4)}, {getKnownCoords(newLoc.name)![1].toFixed(4)}
+                    </span>
+                  )}
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input value={newLoc.lat} onChange={(e) => setNewLoc({ ...newLoc, lat: e.target.value })} placeholder="Latitude (ex: 41.5503)" style={IS} type="number" step="0.0001" />
+                  <input value={newLoc.lng} onChange={(e) => setNewLoc({ ...newLoc, lng: e.target.value })} placeholder="Longitude (ex: -8.4275)" style={IS} type="number" step="0.0001" />
+                </div>
+                <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>
+                  Deixa em branco para usar coords automáticas (se POI conhecido). Podes sempre arrastar no mapa para ajustar.
+                </div>
+              </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
               <button onClick={() => setShowAdd(false)}
@@ -1314,6 +1816,65 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
         </div>
       )}
 
+      {/* ═══ MODAL: EDIT LOCATION ═══ */}
+      {showEdit && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
+          onClick={() => { setShowEdit(false); setEditId(null); }}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 28, width: 440, maxWidth: '90vw' }}
+            onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 20px' }}>Editar Local</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Nome</label>
+                <input value={newLoc.name} list="braga-pois-list-edit" onChange={(e) => setNewLoc({ ...newLoc, name: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && updateLocation()}
+                  style={IS} />
+                <datalist id="braga-pois-list-edit">
+                  {KNOWN_POI_NAMES.map((name) => <option key={name} value={name} />)}
+                </datalist>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Categoria</label>
+                  <select value={newLoc.category} onChange={(e) => setNewLoc({ ...newLoc, category: e.target.value })} style={IS}>
+                    {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Plataforma</label>
+                  <select value={newLoc.platform} onChange={(e) => setNewLoc({ ...newLoc, platform: e.target.value })} style={IS}>
+                    {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Coordenadas</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input value={newLoc.lat} onChange={(e) => setNewLoc({ ...newLoc, lat: e.target.value })} placeholder="Latitude" style={IS} type="number" step="0.0001" />
+                  <input value={newLoc.lng} onChange={(e) => setNewLoc({ ...newLoc, lng: e.target.value })} placeholder="Longitude" style={IS} type="number" step="0.0001" />
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
+              <button onClick={() => { setShowEdit(false); setEditId(null); }}
+                style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 13 }}>
+                Cancelar
+              </button>
+              <button onClick={updateLocation} disabled={!newLoc.name.trim()}
+                style={{
+                  padding: '9px 20px', borderRadius: 8, border: 'none',
+                  background: newLoc.name.trim() ? C.accent : C.border,
+                  color: newLoc.name.trim() ? C.bg : C.textDim,
+                  cursor: newLoc.name.trim() ? 'pointer' : 'not-allowed',
+                  fontSize: 13, fontWeight: 600,
+                }}>
+                Guardar Alterações
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ MODAL: PASTE REVIEWS ═══ */}
       {showReview && selLoc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
@@ -1322,8 +1883,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
             onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px' }}>Colar Reviews</h3>
             <p style={{ fontSize: 12, color: C.textMuted, margin: '0 0 16px', lineHeight: 1.5 }}>
-              <strong style={{ color: C.accent }}>{selLoc.name}</strong> — Cola todas as reviews do ficheiro limpo.<br />
-              Cada review separada por <code style={{ background: C.border, padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>---</code> em linha própria.
+              <strong style={{ color: C.accent }}>{selLoc.name}</strong> — Cola todas as reviews. Cada review separada por <code style={{ background: C.border, padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>---</code> em linha própria.
             </p>
             <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={13}
               placeholder={'Review 1 aqui...\n---\nReview 2 aqui...\n---\nReview 3 aqui...'}
@@ -1353,6 +1913,19 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ═══ TOAST ═══ */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          background: C.card, border: `1px solid ${C.accent}50`,
+          borderRadius: 10, padding: '12px 22px', color: C.text, fontSize: 13,
+          zIndex: 300, boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          fontWeight: 500,
+        }}>
+          {toast}
         </div>
       )}
     </div>
