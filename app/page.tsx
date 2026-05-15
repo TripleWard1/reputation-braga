@@ -1164,7 +1164,7 @@ ${loc.reviews.map((r) => r.text).join('\n---\n')}`,
 
             {searchQ && (
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
-                {filteredLocations.length} resultado{filteredLocations.length !== 1 ? 's' : ''} para "{searchQ}"
+                {filteredLocations.length} resultado{filteredLocations.length !== 1 ? 's' : ''} para &quot;{searchQ}&quot;
               </div>
             )}
 
