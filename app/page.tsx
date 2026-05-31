@@ -390,6 +390,47 @@ export default function Home() {
     setError(null);
     try {
       const apiKey = process.env.NEXT_PUBLIC_GROQ_KEY || '';
+      const CHUNK_SIZE = 40;
+      const allReviews = loc.reviews;
+      const chunks: typeof allReviews[] = [];
+      for (let i = 0; i < allReviews.length; i += CHUNK_SIZE) {
+        chunks.push(allReviews.slice(i, i + CHUNK_SIZE));
+      }
+
+      // ── Fase 1: resumo parcial de cada bloco ──
+      const partials: string[] = [];
+      for (let i = 0; i < chunks.length; i++) {
+        const chunkText = chunks[i].map((r) => r.text).join('\n---\n');
+        const partialRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{
+              role: 'user',
+              content: `Resume estas reviews do local "${loc.name}" em Braga. Identifica:
+- Pontos positivos mencionados (com frequência aproximada)
+- Pontos negativos / problemas (com frequência aproximada)
+- Idiomas detetados
+- Sugestões implícitas
+- Sentimento geral (positivo/neutro/negativo em %)
+
+Responde em texto português conciso (máx 400 palavras), sem markdown.
+
+Reviews (${chunks[i].length}):
+${chunkText}`,
+            }],
+          }),
+        });
+        if (!partialRes.ok) {
+          const errBody = await partialRes.text();
+          throw new Error(`Bloco ${i + 1}/${chunks.length}: HTTP ${partialRes.status} — ${errBody.slice(0, 200)}`);
+        }
+        const partialData = await partialRes.json();
+        partials.push(partialData.choices?.[0]?.message?.content || '');
+      }
+
+      // ── Fase 2: síntese final em JSON ──
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -397,17 +438,16 @@ export default function Home() {
           model: 'llama-3.3-70b-versatile',
           messages: [{
             role: 'user',
-            content: `És um analista de reputação turística especializado. Analisa cuidadosamente estas reviews do local "${loc.name}" (${loc.category}) em Braga, Portugal.
+            content: `És um analista de reputação turística especializado. Tens ${allReviews.length} reviews do local "${loc.name}" (${loc.category}) em Braga, Portugal, já pré-analisadas em ${chunks.length} blocos. Faz a síntese final consolidada.
 
 INSTRUÇÕES:
-- Lê CADA review individualmente, não generalizes
-- Identifica padrões recorrentes (o que aparece em múltiplas reviews)
-- Distingue entre elogios genéricos ("bonito", "lindo") e feedback específico e útil
-- Procura problemas mencionados mesmo que subtilmente (filas, falta de WC, sinalética, acessibilidade, preços, horários)
+- Combina os padrões dos vários blocos
+- Distingue elogios genéricos de feedback específico e útil
+- Identifica problemas mesmo que subtilmente mencionados
 - As sugestões acionáveis devem ser CONCRETAS e dirigidas à gestão municipal
 - O score deve refletir a realidade: 10 só se não houver NENHUMA crítica
-- Conta o número real de reviews individuais separadas por ---
-- Identifica os idiomas presentes nas reviews (indica mercados emissores)
+- O reviewCount é ${allReviews.length}
+- Lista todos os idiomas/mercados emissores identificados
 
 Responde APENAS com JSON válido, sem markdown, sem backticks. Estrutura:
 {
@@ -419,7 +459,7 @@ Responde APENAS com JSON válido, sem markdown, sem backticks. Estrutura:
   "keyPraises": ["elogios específicos mais frequentes, máx 6"],
   "actionableInsights": ["6 sugestões CONCRETAS e acionáveis para a câmara municipal ou gestão do local"],
   "summaryPT": "Resumo analítico de 4-5 frases em português. Inclui pontos fortes, fracos e mercados emissores identificados.",
-  "reviewCount": <número real de reviews analisadas>,
+  "reviewCount": ${allReviews.length},
   "dimensions": {
     "localizacao": <1-10>, "servico": <1-10>, "precoQualidade": <1-10>,
     "limpeza": <1-10>, "experiencia": <1-10>, "acessibilidade": <1-10>
@@ -427,21 +467,26 @@ Responde APENAS com JSON válido, sem markdown, sem backticks. Estrutura:
   "marketSources": ["lista de idiomas/países detetados nas reviews"]
 }
 
-Reviews:
-${loc.reviews.map((r) => r.text).join('\n---\n')}`,
+Resumos parciais dos blocos:
+
+${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx].length} reviews) ===\n${p}`).join('\n\n')}`,
           }],
           response_format: { type: 'json_object' },
         }),
       });
-      if (!res.ok) throw new Error('Groq API error');
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw new Error(`Síntese final: HTTP ${res.status} — ${errBody.slice(0, 200)}`);
+      }
       const data = await res.json();
       const analysis: Analysis = JSON.parse(data.choices?.[0]?.message?.content || '{}');
       save(locations.map((l) =>
         l.id === id ? { ...l, analysis, lastAnalyzed: new Date().toISOString() } : l
       ));
       showToast('✓ Análise concluída');
-    } catch {
-      setError('Erro na análise. Verifica a API key Groq e tenta novamente.');
+    } catch (e: any) {
+      console.error('Erro análise:', e);
+      setError(`Erro: ${e?.message || 'desconhecido'}`);
     } finally {
       setAnalyzing(null);
     }
