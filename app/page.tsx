@@ -390,7 +390,7 @@ export default function Home() {
     setError(null);
     try {
       const apiKey = process.env.NEXT_PUBLIC_GROQ_KEY || '';
-      const CHUNK_SIZE = 40;
+      const CHUNK_SIZE = 20;
       const allReviews = loc.reviews;
       const chunks: typeof allReviews[] = [];
       for (let i = 0; i < allReviews.length; i += CHUNK_SIZE) {
@@ -400,6 +400,7 @@ export default function Home() {
       // ── Fase 1: resumo parcial de cada bloco ──
       const partials: string[] = [];
       for (let i = 0; i < chunks.length; i++) {
+        showToast(`A analisar bloco ${i + 1}/${chunks.length}...`);
         const chunkText = chunks[i].map((r) => r.text).join('\n---\n');
         const partialRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -428,6 +429,10 @@ ${chunkText}`,
         }
         const partialData = await partialRes.json();
         partials.push(partialData.choices?.[0]?.message?.content || '');
+        // Pausa para não estourar o rate limit do Groq (12k TPM no plano grátis)
+        if (i < chunks.length - 1) {
+          await new Promise((r) => setTimeout(r, 35000));
+        }
       }
 
       // ── Fase 2: síntese final em JSON ──
