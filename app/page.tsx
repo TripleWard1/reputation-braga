@@ -2634,4 +2634,4 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       )}
     </div>
   );
-}
+} 
