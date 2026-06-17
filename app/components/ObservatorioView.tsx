@@ -183,8 +183,8 @@ function Geral({ rep, repL, repR }: { rep?: number | null; repL?: number; repR?:
             <BarChart data={dormDataAnual} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
               <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
-              <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: number) => [fmt(v), 'Dormidas']} />
+              <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), 'Dormidas']} />
               <Bar dataKey="dormidas" radius={[4, 4, 0, 0]}>
                 {dormDataAnual.map((d) => <Cell key={d.ano} fill={YEAR_COLORS[d.ano] || C.accent} />)}
               </Bar>
@@ -196,8 +196,8 @@ function Geral({ rep, repL, repR }: { rep?: number | null; repL?: number; repR?:
             <BarChart data={taxaAnual} margin={{ top: 6, right: 8, left: 2, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
               <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
-              <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: number) => [fmtE(v), 'Receita']} />
+              <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmtE(v), 'Receita']} />
               <Bar dataKey="total" radius={[4, 4, 0, 0]}>
                 {taxaAnual.map((d) => <Cell key={d.ano} fill={d.ano === '2026' ? C.textDim : C.accent} />)}
               </Bar>
@@ -257,8 +257,8 @@ function Procura() {
           <LineChart data={data} margin={{ top: 6, right: 10, left: -6, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
-            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} formatter={(v: number, n) => [fmt(v), n]} />
+            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} formatter={(v: any, n: any) => [fmt(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             {anos.map((y) => <Line key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2025' ? 3 : 2} dot={{ r: 2 }} connectNulls />)}
           </LineChart>
@@ -271,8 +271,8 @@ function Procura() {
           <BarChart data={anualData} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
             <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
-            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: number) => [fmt(v), metric === 'dormidas' ? 'Dormidas' : 'Hóspedes']} />
+            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), metric === 'dormidas' ? 'Dormidas' : 'Hóspedes']} />
             <Bar dataKey="v" radius={[4, 4, 0, 0]}>{anualData.map((d) => <Cell key={d.ano} fill={YEAR_COLORS[d.ano] || C.accent} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -306,7 +306,7 @@ function Economia() {
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} formatter={(v: number, n) => [`${v} €`, n]} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} formatter={(v: any, n: any) => [`${v} €`, n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             {['2022', '2023', '2024'].map((y) => <Line key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={2} dot={{ r: 2 }} connectNulls />)}
           </LineChart>
@@ -321,7 +321,7 @@ function Economia() {
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
               <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
-              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} formatter={(v: number) => [`${v} €`, 'ADR']} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} formatter={(v: any) => [`${v} €`, 'ADR']} />
               <Area type="monotone" dataKey="adr" stroke={C.accent} strokeWidth={2.5} fill="url(#adrg)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -406,7 +406,7 @@ function Balcao() {
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
             <YAxis yAxisId="l" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
             <YAxis yAxisId="r" orientation="right" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} formatter={(v: number, n) => [fmt(v), n]} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} formatter={(v: any, n: any) => [fmt(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar yAxisId="l" dataKey="atendimentos" name="Atendimentos" fill={C.accent} radius={[4, 4, 0, 0]} />
             <Line yAxisId="r" type="monotone" dataKey="pax" name="Pessoas (pax)" stroke={C.info} strokeWidth={2} dot={{ r: 2 }} />
@@ -457,8 +457,8 @@ function Taxa() {
           <LineChart data={mensal} margin={{ top: 6, right: 10, left: 6, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
-            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} formatter={(v: number, n) => [fmtE(v), n]} />
+            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} formatter={(v: any, n: any) => [fmtE(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             {anos.map((y) => <Line key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2026' ? 3 : 2} dot={{ r: 2 }} connectNulls />)}
           </LineChart>
@@ -473,8 +473,8 @@ function Taxa() {
           <BarChart data={totais} margin={{ top: 6, right: 8, left: 6, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
             <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
-            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: number) => [fmtE(v), 'Receita']} />
+            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmtE(v), 'Receita']} />
             <Bar dataKey="total" radius={[4, 4, 0, 0]}>{totais.map((d) => <Cell key={d.ano} fill={YEAR_COLORS[d.ano] || C.accent} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
