@@ -180,14 +180,6 @@ interface AnalysisSnapshot {
   dimensions: Record<string, number>;
 }
 
-interface ActionItem {
-  id: string;
-  text: string;
-  status: 'todo' | 'doing' | 'done';
-  assignee: string;
-  updatedAt: string;
-}
-
 interface Location {
   id: string;
   name: string;
@@ -198,19 +190,9 @@ interface Location {
   lastAnalyzed: string | null;
   coords?: [number, number];
   analysisHistory?: AnalysisSnapshot[];
-  actionItems?: ActionItem[];
 }
 
-// Equipa do Turismo do Município de Braga (responsáveis das ações)
-const TEAM = ['Hugo', 'Carla', 'Serafim', 'Mário', 'Pedro', 'Paula', 'Tiago', 'Joana', 'Cristiana', 'Carlos', 'Vítor', 'Cristina'];
-
-const ACTION_STATUS: Record<ActionItem['status'], { label: string; color: string; bg: string }> = {
-  todo: { label: 'A fazer', color: '#8b8a8f', bg: 'rgba(139,138,143,0.12)' },
-  doing: { label: 'Em curso', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
-  done: { label: 'Concluído', color: '#34d399', bg: 'rgba(52,211,153,0.12)' },
-};
-
-type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'relatorio' | 'acoes' | 'observatorio' | 'detalhe';
+type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'relatorio' | 'observatorio' | 'detalhe';
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -538,31 +520,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     }
   };
 
-  // ── Plano de ação: criar/atualizar um item numa localização (reutiliza save) ──
-  const setActionItem = (locId: string, text: string, patch: Partial<ActionItem>) => {
-    save(locations.map((l) => {
-      if (l.id !== locId) return l;
-      const items = l.actionItems ? [...l.actionItems] : [];
-      const idx = items.findIndex((a) => a.text === text);
-      if (idx >= 0) {
-        items[idx] = { ...items[idx], ...patch, updatedAt: new Date().toISOString() };
-      } else {
-        items.push({
-          id: `${locId}_${Date.now()}`,
-          text,
-          status: 'todo',
-          assignee: '',
-          updatedAt: new Date().toISOString(),
-          ...patch,
-        });
-      }
-      return { ...l, actionItems: items };
-    }));
-  };
-
-  const getActionItem = (loc: Location, text: string): ActionItem | undefined =>
-    (loc.actionItems || []).find((a) => a.text === text);
-
   // ── Share link ──
   const copyShareLink = (locId: string) => {
     if (typeof window === 'undefined') return;
@@ -674,29 +631,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
   const totalReviews = analyzed.reduce((s, l) => s + (l.analysis?.reviewCount || l.reviews.length), 0);
 
-  // ── Plano de ação: agregação de todas as sugestões acionáveis ──
-  const actionRows = analyzed.flatMap((l) =>
-    (l.analysis?.actionableInsights || []).map((text) => {
-      const item = (l.actionItems || []).find((a) => a.text === text);
-      return {
-        locId: l.id,
-        locName: l.name,
-        category: l.category,
-        score: l.analysis?.sentimentScore || 0,
-        text,
-        status: item?.status || ('todo' as ActionItem['status']),
-        assignee: item?.assignee || '',
-      };
-    })
-  );
-  const actionCounts = {
-    total: actionRows.length,
-    todo: actionRows.filter((r) => r.status === 'todo').length,
-    doing: actionRows.filter((r) => r.status === 'doing').length,
-    done: actionRows.filter((r) => r.status === 'done').length,
-  };
-  const actionProgress = actionCounts.total > 0 ? Math.round((actionCounts.done / actionCounts.total) * 100) : 0;
-
   // ── Prioridades: locais que exigem atenção (score mais baixo primeiro) ──
   const priorityLocs = [...analyzed]
     .filter((l) => (l.analysis?.sentimentScore || 10) < 7.5 || (l.analysis?.keyIssues?.length || 0) > 0)
@@ -740,7 +674,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     { id: 'locais', label: 'Locais', icon: '⊞' },
     { id: 'mapa', label: 'Mapa', icon: '◎' },
     { id: 'comparar', label: 'Comparar', icon: '⊟' },
-    { id: 'acoes', label: 'Plano de Ação', icon: '✓' },
     { id: 'relatorio', label: 'Relatório', icon: '≡' },
   ];
 
@@ -843,17 +776,30 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
     return (
       <div style={{ background: C.bg, minHeight: '100vh', color: C.text }}>
+        {/* Botão exportar PDF (escondido na impressão) */}
+        <button onClick={() => window.print()} className="no-print" style={{
+          position: 'fixed', top: 20, right: 20, zIndex: 50,
+          padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`,
+          background: C.card, color: C.accentLight, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+        }}>⬇ Guardar em PDF</button>
+
         {/* Public Header */}
         <header style={{
           background: `linear-gradient(180deg, ${C.card} 0%, ${C.bg} 100%)`,
           borderBottom: `1px solid ${C.border}`, padding: '32px 40px 28px',
           textAlign: 'center',
         }}>
-          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 64, width: 'auto', marginBottom: 20 }} />
+          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 56, width: 'auto', marginBottom: 18 }} />
+          <div style={{
+            width: 64, height: 64, borderRadius: '50%', margin: '0 auto 14px',
+            background: scoreBg(detailLoc.analysis.sentimentScore),
+            border: `2px solid ${scoreColor(detailLoc.analysis.sentimentScore)}55`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30,
+          }}>{categoryIcon(detailLoc.category)}</div>
           <div style={{ fontSize: 11, color: C.accent, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>
             Relatório de Reputação Turística
           </div>
-          <h1 style={{ fontSize: 30, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>{detailLoc.name}</h1>
+          <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>{detailLoc.name}</h1>
           <div style={{ fontSize: 13, color: C.textMuted, marginTop: 8 }}>
             {detailLoc.category} · {detailLoc.platform} · {detailLoc.analysis.reviewCount || detailLoc.reviews.length} reviews analisadas
           </div>
@@ -909,6 +855,33 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
               </div>
             )}
           </div>
+
+          {/* Evolução temporal */}
+          {detailLoc.analysisHistory && detailLoc.analysisHistory.length >= 2 && (
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 28px', marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Evolução da Reputação ao Longo do Tempo</div>
+                {(() => {
+                  const h = detailLoc.analysisHistory!;
+                  const delta = +(h[h.length - 1].score - h[0].score).toFixed(1);
+                  const col = delta > 0 ? C.positive : delta < 0 ? C.negative : C.textMuted;
+                  return <span style={{ fontSize: 13, fontWeight: 700, color: col, background: delta > 0 ? C.positiveBg : delta < 0 ? C.negativeBg : C.border, padding: '3px 12px', borderRadius: 8 }}>
+                    {delta > 0 ? '↑ +' : delta < 0 ? '↓ ' : '→ '}{delta} pts desde a 1ª análise
+                  </span>;
+                })()}
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={detailLoc.analysisHistory.map((s) => ({ label: new Date(s.date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }), score: s.score, negativo: s.negative }))} margin={{ top: 6, right: 12, left: -18, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                  <XAxis dataKey="label" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
+                  <YAxis domain={[0, 10]} stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
+                  <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: C.text }} />
+                  <Line type="monotone" dataKey="score" name="Score /10" stroke={C.accent} strokeWidth={2.5} dot={{ r: 4, fill: C.accent }} />
+                  <Line type="monotone" dataKey="negativo" name="% Negativo" stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
 
           {/* Dimensions */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 28px', marginBottom: 14 }}>
@@ -1101,50 +1074,29 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   ))}
                 </div>
 
-                {/* PRIORIDADES + PROGRESSO DO PLANO */}
-                {(priorityLocs.length > 0 || actionCounts.total > 0) && (
-                  <div style={{ display: 'grid', gridTemplateColumns: actionCounts.total > 0 ? '1.6fr 1fr' : '1fr', gap: 14, marginBottom: 14 }}>
-                    {priorityLocs.length > 0 && (
-                      <div style={{ background: C.card, border: `1px solid ${C.negative}30`, borderRadius: 12, padding: '18px 22px' }}>
-                        <div style={{ fontSize: 11, color: C.negative, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          ⚠ Prioridades de Intervenção
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {priorityLocs.map((l) => {
-                            const sc = l.analysis!.sentimentScore;
-                            const issue = l.analysis!.keyIssues?.[0];
-                            return (
-                              <div key={l.id} onClick={() => { setDetailId(l.id); setView('detalhe'); }}
-                                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: C.bg, cursor: 'pointer', border: `1px solid ${C.border}` }}>
-                                <span style={{ fontSize: 20 }}>{categoryIcon(l.category)}</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.name}</div>
-                                  {issue && <div style={{ fontSize: 11, color: C.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{issue}</div>}
-                                </div>
-                                <span style={{ fontSize: 16, fontWeight: 700, color: scoreColor(sc), background: scoreBg(sc), padding: '4px 12px', borderRadius: 8 }}>{sc}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    {actionCounts.total > 0 && (
-                      <div onClick={() => setView('acoes')} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 22px', cursor: 'pointer' }}>
-                        <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>Progresso do Plano de Ação</div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
-                          <span style={{ fontSize: 34, fontWeight: 700, color: C.positive, lineHeight: 1 }}>{actionProgress}%</span>
-                          <span style={{ fontSize: 12, color: C.textDim }}>concluído</span>
-                        </div>
-                        <div style={{ height: 8, borderRadius: 4, background: C.bg, overflow: 'hidden', marginBottom: 12, display: 'flex' }}>
-                          <div style={{ width: `${actionProgress}%`, background: C.positive }} />
-                        </div>
-                        <div style={{ display: 'flex', gap: 14, fontSize: 11, flexWrap: 'wrap' }}>
-                          <span style={{ color: ACTION_STATUS.done.color }}>● {actionCounts.done} concluídas</span>
-                          <span style={{ color: ACTION_STATUS.doing.color }}>● {actionCounts.doing} em curso</span>
-                          <span style={{ color: ACTION_STATUS.todo.color }}>● {actionCounts.todo} a fazer</span>
-                        </div>
-                      </div>
-                    )}
+                {/* PRIORIDADES DE MONITORIZAÇÃO */}
+                {priorityLocs.length > 0 && (
+                  <div style={{ background: C.card, border: `1px solid ${C.negative}30`, borderRadius: 12, padding: '18px 22px', marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: C.negative, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      ⚠ Locais a Acompanhar — menor reputação
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                      {priorityLocs.map((l) => {
+                        const sc = l.analysis!.sentimentScore;
+                        const issue = l.analysis!.keyIssues?.[0];
+                        return (
+                          <div key={l.id} onClick={() => { setDetailId(l.id); setView('detalhe'); }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: C.bg, cursor: 'pointer', border: `1px solid ${C.border}` }}>
+                            <span style={{ fontSize: 20 }}>{categoryIcon(l.category)}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.name}</div>
+                              {issue && <div style={{ fontSize: 11, color: C.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{issue}</div>}
+                            </div>
+                            <span style={{ fontSize: 16, fontWeight: 700, color: scoreColor(sc), background: scoreBg(sc), padding: '4px 12px', borderRadius: 8 }}>{sc}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
@@ -1895,92 +1847,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             reputacaoLocais={analyzed.length}
             reputacaoReviews={totalReviews}
           />
-        )}
-
-        {/* ── PLANO DE AÇÃO ── */}
-        {view === 'acoes' && (
-          <div style={{ padding: '28px 30px' }}>
-            <div style={{ marginBottom: 22 }}>
-              <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em' }}>Plano de Ação</h1>
-              <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Transforma as sugestões da IA em tarefas concretas, atribuídas à equipa e monitorizadas até à conclusão.</p>
-            </div>
-
-            {actionRows.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '70px 20px' }}>
-                <div style={{ fontSize: 48, marginBottom: 14, opacity: 0.25 }}>✓</div>
-                <p style={{ color: C.textMuted, fontSize: 14, maxWidth: 380, margin: '0 auto', lineHeight: 1.6 }}>
-                  Ainda não há sugestões acionáveis. Analisa locais com IA e as recomendações aparecem aqui prontas a atribuir.
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Resumo + barra de progresso */}
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 24px', marginBottom: 18 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                      <span style={{ fontSize: 34, fontWeight: 700, color: C.positive, lineHeight: 1 }}>{actionProgress}%</span>
-                      <span style={{ fontSize: 13, color: C.textDim }}>de {actionCounts.total} ações concluídas</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 18, fontSize: 12, flexWrap: 'wrap' }}>
-                      {(['todo', 'doing', 'done'] as const).map((s) => (
-                        <span key={s} style={{ color: ACTION_STATUS[s].color, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ width: 9, height: 9, borderRadius: '50%', background: ACTION_STATUS[s].color, display: 'inline-block' }} />
-                          {actionCounts[s]} {ACTION_STATUS[s].label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ height: 10, borderRadius: 5, background: C.bg, overflow: 'hidden', display: 'flex', gap: 1 }}>
-                    <div style={{ width: `${actionCounts.total ? (actionCounts.done / actionCounts.total) * 100 : 0}%`, background: ACTION_STATUS.done.color }} />
-                    <div style={{ width: `${actionCounts.total ? (actionCounts.doing / actionCounts.total) * 100 : 0}%`, background: ACTION_STATUS.doing.color }} />
-                  </div>
-                </div>
-
-                {/* Lista de ações agrupadas por local */}
-                {analyzed.filter((l) => (l.analysis?.actionableInsights?.length || 0) > 0).map((l) => (
-                  <div key={l.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 22px', marginBottom: 14 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, cursor: 'pointer' }} onClick={() => { setDetailId(l.id); setView('detalhe'); }}>
-                      <span style={{ fontSize: 22 }}>{categoryIcon(l.category)}</span>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{l.name}</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: scoreColor(l.analysis!.sentimentScore), background: scoreBg(l.analysis!.sentimentScore), padding: '2px 10px', borderRadius: 7 }}>{l.analysis!.sentimentScore}</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {l.analysis!.actionableInsights.map((text, idx) => {
-                        const item = getActionItem(l, text);
-                        const status = item?.status || 'todo';
-                        const assignee = item?.assignee || '';
-                        return (
-                          <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', borderRadius: 9, background: C.bg, border: `1px solid ${C.border}`, borderLeft: `3px solid ${ACTION_STATUS[status].color}` }}>
-                            <div style={{ flex: 1, fontSize: 13, color: C.text, lineHeight: 1.55, textDecoration: status === 'done' ? 'line-through' : 'none', opacity: status === 'done' ? 0.6 : 1 }}>{text}</div>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
-                              <select value={assignee} onChange={(e) => setActionItem(l.id, text, { assignee: e.target.value })}
-                                style={{ padding: '5px 8px', borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: assignee ? C.text : C.textDim, fontSize: 12, cursor: 'pointer' }}>
-                                <option value="">— Responsável</option>
-                                {TEAM.map((t) => <option key={t} value={t}>{t}</option>)}
-                              </select>
-                              <div style={{ display: 'flex', gap: 2, background: C.card, borderRadius: 7, padding: 2, border: `1px solid ${C.border}` }}>
-                                {(['todo', 'doing', 'done'] as const).map((s) => (
-                                  <button key={s} onClick={() => setActionItem(l.id, text, { status: s })}
-                                    title={ACTION_STATUS[s].label}
-                                    style={{
-                                      padding: '4px 9px', borderRadius: 5, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                                      background: status === s ? ACTION_STATUS[s].bg : 'transparent',
-                                      color: status === s ? ACTION_STATUS[s].color : C.textDim,
-                                    }}>
-                                    {ACTION_STATUS[s].label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
         )}
 
         {/* ── RELATÓRIO ── */}

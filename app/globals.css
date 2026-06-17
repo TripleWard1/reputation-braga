@@ -75,3 +75,13 @@ textarea:focus-visible {
   outline: 2px solid #c9a84c;
   outline-offset: 2px;
 }
+/* ── Impressão / Exportar PDF (página pública de relatório) ── */
+@media print {
+  .no-print { display: none !important; }
+  html, body {
+    background: #0c0e14 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  @page { margin: 12mm; }
+}

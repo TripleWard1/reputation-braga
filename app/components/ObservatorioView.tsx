@@ -17,11 +17,11 @@ const C = {
   positive: '#34d399', positiveBg: 'rgba(52,211,153,0.12)',
   negative: '#f87171', negativeBg: 'rgba(248,113,113,0.12)',
   info: '#60a5fa', purple: '#a78bfa', pink: '#f472b6', cyan: '#22d3ee', orange: '#fb923c',
-  text: '#e2e0db', textMuted: '#8b8a8f', textDim: '#4a4960',
+  text: '#e2e0db', textMuted: '#9a99a0', textDim: '#8a8c9e',
 };
 
 const YEAR_COLORS: Record<string, string> = {
-  '2019': '#4a4960', '2020': '#60a5fa', '2021': '#22d3ee',
+  '2019': '#9aa0b5', '2020': '#60a5fa', '2021': '#22d3ee',
   '2022': '#a78bfa', '2023': '#f472b6', '2024': '#fb923c',
   '2025': '#c9a84c', '2026': '#34d399',
 };
@@ -51,12 +51,53 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'balcao', label: 'Atendimento Balcão' },
     { id: 'taxa', label: 'Taxa Turística' },
   ];
+  const tabLabel = TABS.find((t) => t.id === tab)?.label || '';
+
+  const exportarPDF = () => {
+    const node = document.getElementById('obs-print-area');
+    if (!node) return;
+    const win = window.open('', '_blank', 'width=1180,height=860');
+    if (!win) { alert('Permita pop-ups para exportar o PDF.'); return; }
+    const hoje = new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' });
+    const html =
+      '<!DOCTYPE html><html lang="pt"><head><meta charset="utf-8">' +
+      '<title>Observatório de Turismo de Braga — ' + tabLabel + '</title>' +
+      '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">' +
+      '<style>' +
+      '*{box-sizing:border-box;}' +
+      'body{margin:0;font-family:"DM Sans",sans-serif;background:#0c0e14;color:#e2e0db;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+      '.brand{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:2px solid #c9a84c;}' +
+      '.brand img{height:30px;}' +
+      '.brand .meta{text-align:right;}' +
+      '.brand h1{font-size:17px;margin:0;color:#c9a84c;letter-spacing:-0.01em;}' +
+      '.brand .sub{font-size:12px;color:#9a99a0;margin-top:2px;}' +
+      '.content{padding:18px 24px;}' +
+      '.content button{display:none !important;}' +
+      '.content > div > div:first-child{break-inside:avoid;}' +
+      'footer{padding:14px 28px;border-top:1px solid #252836;font-size:10px;color:#8a8c9e;display:flex;justify-content:space-between;}' +
+      '@page{margin:12mm;}' +
+      '</style></head><body>' +
+      '<div class="brand"><img src="https://i.imgur.com/Yakcz6G.png" alt="Visit Braga">' +
+      '<div class="meta"><h1>Observatório de Turismo de Braga</h1><div class="sub">' + tabLabel + ' · ' + hoje + '</div></div></div>' +
+      '<div class="content">' + node.innerHTML + '</div>' +
+      '<footer><span>Município de Braga · Divisão de Atividades Económicas e Turismo</span>' +
+      '<span>Fontes: INE/TravelBI · Taxa Municipal Turística · Atendimento de Balcão</span></footer>' +
+      '<script>setTimeout(function(){window.focus();window.print();},700);</script>' +
+      '</body></html>';
+    win.document.open(); win.document.write(html); win.document.close();
+  };
 
   return (
     <div style={{ padding: '28px 30px' }}>
-      <div style={{ marginBottom: 18 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em', color: C.text }}>Observatório de Turismo de Braga</h1>
-        <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Análise integrada de dados reais — INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 14, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em', color: C.text }}>Observatório de Turismo de Braga</h1>
+          <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Análise integrada de dados reais — INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística</p>
+        </div>
+        <button onClick={exportarPDF} style={{
+          padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: C.accentBg,
+          color: C.accentLight, cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
+        }}>⬇ Exportar PDF</button>
       </div>
 
       {/* Sub-navegação */}
@@ -71,12 +112,14 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         ))}
       </div>
 
-      {tab === 'geral' && <Geral rep={reputacaoMedia} repL={reputacaoLocais} repR={reputacaoReviews} />}
-      {tab === 'procura' && <Procura />}
-      {tab === 'economia' && <Economia />}
-      {tab === 'mercados' && <Mercados />}
-      {tab === 'balcao' && <Balcao />}
-      {tab === 'taxa' && <Taxa />}
+      <div id="obs-print-area">
+        {tab === 'geral' && <Geral rep={reputacaoMedia} repL={reputacaoLocais} repR={reputacaoReviews} />}
+        {tab === 'procura' && <Procura />}
+        {tab === 'economia' && <Economia />}
+        {tab === 'mercados' && <Mercados />}
+        {tab === 'balcao' && <Balcao />}
+        {tab === 'taxa' && <Taxa />}
+      </div>
     </div>
   );
 }
