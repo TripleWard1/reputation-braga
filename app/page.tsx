@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type { ReactNode } from 'react';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip,
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -190,11 +191,170 @@ interface Location {
   lastAnalyzed: string | null;
   coords?: [number, number];
   analysisHistory?: AnalysisSnapshot[];
+  googleRating?: number;        // nota real do Google (0–5)
+  googleReviewCount?: number;   // nº total de reviews no Google
 }
 
-type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'relatorio' | 'observatorio' | 'detalhe';
+type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'relatorio' | 'problemas' | 'observatorio' | 'detalhe';
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
+
+// Divisão inteligente de reviews coladas: '---' → linhas em branco → uma por linha
+function splitReviewText(text: string): string[] {
+  const t = text.trim();
+  if (!t) return [];
+  if (/\n-{3,}\n/.test(t) || /^-{3,}$/m.test(t)) {
+    return t.split(/\n-{3,}\n|^-{3,}$/m).map((s) => s.trim()).filter(Boolean);
+  }
+  const blocks = t.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+  if (blocks.length > 1) return blocks;
+  return t.split(/\n/).map((s) => s.trim()).filter(Boolean);
+}
+
+// Parser CSV correto (lida com aspas e vírgulas/quebras dentro de aspas)
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [], field = '', inQ = false;
+  const s = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inQ) {
+      if (c === '"') { if (s[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else field += c;
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  return rows.filter((r) => r.some((c) => c.trim()));
+}
+
+// Coluna com texto mais longo em média (sugestão para o importador CSV)
+function suggestTextColumn(body: string[][]): number {
+  if (!body.length) return 0;
+  const cols = Math.max(...body.map((r) => r.length));
+  let best = 0, bestLen = -1;
+  for (let c = 0; c < cols; c++) {
+    const avg = body.reduce((sum, r) => sum + (r[c] || '').length, 0) / body.length;
+    if (avg > bestLen) { bestLen = avg; best = c; }
+  }
+  return best;
+}
+
+const googleTo10 = (r: number) => +(r * 2).toFixed(1);
+
+// Comparação: sentimento da IA vs nota real do Google (com divergência)
+function GoogleCompare({ loc }: { loc: Location }) {
+  if (loc.googleRating == null) return null;
+  const ai = loc.analysis?.sentimentScore ?? null;
+  const g10 = googleTo10(loc.googleRating);
+  const gap = ai != null ? +(ai - g10).toFixed(1) : null;
+  const dir = gap == null ? null : Math.abs(gap) < 1 ? 'alinhado' : gap >= 1 ? 'acima' : 'abaixo';
+  const badgeColor = dir === 'alinhado' ? C.positive : C.info;
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 24px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+      <div style={{ display: 'flex', gap: 36, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Sentimento IA</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{ fontSize: 26, fontWeight: 700, color: ai != null ? scoreColor(ai) : C.textDim }}>{ai != null ? ai : '—'}</span>
+            <span style={{ fontSize: 13, color: C.textDim }}>/10</span>
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Nota Google</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 26, fontWeight: 700, color: C.accent }}>★ {loc.googleRating}</span>
+            {loc.googleReviewCount != null && <span style={{ fontSize: 12, color: C.textMuted }}>({loc.googleReviewCount.toLocaleString('pt-PT')})</span>}
+          </div>
+        </div>
+      </div>
+      {gap != null && (
+        <div style={{ textAlign: 'right', maxWidth: 240 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: badgeColor }}>
+            {dir === 'alinhado' ? '✓ Alinhado com o Google' : `IA ${gap > 0 ? '+' : ''}${gap} face ao Google`}
+          </div>
+          <div style={{ fontSize: 10, color: C.textDim, marginTop: 3, lineHeight: 1.4 }}>
+            {dir === 'alinhado'
+              ? 'O sentimento das reviews coincide com a média de estrelas.'
+              : dir === 'acima'
+                ? 'A IA lê o conteúdo de forma mais positiva do que a estrela média sugere.'
+                : 'O conteúdo das reviews é mais crítico do que a estrela média indica.'}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ─── TAXONOMIA DE PROBLEMAS ──────────────────────────────────────────────────
+const stripAcc = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+const PROBLEM_TAXONOMY: { id: string; label: string; short: string; icon: string; kw: string[] }[] = [
+  { id: 'wc', label: 'Casas de banho / WC', short: 'WC', icon: '🚻', kw: ['wc', 'casa de banho', 'casas de banho', 'sanitario', 'banheiro', 'toilet', 'bathroom', 'restroom', 'aseo', 'bano'] },
+  { id: 'sinal', label: 'Sinalização / Informação', short: 'Sinaliz.', icon: '🪧', kw: ['sinaliz', 'sinaletica', 'indicac', 'placas', 'orientac', 'sign', 'senaliz', 'mal indicado', 'falta de informac', 'pouca informac'] },
+  { id: 'parq', label: 'Estacionamento', short: 'Estac.', icon: '🅿', kw: ['estacionamento', 'parque de estac', 'parking', 'aparcamiento', 'estacionar', 'lugares de carro'] },
+  { id: 'manut', label: 'Manutenção / Conservação', short: 'Manut.', icon: '🛠', kw: ['manutencao', 'conservacao', 'degrad', 'estragado', 'partido', 'danificad', 'mau estado', 'maintenance', 'deteriora', 'abandonad', 'obras'] },
+  { id: 'acess', label: 'Acessibilidade', short: 'Acessib.', icon: '♿', kw: ['acessibilidade', 'cadeira de rodas', 'mobilidade reduzida', 'rampa', 'wheelchair', 'accessib', 'degraus', 'escadas ingremes', 'dificil acesso'] },
+  { id: 'limp', label: 'Limpeza', short: 'Limpeza', icon: '🧹', kw: ['limpeza', 'sujo', 'sujidade', 'lixo', 'dirty', 'suciedad', 'porcaria', 'mau cheiro'] },
+  { id: 'fila', label: 'Filas / Espera', short: 'Filas', icon: '⏳', kw: ['fila', 'filas', 'espera', 'demora', 'queue', 'wait', 'cola', 'muito tempo a espera'] },
+  { id: 'preco', label: 'Preço / Custo', short: 'Preço', icon: '💶', kw: ['preco', 'caro', 'caros', 'custo elevado', 'expensive', 'overpriced', 'valor elevado'] },
+  { id: 'atend', label: 'Atendimento / Pessoal', short: 'Atend.', icon: '🙋', kw: ['atendimento', 'funcionario', 'mal-educad', 'mal educad', 'rude', 'antipatic', 'falta de simpatia', 'mau servico', 'pessoal'] },
+  { id: 'lotac', label: 'Multidão / Lotação', short: 'Lotação', icon: '👥', kw: ['multidao', 'lotacao', 'cheio de gente', 'crowd', 'lotado', 'massific', 'demasiada gente', 'muita gente'] },
+  { id: 'ruido', label: 'Ruído', short: 'Ruído', icon: '🔊', kw: ['ruido', 'barulho', 'noise', 'ruidoso'] },
+  { id: 'horario', label: 'Horários / Encerramento', short: 'Horários', icon: '🕐', kw: ['horario', 'estava fechado', 'encerrado', 'closed', 'horarios'] },
+];
+
+function classifyProblems(loc: Location): Record<string, number> {
+  const out: Record<string, number> = {};
+  const a = loc.analysis;
+  if (!a) return out;
+  const text = stripAcc([...(a.keyIssues || []), ...(a.topThemesNegative || [])].join(' . '));
+  for (const p of PROBLEM_TAXONOMY) {
+    let n = 0;
+    for (const k of p.kw) if (text.includes(stripAcc(k))) n++;
+    if (n > 0) out[p.id] = n;
+  }
+  return out;
+}
+
+const problemCellBg = (n: number) =>
+  n <= 0 ? 'transparent' : `rgba(248,113,113,${Math.min(0.16 + n * 0.22, 0.82)})`;
+
+// ─── Renderizador leve de Markdown para o relatório de IA (sem dependências) ───
+function renderInline(text: string): ReactNode[] {
+  return text.split(/\*\*/).map((p, i) => (i % 2 === 1 ? <strong key={i}>{p}</strong> : <span key={i}>{p}</span>));
+}
+function AIReportBody({ text }: { text: string }) {
+  const lines = text.split('\n');
+  const blocks: ReactNode[] = [];
+  let bullets: string[] = [];
+  const flush = () => {
+    if (bullets.length) {
+      blocks.push(
+        <ul key={`u${blocks.length}`} style={{ margin: '4px 0 14px', paddingLeft: 20 }}>
+          {bullets.map((b, i) => <li key={i} style={{ marginBottom: 5, lineHeight: 1.65, color: C.text, fontSize: 13.5 }}>{renderInline(b)}</li>)}
+        </ul>
+      );
+      bullets = [];
+    }
+  };
+  lines.forEach((raw) => {
+    const line = raw.trim();
+    if (!line) { flush(); return; }
+    if (line.startsWith('## ')) { flush(); blocks.push(<h2 key={`h${blocks.length}`} style={{ fontSize: 16, fontWeight: 700, color: C.accentLight, margin: '22px 0 10px', letterSpacing: '-0.01em' }}>{line.slice(3)}</h2>); }
+    else if (line.startsWith('### ')) { flush(); blocks.push(<h3 key={`h${blocks.length}`} style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: '16px 0 8px' }}>{line.slice(4)}</h3>); }
+    else if (line.startsWith('# ')) { flush(); blocks.push(<h2 key={`h${blocks.length}`} style={{ fontSize: 16, fontWeight: 700, color: C.accentLight, margin: '22px 0 10px' }}>{line.slice(2)}</h2>); }
+    else if (line.startsWith('- ') || line.startsWith('* ')) { bullets.push(line.slice(2)); }
+    else { flush(); blocks.push(<p key={`p${blocks.length}`} style={{ fontSize: 13.5, color: C.text, lineHeight: 1.7, margin: '0 0 10px' }}>{renderInline(line)}</p>); }
+  });
+  flush();
+  return <>{blocks}</>;
+}
 
 const scoreColor = (s: number) => (s >= 7.5 ? C.positive : s >= 5 ? C.neutral : C.negative);
 const scoreBg = (s: number) => (s >= 7.5 ? C.positiveBg : s >= 5 ? C.neutralBg : C.negativeBg);
@@ -241,14 +401,19 @@ export default function Home() {
   const [searchQ, setSearchQ] = useState('');
   const [filterCat, setFilterCat] = useState('Todos');
   const [compareIds, setCompareIds] = useState<string[]>([]);
-  const [newLoc, setNewLoc] = useState({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0], lat: '', lng: '' });
+  const [newLoc, setNewLoc] = useState({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0], lat: '', lng: '', googleRating: '', googleReviewCount: '' });
   const [reviewText, setReviewText] = useState('');
+  const [importMode, setImportMode] = useState<'texto' | 'csv'>('texto');
+  const [csvHasHeader, setCsvHasHeader] = useState(true);
+  const [csvCol, setCsvCol] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiedReport, setCopiedReport] = useState(false);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [publicMode, setPublicMode] = useState(false);
   const [reportLocId, setReportLocId] = useState<string | null>(null);
+  const [aiReport, setAiReport] = useState<string | null>(null);
+  const [genReport, setGenReport] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const locationsRef = useRef<Location[]>([]);
@@ -321,9 +486,11 @@ export default function Home() {
       analysis: null,
       lastAnalyzed: null,
       coords: manualCoords || getKnownCoords(newLoc.name) || undefined,
+      googleRating: newLoc.googleRating ? parseFloat(newLoc.googleRating) : undefined,
+      googleReviewCount: newLoc.googleReviewCount ? parseInt(newLoc.googleReviewCount.replace(/\D/g, ''), 10) : undefined,
     };
     save([...locations, loc]);
-    setNewLoc({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0], lat: '', lng: '' });
+    setNewLoc({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0], lat: '', lng: '', googleRating: '', googleReviewCount: '' });
     setShowAdd(false);
     showToast(`✓ ${loc.name} adicionado`);
   };
@@ -336,6 +503,8 @@ export default function Home() {
       platform: loc.platform,
       lat: loc.coords ? String(loc.coords[0]) : '',
       lng: loc.coords ? String(loc.coords[1]) : '',
+      googleRating: loc.googleRating != null ? String(loc.googleRating) : '',
+      googleReviewCount: loc.googleReviewCount != null ? String(loc.googleReviewCount) : '',
     });
     setShowEdit(true);
   };
@@ -353,12 +522,14 @@ export default function Home() {
             category: newLoc.category,
             platform: newLoc.platform,
             coords: manualCoords || l.coords,
+            googleRating: newLoc.googleRating ? parseFloat(newLoc.googleRating) : undefined,
+            googleReviewCount: newLoc.googleReviewCount ? parseInt(newLoc.googleReviewCount.replace(/\D/g, ''), 10) : undefined,
           }
         : l
     ));
     setShowEdit(false);
     setEditId(null);
-    setNewLoc({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0], lat: '', lng: '' });
+    setNewLoc({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0], lat: '', lng: '', googleRating: '', googleReviewCount: '' });
     showToast('✓ Local atualizado');
   };
 
@@ -372,10 +543,16 @@ export default function Home() {
 
   const addReviews = () => {
     if (!reviewText.trim() || !selId) return;
-    const parts = reviewText
-      .split(/\n---\n|^---\n|\n---$/m)
-      .map((t) => t.trim())
-      .filter(Boolean);
+    let parts: string[] = [];
+    if (importMode === 'csv') {
+      const rows = parseCSV(reviewText);
+      const body = csvHasHeader ? rows.slice(1) : rows;
+      const col = csvCol ?? suggestTextColumn(body);
+      parts = body.map((r) => (r[col] || '').trim()).filter(Boolean);
+    } else {
+      parts = splitReviewText(reviewText);
+    }
+    if (!parts.length) return;
     const newRevs: Review[] = parts.map((text) => ({
       id: `rev_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       text,
@@ -385,14 +562,108 @@ export default function Home() {
       l.id === selId ? { ...l, reviews: [...l.reviews, ...newRevs] } : l
     ));
     setReviewText('');
+    setCsvCol(null);
     setShowReview(false);
-    showToast(`✓ ${newRevs.length} review${newRevs.length !== 1 ? 's' : ''} adicionadas`);
+    showToast(`✓ ${newRevs.length} review${newRevs.length !== 1 ? 's' : ''} importada${newRevs.length !== 1 ? 's' : ''}`);
   };
 
   const deleteReview = (locId: string, reviewId: string) => {
     save(locations.map((l) =>
       l.id === locId ? { ...l, reviews: l.reviews.filter((r) => r.id !== reviewId) } : l
     ));
+  };
+
+  // ── Relatório mensal executivo escrito por IA ──
+  const generateAIReport = async () => {
+    if (analyzed.length === 0) return;
+    setGenReport(true); setError(null); setAiReport(null);
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_GROQ_KEY || '';
+      const sorted = sortedAnalyzed;
+      const avg = (analyzed.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / analyzed.length).toFixed(1);
+      const top = sorted.slice(0, 5).map((l) => `${l.name} (${l.analysis!.sentimentScore}/10)`);
+      const bottom = [...sorted].reverse().slice(0, 5).map((l) => `${l.name} (${l.analysis!.sentimentScore}/10)`);
+      const rowsP = analyzed.map((l) => ({ loc: l, probs: classifyProblems(l) })).filter((x) => Object.keys(x.probs).length > 0);
+      const probAgg = PROBLEM_TAXONOMY
+        .map((p) => ({ label: p.label, affected: rowsP.filter((x) => x.probs[p.id]).length }))
+        .filter((p) => p.affected > 0).sort((a, b) => b.affected - a.affected).slice(0, 6);
+      const problemas = probAgg.map((p) => `${p.label}: ${p.affected} ${p.affected === 1 ? 'local' : 'locais'}`);
+      const div = analyzed.filter((l) => l.googleRating != null && l.analysis)
+        .map((l) => `${l.name}: IA ${l.analysis!.sentimentScore}/10 vs Google ${l.googleRating} (${l.googleReviewCount || '?'} reviews)`).slice(0, 8);
+      const mesAno = new Date().toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+
+      const prompt = `És analista de turismo do Município de Braga. Escreve o RELATÓRIO MENSAL DE REPUTAÇÃO TURÍSTICA referente a ${mesAno}, em português de Portugal (pt-PT), com tom institucional mas claro e útil.
+
+DADOS REAIS (${analyzed.length} locais monitorizados; score médio de sentimento ${avg}/10):
+- Melhor reputação: ${top.join('; ')}
+- A acompanhar (reputação mais baixa): ${bottom.join('; ')}
+- Problemas transversais mais frequentes nas críticas: ${problemas.join('; ') || 'nenhum relevante este período'}
+- Reputação IA vs nota Google: ${div.join('; ') || 'sem dados de Google introduzidos'}
+
+ESTRUTURA OBRIGATÓRIA — usa exatamente estes títulos, cada um numa linha começada por "## ":
+## Sumário Executivo
+## Destaques do Período
+## Locais a Acompanhar
+## Problemas Transversais
+## Recomendações de Monitorização
+## Nota Metodológica
+
+REGRAS:
+- Texto corrido em parágrafos; usa bullets "- " só quando ajudar a ler.
+- A equipa MONITORIZA a reputação; as recomendações são de acompanhamento e sinalização, não de execução de obras.
+- NÃO inventes números nem locais para além dos fornecidos.
+- Na Nota Metodológica explica que a análise assenta em reviews públicas processadas por IA e em classificação automática de problemas.
+- Máximo ~600 palavras. Sem tabelas, sem backticks, sem markdown além de ## e bullets "- ".`;
+
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }] }),
+      });
+      if (!res.ok) { const e = await res.text(); throw new Error(`HTTP ${res.status} — ${e.slice(0, 200)}`); }
+      const data = await res.json();
+      const txt = data.choices?.[0]?.message?.content?.trim() || '';
+      if (!txt) throw new Error('Resposta vazia da IA.');
+      setAiReport(txt);
+      showToast('✓ Relatório mensal gerado');
+    } catch (e: any) {
+      setError(`Erro ao gerar relatório: ${e?.message || 'desconhecido'}`);
+    } finally {
+      setGenReport(false);
+    }
+  };
+
+  const exportReportPDF = () => {
+    const node = document.getElementById('ai-report-print');
+    if (!node) return;
+    const win = window.open('', '_blank', 'width=1100,height=860');
+    if (!win) { alert('Permita pop-ups para exportar o PDF.'); return; }
+    const hoje = new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' });
+    const mesAno = new Date().toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+    const html =
+      '<!DOCTYPE html><html lang="pt"><head><meta charset="utf-8">' +
+      '<title>Relatório Mensal de Reputação Turística — ' + mesAno + '</title>' +
+      '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">' +
+      '<style>' +
+      '*{box-sizing:border-box;}' +
+      'body{margin:0;font-family:"DM Sans",sans-serif;background:#0c0e14;color:#e2e0db;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+      '.brand{display:flex;align-items:center;justify-content:space-between;padding:22px 30px;border-bottom:2px solid #c9a84c;}' +
+      '.brand img{height:32px;}' +
+      '.brand .meta{text-align:right;}' +
+      '.brand h1{font-size:17px;margin:0;color:#c9a84c;letter-spacing:-0.01em;}' +
+      '.brand .sub{font-size:12px;color:#9a99a0;margin-top:2px;}' +
+      '.content{padding:24px 34px;max-width:820px;}' +
+      'footer{padding:16px 30px;border-top:1px solid #252836;font-size:10px;color:#8a8c9e;display:flex;justify-content:space-between;}' +
+      '@page{margin:14mm;}' +
+      '</style></head><body>' +
+      '<div class="brand"><img src="' + LOGO_URL + '" alt="Visit Braga">' +
+      '<div class="meta"><h1>Relatório Mensal de Reputação Turística</h1><div class="sub">' + mesAno + ' · gerado em ' + hoje + '</div></div></div>' +
+      '<div class="content">' + node.innerHTML + '</div>' +
+      '<footer><span>Município de Braga · Divisão de Atividades Económicas e Turismo</span>' +
+      '<span>Reputação Turística · análise assistida por IA</span></footer>' +
+      '<script>setTimeout(function(){window.focus();window.print();},700);</script>' +
+      '</body></html>';
+    win.document.open(); win.document.write(html); win.document.close();
   };
 
   const analyze = async (id: string) => {
@@ -674,6 +945,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     { id: 'locais', label: 'Locais', icon: '⊞' },
     { id: 'mapa', label: 'Mapa', icon: '◎' },
     { id: 'comparar', label: 'Comparar', icon: '⊟' },
+    { id: 'problemas', label: 'Problemas', icon: '▦' },
     { id: 'relatorio', label: 'Relatório', icon: '≡' },
   ];
 
@@ -842,6 +1114,9 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             </div>
           </div>
 
+          {/* Comparação com Google */}
+          <GoogleCompare loc={detailLoc} />
+
           {/* Summary */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 28px', marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Resumo Analítico</div>
@@ -875,7 +1150,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                   <XAxis dataKey="label" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
                   <YAxis domain={[0, 10]} stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
-                  <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: C.text }} />
+                  <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} />
                   <Line type="monotone" dataKey="score" name="Score /10" stroke={C.accent} strokeWidth={2.5} dot={{ r: 4, fill: C.accent }} />
                   <Line type="monotone" dataKey="negativo" name="% Negativo" stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 3 }} />
                 </LineChart>
@@ -1542,6 +1817,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   </div>
                 ) : (
                   <>
+                    <GoogleCompare loc={detailLoc} />
                     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
                       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Resumo Analítico</div>
                       <p style={{ fontSize: 14, color: C.text, lineHeight: 1.75, margin: 0 }}>{detailLoc.analysis.summaryPT}</p>
@@ -1595,6 +1871,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                                 <Tooltip
                                   contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 }}
                                   labelStyle={{ color: C.text }}
+                                  itemStyle={{ color: C.text }}
                                 />
                                 <Line type="monotone" dataKey="score" name="Score /10" stroke={C.accent} strokeWidth={2.5} dot={{ r: 4, fill: C.accent }} activeDot={{ r: 6 }} />
                                 <Line type="monotone" dataKey="negativo" name="% Negativo" stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 3 }} />
@@ -1849,6 +2126,121 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           />
         )}
 
+        {/* ── PROBLEMAS (taxonomia + mapa de calor) ── */}
+        {view === 'problemas' && (() => {
+          const rows = analyzed
+            .map((l) => ({ loc: l, probs: classifyProblems(l) }))
+            .filter((x) => Object.keys(x.probs).length > 0)
+            .sort((a, b) =>
+              Object.values(b.probs).reduce((s, n) => s + n, 0) -
+              Object.values(a.probs).reduce((s, n) => s + n, 0));
+          const agg = PROBLEM_TAXONOMY.map((p) => {
+            const affected = rows.filter((r) => r.probs[p.id]);
+            return { ...p, affected: affected.length, total: affected.reduce((s, r) => s + r.probs[p.id], 0), locs: affected.map((r) => r.loc.name) };
+          }).filter((p) => p.affected > 0).sort((a, b) => b.affected - a.affected || b.total - a.total);
+          const cols = agg;
+          const maxAff = Math.max(...agg.map((a) => a.affected), 1);
+
+          return (
+            <div style={{ padding: '28px 30px' }}>
+              <div style={{ marginBottom: 18 }}>
+                <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em' }}>Problemas da Cidade</h1>
+                <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Classificação automática das críticas em categorias fixas, agregada ao nível da cidade. Permite ver padrões transversais a vários locais.</p>
+              </div>
+
+              {rows.length === 0 ? (
+                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: 'center' }}>
+                  <p style={{ color: C.textMuted, fontSize: 14, margin: 0 }}>Ainda não há problemas classificáveis. Analisa locais com reviews para que as críticas sejam categorizadas automaticamente.</p>
+                </div>
+              ) : (
+                <>
+                  {/* KPIs rápidos */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+                    {agg.slice(0, 3).map((p, i) => (
+                      <div key={p.id} style={{ background: C.card, border: `1px solid ${i === 0 ? C.negative + '40' : C.border}`, borderRadius: 12, padding: '16px 18px' }}>
+                        <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{i === 0 ? 'Problema nº1' : `Problema nº${i + 1}`}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 22 }}>{p.icon}</span>
+                          <div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{p.label}</div>
+                            <div style={{ fontSize: 11, color: C.negative }}>afeta {p.affected} {p.affected === 1 ? 'local' : 'locais'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Ranking de problemas */}
+                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Ranking — nº de locais afetados por cada problema</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+                      {agg.map((p) => (
+                        <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '190px 1fr 130px', gap: 12, alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                            <span style={{ fontSize: 15 }}>{p.icon}</span>
+                            <span style={{ fontSize: 13, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.label}</span>
+                          </div>
+                          <div style={{ height: 18, borderRadius: 5, background: C.bg, overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ width: `${(p.affected / maxAff) * 100}%`, height: '100%', background: C.negative, opacity: 0.55, borderRadius: 5 }} />
+                          </div>
+                          <div style={{ fontSize: 11, color: C.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.locs.join(', ')}>
+                            <strong style={{ color: C.text }}>{p.affected}</strong> {p.affected === 1 ? 'local' : 'locais'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Mapa de calor problema × local */}
+                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Mapa de Calor — problema × local</div>
+                      <div style={{ fontSize: 10, color: C.textDim }}>intensidade = nº de termos que correspondem ao problema</div>
+                    </div>
+                    {/* Legenda dos ícones */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+                      {cols.map((p) => (
+                        <span key={p.id} style={{ fontSize: 10, color: C.textMuted, display: 'flex', alignItems: 'center', gap: 4 }}>{p.icon} {p.short}</span>
+                      ))}
+                    </div>
+                    <div style={{ overflowX: 'auto', paddingBottom: 6 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: `200px repeat(${cols.length}, 46px)`, gap: 3, minWidth: 'fit-content' }}>
+                        {/* Cabeçalho */}
+                        <div style={{ position: 'sticky', left: 0, background: C.card, zIndex: 1 }} />
+                        {cols.map((p) => (
+                          <div key={p.id} title={p.label} style={{ fontSize: 16, textAlign: 'center', paddingBottom: 6, cursor: 'default' }}>{p.icon}</div>
+                        ))}
+                        {/* Linhas */}
+                        {rows.map(({ loc, probs }) => (
+                          <div key={loc.id} style={{ display: 'contents' }}>
+                            <div onClick={() => { setDetailId(loc.id); setView('detalhe'); }}
+                              style={{ position: 'sticky', left: 0, background: C.card, zIndex: 1, display: 'flex', alignItems: 'center', gap: 8, paddingRight: 8, cursor: 'pointer', borderRight: `1px solid ${C.border}` }}>
+                              <span style={{ fontSize: 14, flexShrink: 0 }}>{categoryIcon(loc.category)}</span>
+                              <span style={{ fontSize: 12, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{loc.name}</span>
+                            </div>
+                            {cols.map((p) => {
+                              const n = probs[p.id] || 0;
+                              return (
+                                <div key={p.id} title={n > 0 ? `${loc.name} — ${p.label}: ${n}` : ''}
+                                  style={{ height: 34, borderRadius: 6, background: problemCellBg(n), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: n > 0 ? '#fff' : 'transparent', border: `1px solid ${n > 0 ? 'transparent' : C.border}` }}>
+                                  {n > 0 ? n : ''}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 11, color: C.textDim, margin: '14px 0 0', lineHeight: 1.5 }}>
+                      A classificação é automática, a partir dos problemas e temas negativos detetados pela IA em cada local. Clica num local para ver a análise completa. É uma leitura de padrões, não um diagnóstico fechado.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
+
         {/* ── RELATÓRIO ── */}
         {view === 'relatorio' && (
           <div style={{ padding: '28px 30px' }}>
@@ -1863,6 +2255,38 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
               </div>
             ) : (
               <>
+                {/* Relatório Mensal Executivo (IA) */}
+                <div style={{ background: C.card, border: `1px solid ${C.accent}40`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 240 }}>
+                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>✨ Relatório Mensal Executivo (IA)</div>
+                      <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>Texto escrito pela IA a partir dos dados de reputação ({analyzed.length} locais, score médio e problemas transversais), pronto a exportar com a marca Visit Braga.</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                      {aiReport && (
+                        <button onClick={exportReportPDF}
+                          style={{ padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: C.accentBg, color: C.accentLight, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                          ⬇ Exportar PDF
+                        </button>
+                      )}
+                      <button onClick={generateAIReport} disabled={genReport}
+                        style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: genReport ? C.border : C.accent, color: genReport ? C.textDim : C.bg, cursor: genReport ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {genReport ? '⏳ A gerar…' : aiReport ? '↻ Regenerar' : '✨ Gerar relatório'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {aiReport ? (
+                    <div id="ai-report-print" style={{ marginTop: 18, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '22px 26px' }}>
+                      <AIReportBody text={aiReport} />
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 16, background: C.bg, border: `1px dashed ${C.border}`, borderRadius: 10, padding: '20px 22px', fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>
+                      Clica em <strong style={{ color: C.accentLight }}>Gerar relatório</strong> para a IA redigir um sumário executivo do mês — destaques, locais a acompanhar, problemas transversais e recomendações de monitorização. Demora alguns segundos (uma chamada à IA).
+                    </div>
+                  )}
+                </div>
+
                 {/* Per-POI shareable links */}
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
@@ -2000,6 +2424,14 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   Deixa em branco para usar coords automáticas (se POI conhecido). Podes sempre arrastar no mapa para ajustar.
                 </div>
               </div>
+              <div>
+                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Google (opcional)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input value={newLoc.googleRating} onChange={(e) => setNewLoc({ ...newLoc, googleRating: e.target.value })} placeholder="Nota (ex: 4.7)" style={IS} type="number" step="0.1" min="0" max="5" />
+                  <input value={newLoc.googleReviewCount} onChange={(e) => setNewLoc({ ...newLoc, googleReviewCount: e.target.value })} placeholder="Nº reviews (ex: 37000)" style={IS} type="number" min="0" />
+                </div>
+                <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>Nota (0–5) e nº de avaliações no Google Maps. Mostra-se ao lado do score da IA, com indicador de divergência.</div>
+              </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
               <button onClick={() => setShowAdd(false)}
@@ -2059,6 +2491,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   <input value={newLoc.lng} onChange={(e) => setNewLoc({ ...newLoc, lng: e.target.value })} placeholder="Longitude" style={IS} type="number" step="0.0001" />
                 </div>
               </div>
+              <div>
+                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Google (opcional)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input value={newLoc.googleRating} onChange={(e) => setNewLoc({ ...newLoc, googleRating: e.target.value })} placeholder="Nota (ex: 4.7)" style={IS} type="number" step="0.1" min="0" max="5" />
+                  <input value={newLoc.googleReviewCount} onChange={(e) => setNewLoc({ ...newLoc, googleReviewCount: e.target.value })} placeholder="Nº reviews" style={IS} type="number" min="0" />
+                </div>
+              </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
               <button onClick={() => { setShowEdit(false); setEditId(null); }}
@@ -2081,45 +2520,105 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       )}
 
       {/* ═══ MODAL: PASTE REVIEWS ═══ */}
-      {showReview && selLoc && (
+      {showReview && selLoc && (() => {
+        const csvRows = importMode === 'csv' ? parseCSV(reviewText) : [];
+        const csvBody = csvHasHeader ? csvRows.slice(1) : csvRows;
+        const csvHeaderRow = csvHasHeader && csvRows.length ? csvRows[0] : [];
+        const effCol = csvCol ?? suggestTextColumn(csvBody);
+        const previewCount = importMode === 'csv'
+          ? csvBody.map((r) => (r[effCol] || '').trim()).filter(Boolean).length
+          : splitReviewText(reviewText).length;
+        const modeBtn = (m: 'texto' | 'csv', label: string) => (
+          <button onClick={() => { setImportMode(m); setCsvCol(null); }} style={{
+            padding: '7px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: importMode === m ? 700 : 500,
+            border: `1px solid ${importMode === m ? C.accent : C.border}`,
+            background: importMode === m ? C.accentBg : 'transparent',
+            color: importMode === m ? C.accentLight : C.textMuted,
+          }}>{label}</button>
+        );
+        return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
           onClick={() => setShowReview(false)}>
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 28, width: 560, maxWidth: '90vw' }}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 28, width: 600, maxWidth: '92vw' }}
             onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px' }}>Colar Reviews</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px' }}>Importar Reviews</h3>
             <p style={{ fontSize: 12, color: C.textMuted, margin: '0 0 16px', lineHeight: 1.5 }}>
-              <strong style={{ color: C.accent }}>{selLoc.name}</strong> — Cola todas as reviews. Cada review separada por <code style={{ background: C.border, padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>---</code> em linha própria.
+              <strong style={{ color: C.accent }}>{selLoc.name}</strong> — importação em massa por texto ou ficheiro CSV.
             </p>
-            <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={13}
-              placeholder={'Review 1 aqui...\n---\nReview 2 aqui...\n---\nReview 3 aqui...'}
-              style={{ ...IS, resize: 'vertical', lineHeight: 1.6, fontFamily: 'inherit' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, flexWrap: 'wrap', gap: 10 }}>
-              <span style={{ fontSize: 11, color: C.textDim }}>
-                {selLoc.reviews.length} review{selLoc.reviews.length !== 1 ? 's' : ''} já guardada{selLoc.reviews.length !== 1 ? 's' : ''}
-                {reviewText.trim() && (
-                  <span style={{ color: C.accent }}> + {reviewText.split(/\n---\n/).filter(Boolean).length} novas</span>
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              {modeBtn('texto', 'Colar texto')}
+              {modeBtn('csv', 'Importar CSV')}
+            </div>
+
+            {importMode === 'texto' ? (
+              <>
+                <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={12}
+                  placeholder={'Cola aqui todas as reviews.\n\nPodes separar por uma linha em branco entre cada uma,\nou por --- numa linha própria. Deteção automática.'}
+                  style={{ ...IS, resize: 'vertical', lineHeight: 1.6, fontFamily: 'inherit' }} />
+                <p style={{ fontSize: 11, color: C.textDim, margin: '6px 0 0' }}>
+                  Separadores aceites: linha em branco entre reviews, ou <code style={{ background: C.border, padding: '1px 5px', borderRadius: 4 }}>---</code>. Se nada disso existir, cada linha é uma review.
+                </p>
+              </>
+            ) : (
+              <>
+                <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={10}
+                  placeholder={'autor,nota,comentário,data\nJoão,5,"Lugar incrível, vale a pena",2025-03-01\nMaria,4,"Muito bonito mas cheio de gente",2025-03-02'}
+                  style={{ ...IS, resize: 'vertical', lineHeight: 1.5, fontFamily: 'monospace', fontSize: 12 }} />
+                {csvRows.length > 0 && (
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: C.textMuted, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={csvHasHeader} onChange={(e) => { setCsvHasHeader(e.target.checked); setCsvCol(null); }} />
+                      1ª linha é cabeçalho
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12, color: C.textMuted }}>Coluna do texto:</span>
+                      <select value={effCol} onChange={(e) => setCsvCol(parseInt(e.target.value, 10))}
+                        style={{ ...IS, width: 'auto', padding: '6px 10px', fontSize: 12 }}>
+                        {(csvRows[0] || []).map((_, idx) => (
+                          <option key={idx} value={idx}>{csvHasHeader ? (csvHeaderRow[idx] || `Coluna ${idx + 1}`) : `Coluna ${idx + 1}`}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 )}
+                {csvBody.length > 0 && (
+                  <div style={{ marginTop: 12, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px', maxHeight: 90, overflowY: 'auto' }}>
+                    <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Pré-visualização</div>
+                    {csvBody.slice(0, 3).map((r, i) => (
+                      <div key={i} style={{ fontSize: 12, color: C.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 3 }}>• {(r[effCol] || '').trim() || <em style={{ color: C.textDim }}>(vazio)</em>}</div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 10 }}>
+              <span style={{ fontSize: 11, color: C.textDim }}>
+                {selLoc.reviews.length} já guardada{selLoc.reviews.length !== 1 ? 's' : ''}
+                {previewCount > 0 && <span style={{ color: C.accent }}> · {previewCount} detetada{previewCount !== 1 ? 's' : ''} para importar</span>}
               </span>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setShowReview(false)}
                   style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 13 }}>
                   Cancelar
                 </button>
-                <button onClick={addReviews} disabled={!reviewText.trim()}
+                <button onClick={addReviews} disabled={previewCount === 0}
                   style={{
                     padding: '9px 20px', borderRadius: 8, border: 'none',
-                    background: reviewText.trim() ? C.accent : C.border,
-                    color: reviewText.trim() ? C.bg : C.textDim,
-                    cursor: reviewText.trim() ? 'pointer' : 'not-allowed',
+                    background: previewCount > 0 ? C.accent : C.border,
+                    color: previewCount > 0 ? C.bg : C.textDim,
+                    cursor: previewCount > 0 ? 'pointer' : 'not-allowed',
                     fontSize: 13, fontWeight: 600,
                   }}>
-                  Guardar Reviews
+                  Importar {previewCount > 0 ? previewCount : ''} review{previewCount !== 1 ? 's' : ''}
                 </button>
               </div>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* ═══ TOAST ═══ */}
       {toast && (
