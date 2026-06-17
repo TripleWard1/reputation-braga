@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { db } from './firebase';
 import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
-import IndicadoresView from '@/app/components/IndicadoresView';
+import ObservatorioView from '@/app/components/ObservatorioView';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -1890,7 +1890,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
         {/* ── OBSERVATÓRIO ── */}
         {view === 'observatorio' && (
-          <IndicadoresView
+          <ObservatorioView
             reputacaoMedia={avgScore}
             reputacaoLocais={analyzed.length}
             reputacaoReviews={totalReviews}
