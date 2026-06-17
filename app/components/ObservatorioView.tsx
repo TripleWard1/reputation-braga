@@ -4,11 +4,12 @@ import { useState } from 'react';
 import {
   ResponsiveContainer, ComposedChart, LineChart, BarChart, AreaChart,
   Line, Bar, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
+  PieChart, Pie,
 } from 'recharts';
 import {
   MESES, MESES_CURTO,
   DORMIDAS_BRAGA, HOSPEDES_BRAGA, DORMIDAS_ANUAL, HOSPEDES_ANUAL,
-  REVPAR_MENSAL, ADR_ANUAL, HEADLINE, INFRA, TAXA_TURISTICA, BALCAO,
+  REVPAR_MENSAL, ADR_ANUAL, HEADLINE, INFRA, TAXA_TURISTICA, BALCAO, SUSTENTABILIDADE,
 } from '@/app/lib/observatorio-dados';
 
 const C = {
@@ -27,7 +28,7 @@ const YEAR_COLORS: Record<string, string> = {
 };
 const PAL = [C.accent, C.info, C.positive, C.purple, C.pink, C.cyan, C.orange, '#f472b6'];
 
-type Tab = 'geral' | 'procura' | 'economia' | 'mercados' | 'balcao' | 'taxa';
+type Tab = 'geral' | 'procura' | 'economia' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade';
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; }
 
@@ -50,6 +51,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'mercados', label: 'Mercados' },
     { id: 'balcao', label: 'Atendimento Balcão' },
     { id: 'taxa', label: 'Taxa Turística' },
+    { id: 'sustentabilidade', label: 'Sustentabilidade' },
   ];
   const tabLabel = TABS.find((t) => t.id === tab)?.label || '';
 
@@ -119,6 +121,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'mercados' && <Mercados />}
         {tab === 'balcao' && <Balcao />}
         {tab === 'taxa' && <Taxa />}
+        {tab === 'sustentabilidade' && <Sustentabilidade />}
       </div>
     </div>
   );
@@ -474,6 +477,129 @@ function Balcao() {
 }
 
 // ─── TAXA TURÍSTICA ──────────────────────────────────────────────────────────
+// ─── SUSTENTABILIDADE ────────────────────────────────────────────────────────
+const SUS_PAL = [C.positive, C.info, C.accent, C.purple, C.pink, C.cyan];
+
+function Badge({ icon, value, label, color = C.accent, hint }: { icon: string; value: string; label: string; color?: string; hint?: string }) {
+  return (
+    <div style={{ background: C.card, border: `1px solid ${color}30`, borderRadius: 12, padding: '14px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: `${color}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, flexShrink: 0 }}>{icon}</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 19, fontWeight: 700, color, lineHeight: 1.1 }}>{value}</div>
+          <div style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.3 }}>{label}</div>
+        </div>
+      </div>
+      {hint && <div style={{ fontSize: 10, color: C.textDim, marginTop: 6 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function SectionTitle({ children, sub }: { children: React.ReactNode; sub?: string }) {
+  return (
+    <div style={{ margin: '22px 0 12px' }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: C.accentLight, letterSpacing: '-0.01em' }}>{children}</div>
+      {sub && <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function MiniPie({ data, height = 210 }: { data: [string, number][]; height?: number }) {
+  const rows = data.map(([name, value], i) => ({ name, value, fill: SUS_PAL[i % SUS_PAL.length] }));
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <PieChart>
+        <Pie data={rows} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={42} outerRadius={70} paddingAngle={2}>
+          {rows.map((r, i) => <Cell key={i} fill={r.fill} />)}
+        </Pie>
+        <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [`${v}%`, n]} />
+        <Legend wrapperStyle={{ fontSize: 11 }} />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+function Sustentabilidade() {
+  const S = SUSTENTABILIDADE;
+  const P = S.percecao; const A = S.appEco; const D = S.destino;
+  const nivelCor = (n: number) => (n >= 5 ? C.positive : n >= 3 ? C.accent : C.negative);
+
+  return (
+    <>
+      {/* Green Destinations hero */}
+      <div style={{ background: `linear-gradient(135deg, ${C.positiveBg}, ${C.card})`, border: `1px solid ${C.positive}40`, borderRadius: 14, padding: '20px 24px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ width: 54, height: 54, borderRadius: '50%', background: C.positiveBg, border: `2px solid ${C.positive}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🌿</div>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: C.positive }}>Green Destinations — Certificação {D.certificacao}</div>
+          <div style={{ fontSize: 12, color: C.textMuted }}>Monitorização da sustentabilidade turística, qualidade de vida e governação do destino · em progresso para a certificação Full</div>
+        </div>
+      </div>
+
+      {/* A) Perceção dos residentes */}
+      <SectionTitle sub={`Barómetro de Perceção dos Residentes · ${P.n} respostas · ${P.periodo}`}>Perceção dos Residentes sobre o Turismo</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 14 }}>
+        <Badge icon="👍" value={`${P.positiva}%`} label="perceção global positiva" color={C.positive} />
+        <Badge icon="💶" value={`${P.beneficiaEconomia}%`} label="o turismo beneficia a economia" color={C.accent} />
+        <Badge icon="🎭" value={`${P.valorizaCultura}%`} label="valoriza a cultura local" color={C.purple} />
+        <Badge icon="🏠" value={`${P.melhoraVida}%`} label="melhora a vida dos residentes" color={C.info} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <Card title="Sinais positivos vs tensões percebidas">
+          <HBars data={[['Beneficia a economia', P.beneficiaEconomia], ['Valoriza a cultura', P.valorizaCultura], ['Respeito pela cultura local', P.respeitaCultura], ['Melhora a vida dos residentes', P.melhoraVida]]} color={C.positive} />
+          <div style={{ height: 1, background: C.border, margin: '14px 0' }} />
+          <HBars data={[['Aumenta o custo de vida', P.custoVida], ['Impactos ambientais', P.impactosAmbientais], ['Causa sobrelotação', P.sobrelotacao], ['Não se sentem ouvidos', P.naoOuvidos]]} color={C.negative} />
+        </Card>
+        <Card title="Índice Global de Perceção do Turismo (IGPT)">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            {P.igpt.map((d) => (
+              <div key={d.dim} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.bg, borderRadius: 8, border: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 12, color: C.text }}>{d.dim}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: nivelCor(d.nivel), background: `${nivelCor(d.nivel)}1a`, padding: '3px 10px', borderRadius: 7, whiteSpace: 'nowrap' }}>{d.resultado}</span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 10, color: C.textDim, margin: '12px 0 0' }}>Governança e participação é a dimensão a reforçar: só {P.ouvidos}% sentem que são ouvidos nas decisões sobre turismo.</p>
+        </Card>
+      </div>
+
+      {/* B) Pegada do visitante — App Eco */}
+      <SectionTitle sub={`App Eco · Posto de Turismo · piloto com ${A.submissoes} submissões`}>Pegada Ambiental do Visitante</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 14 }}>
+        <Badge icon="🌍" value={`${A.pegadaMedia}`} label="kg CO₂e por visitante (pegada média)" color={C.accent} />
+        <Badge icon="♻️" value={`${A.taxaReciclagem}%`} label="dos visitantes reciclam" color={C.positive} />
+        <Badge icon="📝" value={`${A.submissoes}`} label="submissões no piloto" color={C.info} hint="amostra reduzida — projeto em arranque" />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <Card title="Meio de chegada do visitante (App Eco)"><MiniPie data={A.transporte} /></Card>
+        <Card title="Alojamento escolhido (App Eco)"><MiniPie data={A.alojamento} /></Card>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 4 }}>
+        <Card title="Nível de resíduos"><HBars data={A.residuos} color={C.positive} /></Card>
+        <Card title="Regime alimentar"><HBars data={A.dieta} color={C.accent} /></Card>
+        <Card title="Uso de climatização"><HBars data={A.climatizacao} color={C.info} /></Card>
+      </div>
+
+      {/* C) Indicadores do destino — Green Destinations TIA */}
+      <SectionTitle sub="Green Destinations — Tourism Impact Assessment Braga 2025">Indicadores de Sustentabilidade do Destino</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
+        <Badge icon="📅" value={`${D.sazonalidade}%`} label={`sazonalidade (nacional ${D.sazonalidadeNacional}%)`} color={C.positive} hint="abaixo da média nacional = mais equilibrado" />
+        <Badge icon="👥" value={`${D.turistasPorHabitante}`} label="turistas por habitante (pico)" color={C.info} />
+        <Badge icon="🚌" value={`${D.frotaVerde}%`} label="frota TUB amiga do ambiente" color={C.positive} hint={`${D.autocarrosEletricos} autocarros elétricos`} />
+        <Badge icon="💡" value={`${D.iluminacaoLED}%`} label="iluminação pública em LED" color={C.accent} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
+        <Badge icon="🍃" value={`+${D.biorresiduosVar}%`} label="biorresíduos recolhidos (2021→2023)" color={C.positive} />
+        <Badge icon="🤝" value={`>${D.economiaLocal}%`} label="economia turística gerida por locais" color={C.purple} />
+        <Badge icon="🌱" value={`${D.pegadaConcelho.toLocaleString('pt-PT')}`} label="kg CO₂e/pessoa/ano (concelho)" color={C.cyan} hint="DECO · 1.230 testes" />
+        <Badge icon="🚶" value={`${D.redePedestre} km`} label="rede de percursos pedestres" color={C.accent} hint={`+ ${D.redeCiclavel} km de ciclovias`} />
+      </div>
+      <p style={{ fontSize: 11, color: C.textDim, margin: '14px 0 0', lineHeight: 1.6 }}>
+        Fontes: Barómetro de Perceção dos Residentes 2026 (n={P.n}, amostra não probabilística), App Eco do Posto de Turismo (piloto, {A.submissoes} submissões) e Green Destinations Tourism Impact Assessment Braga 2025. Os dados da App Eco refletem uma amostra ainda reduzida e devem ser lidos como tendência inicial.
+      </p>
+    </>
+  );
+}
+
 function Taxa() {
   const [anos, setAnos] = useState<string[]>(['2023', '2024', '2025']);
   const todos = ['2021', '2022', '2023', '2024', '2025', '2026'];
