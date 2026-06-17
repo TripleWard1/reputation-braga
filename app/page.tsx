@@ -578,7 +578,6 @@ export default function Home() {
     if (analyzed.length === 0) return;
     setGenReport(true); setError(null); setAiReport(null);
     try {
-      const apiKey = process.env.NEXT_PUBLIC_GROQ_KEY || '';
       const sorted = sortedAnalyzed;
       const avg = (analyzed.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / analyzed.length).toFixed(1);
       const top = sorted.slice(0, 5).map((l) => `${l.name} (${l.analysis!.sentimentScore}/10)`);
@@ -615,9 +614,9 @@ REGRAS:
 - Na Nota Metodológica explica que a análise assenta em reviews públicas processadas por IA e em classificação automática de problemas.
 - Máximo ~600 palavras. Sem tabelas, sem backticks, sem markdown além de ## e bullets "- ".`;
 
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const res = await fetch('/api/groq', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }] }),
       });
       if (!res.ok) { const e = await res.text(); throw new Error(`HTTP ${res.status} — ${e.slice(0, 200)}`); }
@@ -672,7 +671,6 @@ REGRAS:
     setAnalyzing(id);
     setError(null);
     try {
-      const apiKey = process.env.NEXT_PUBLIC_GROQ_KEY || '';
       const CHUNK_SIZE = 20;
       const allReviews = loc.reviews;
       const chunks: typeof allReviews[] = [];
@@ -685,9 +683,9 @@ REGRAS:
       for (let i = 0; i < chunks.length; i++) {
         showToast(`A analisar bloco ${i + 1}/${chunks.length}...`);
         const chunkText = chunks[i].map((r) => r.text).join('\n---\n');
-        const partialRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const partialRes = await fetch('/api/groq', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: 'llama-3.3-70b-versatile',
             messages: [{
@@ -719,9 +717,9 @@ ${chunkText}`,
       }
 
       // ── Fase 2: síntese final em JSON ──
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const res = await fetch('/api/groq', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
           messages: [{
@@ -2634,4 +2632,4 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       )}
     </div>
   );
-} 
+}
