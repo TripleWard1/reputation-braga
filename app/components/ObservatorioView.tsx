@@ -33,9 +33,9 @@ type Tab = 'geral' | 'procura' | 'economia' | 'mercados' | 'balcao' | 'taxa' | '
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; }
 
 const fmt = (n: number | null | undefined, c = 0) =>
-  n == null || isNaN(n as number) ? '—' : (n as number).toLocaleString('pt-PT', { minimumFractionDigits: c, maximumFractionDigits: c });
+  n == null || isNaN(n as number) ? '-' : (n as number).toLocaleString('pt-PT', { minimumFractionDigits: c, maximumFractionDigits: c });
 const fmtE = (n: number | null | undefined) => {
-  if (n == null) return '—';
+  if (n == null) return '-';
   if (n >= 1e6) return `${(n / 1e6).toLocaleString('pt-PT', { maximumFractionDigits: 2 })} M€`;
   if (n >= 1e3) return `${(n / 1e3).toLocaleString('pt-PT', { maximumFractionDigits: 0 })} k€`;
   return `${fmt(n)} €`;
@@ -63,7 +63,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     const hoje = new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' });
     const html =
       '<!DOCTYPE html><html lang="pt"><head><meta charset="utf-8">' +
-      '<title>Observatório de Turismo de Braga — ' + tabLabel + '</title>' +
+      '<title>Observatório de Turismo de Braga - ' + tabLabel + '</title>' +
       '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">' +
       '<style>' +
       '*{box-sizing:border-box;}' +
@@ -94,7 +94,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 14, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em', color: C.text }}>Observatório de Turismo de Braga</h1>
-          <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Análise integrada de dados reais — INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística</p>
+          <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Análise integrada de dados reais - INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística</p>
         </div>
         <button onClick={exportarPDF} style={{
           padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: C.accentBg,
@@ -255,13 +255,13 @@ function Geral({ rep, repL, repR }: { rep?: number | null; repL?: number; repR?:
 
       <Card title="◈ Cruzamento Reputação Online × Procura Real">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-          <Cruz label="Reputação média (plataforma)" value={rep != null ? `${rep.toFixed(1)}/10` : '—'} color={C.accent} nota={`${repL ?? 0} locais · ${fmt(repR ?? 0)} reviews`} />
+          <Cruz label="Reputação média (plataforma)" value={rep != null ? `${rep.toFixed(1)}/10` : '-'} color={C.accent} nota={`${repL ?? 0} locais · ${fmt(repR ?? 0)} reviews`} />
           <Cruz label="Dormidas 2025 (INE)" value={fmt(HEADLINE.dormidas2025)} color={C.info} nota={`+${HEADLINE.dormidasVar}% homólogo`} />
           <Cruz label="Atendimentos balcão 2025" value={fmt(BALCAO['2025'].atendimentos)} color={C.positive} nota={`${fmt(BALCAO['2025'].pax)} visitantes`} />
           <Cruz label="Receita taxa 2025" value={fmtE(TAXA_TURISTICA['2025'].Total)} color={C.purple} nota="dado próprio do Município" />
         </div>
         <p style={{ fontSize: 12, color: C.textMuted, margin: '14px 0 0', lineHeight: 1.6 }}>
-          Três fontes independentes a triangular a mesma realidade: o que as pessoas <strong>dizem</strong> (reputação), onde <strong>dormem</strong> (INE + taxa) e o que <strong>procuram</strong> ao balcão. Quando a reputação de um POI âncora cai, costuma anteceder quebras na procura — e a receita da taxa permite quantificar o retorno de cada intervenção.
+          Três fontes independentes a triangular a mesma realidade: o que as pessoas <strong>dizem</strong> (reputação), onde <strong>dormem</strong> (INE + taxa) e o que <strong>procuram</strong> ao balcão. Quando a reputação de um POI âncora cai, costuma anteceder quebras na procura - e a receita da taxa permite quantificar o retorno de cada intervenção.
         </p>
       </Card>
     </>
@@ -294,7 +294,7 @@ function Procura() {
 
   return (
     <>
-      <Card title={`${metric === 'dormidas' ? 'Dormidas' : 'Hóspedes'} mensais em Braga — comparação plurianual`}
+      <Card title={`${metric === 'dormidas' ? 'Dormidas' : 'Hóspedes'} mensais em Braga - comparação plurianual`}
         right={<div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
           <Chips options={['dormidas', 'hospedes']} sel={[metric]} toggle={(o) => setMetric(o as any)} single />
           <Chips options={todosAnos} sel={anos} toggle={toggleAno} />
@@ -340,13 +340,13 @@ function Economia() {
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 14 }}>
-        <CompareBars title="RevPAR 2024 — rendimento por quarto disponível (€)" vals={HEADLINE.revpar2024} unit="€" />
-        <CompareBars title="ADR 2024 — rendimento por quarto ocupado (€)" vals={HEADLINE.adr2024} unit="€" />
+        <CompareBars title="RevPAR 2024 - rendimento por quarto disponível (€)" vals={HEADLINE.revpar2024} unit="€" />
+        <CompareBars title="ADR 2024 - rendimento por quarto ocupado (€)" vals={HEADLINE.adr2024} unit="€" />
         <CompareBars title="Taxa líquida de ocupação-quarto 2024 (%)" vals={HEADLINE.ocupQuarto} unit="%" />
         <CompareBars title="Taxa líquida de ocupação-cama 2024 (%)" vals={HEADLINE.ocupCama} unit="%" />
       </div>
 
-      <Card title="RevPAR mensal em Braga (€) — 2022 a 2024">
+      <Card title="RevPAR mensal em Braga (€) - 2022 a 2024">
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={revparData} margin={{ top: 6, right: 10, left: -14, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -360,7 +360,7 @@ function Economia() {
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 14 }}>
-        <Card title="ADR anual em Braga (€) — 2018 a 2024">
+        <Card title="ADR anual em Braga (€) - 2018 a 2024">
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={adrData} margin={{ top: 6, right: 8, left: -16, bottom: 0 }}>
               <defs><linearGradient id="adrg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.accent} stopOpacity={0.5} /><stop offset="100%" stopColor={C.accent} stopOpacity={0} /></linearGradient></defs>
@@ -394,10 +394,10 @@ function Mercados() {
         <Chips options={['2025', '2026']} sel={[ano]} toggle={(o) => setAno(o as any)} single />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={`Nacionalidades no balcão — ${ano}`}>
+        <Card title={`Nacionalidades no balcão - ${ano}`}>
           <HBars data={b.nacionalidades.slice(0, 12)} />
         </Card>
-        <Card title={`Cidades de origem dos visitantes — ${ano}`}>
+        <Card title={`Cidades de origem dos visitantes - ${ano}`}>
           <HBars data={b.cidades.slice(0, 12)} color={C.info} />
         </Card>
       </div>
@@ -431,7 +431,7 @@ function Balcao() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
         <p style={{ fontSize: 12, color: C.textMuted, margin: 0, maxWidth: 560, lineHeight: 1.5 }}>
-          Dados do Posto de Turismo — cada registo é um atendimento ao balcão. {ano === '2026' ? 'Ano em curso (até junho).' : 'Ano completo.'}
+          Dados do Posto de Turismo - cada registo é um atendimento ao balcão. {ano === '2026' ? 'Ano em curso (até junho).' : 'Ano completo.'}
         </p>
         <Chips options={['2025', '2026']} sel={[ano]} toggle={(o) => setAno(o as any)} single />
       </div>
@@ -445,7 +445,7 @@ function Balcao() {
         <KPI label="Com crianças" value={fmt(b.criancas)} color={C.pink} />
       </div>
 
-      <Card title={`Atendimentos e pessoas por mês — ${ano}`}>
+      <Card title={`Atendimentos e pessoas por mês - ${ano}`}>
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={mensal} margin={{ top: 6, right: 8, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -461,10 +461,10 @@ function Balcao() {
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={`O que procuram (interesses) — ${ano}`}><HBars data={b.interesses.slice(0, 10)} color={C.accent} /></Card>
-        <Card title={`Nacionalidades — ${ano}`}><HBars data={b.nacionalidades.slice(0, 10)} color={C.info} /></Card>
-        {b.meioChegada.length > 0 && <Card title={`Meio de chegada — ${ano}`}><HBars data={b.meioChegada} color={C.positive} /></Card>}
-        {b.alojamento.length > 0 && <Card title={`Tipo de alojamento — ${ano}`}><HBars data={b.alojamento} color={C.purple} /></Card>}
+        <Card title={`O que procuram (interesses) - ${ano}`}><HBars data={b.interesses.slice(0, 10)} color={C.accent} /></Card>
+        <Card title={`Nacionalidades - ${ano}`}><HBars data={b.nacionalidades.slice(0, 10)} color={C.info} /></Card>
+        {b.meioChegada.length > 0 && <Card title={`Meio de chegada - ${ano}`}><HBars data={b.meioChegada} color={C.positive} /></Card>}
+        {b.alojamento.length > 0 && <Card title={`Tipo de alojamento - ${ano}`}><HBars data={b.alojamento} color={C.purple} /></Card>}
       </div>
 
       {ano === '2025' && (
@@ -530,7 +530,7 @@ function Sustentabilidade() {
       <div style={{ background: `linear-gradient(135deg, ${C.positiveBg}, ${C.card})`, border: `1px solid ${C.positive}40`, borderRadius: 14, padding: '20px 24px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ width: 54, height: 54, borderRadius: '50%', background: C.positiveBg, border: `2px solid ${C.positive}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🌿</div>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: C.positive }}>Green Destinations — Certificação {D.certificacao}</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: C.positive }}>Green Destinations - Certificação {D.certificacao}</div>
           <div style={{ fontSize: 12, color: C.textMuted }}>Monitorização da sustentabilidade turística, qualidade de vida e governação do destino · em progresso para a certificação Full</div>
         </div>
       </div>
@@ -562,12 +562,12 @@ function Sustentabilidade() {
         </Card>
       </div>
 
-      {/* B) Pegada do visitante — App Eco */}
+      {/* B) Pegada do visitante - App Eco */}
       <SectionTitle sub={`App Eco · Posto de Turismo · piloto com ${A.submissoes} submissões`}>Pegada Ambiental do Visitante</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 14 }}>
         <Badge icon="🌍" value={`${A.pegadaMedia}`} label="kg CO₂e por visitante (pegada média)" color={C.accent} />
         <Badge icon="♻️" value={`${A.taxaReciclagem}%`} label="dos visitantes reciclam" color={C.positive} />
-        <Badge icon="📝" value={`${A.submissoes}`} label="submissões no piloto" color={C.info} hint="amostra reduzida — projeto em arranque" />
+        <Badge icon="📝" value={`${A.submissoes}`} label="submissões no piloto" color={C.info} hint="amostra reduzida - projeto em arranque" />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
         <Card title="Meio de chegada do visitante (App Eco)"><MiniPie data={A.transporte} /></Card>
@@ -579,8 +579,8 @@ function Sustentabilidade() {
         <Card title="Uso de climatização"><HBars data={A.climatizacao} color={C.info} /></Card>
       </div>
 
-      {/* C) Indicadores do destino — Green Destinations TIA */}
-      <SectionTitle sub="Green Destinations — Tourism Impact Assessment Braga 2025">Indicadores de Sustentabilidade do Destino</SectionTitle>
+      {/* C) Indicadores do destino - Green Destinations TIA */}
+      <SectionTitle sub="Green Destinations - Tourism Impact Assessment Braga 2025">Indicadores de Sustentabilidade do Destino</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
         <Badge icon="📅" value={`${D.sazonalidade}%`} label={`sazonalidade (nacional ${D.sazonalidadeNacional}%)`} color={C.positive} hint="abaixo da média nacional = mais equilibrado" />
         <Badge icon="👥" value={`${D.turistasPorHabitante}`} label="turistas por habitante (pico)" color={C.info} />

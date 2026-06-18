@@ -2476,12 +2476,12 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             )}
 
             {clipLoading && clipItems.length === 0 ? (
-              <div style={{ color: C.textDim, fontSize: 14, padding: '40px 0', textAlign: 'center' }}>A obter notícias para "{clipQuery}"…</div>
+              <div style={{ color: C.textDim, fontSize: 14, padding: '40px 0', textAlign: 'center' }}>A obter notícias para «{clipQuery}»…</div>
             ) : !clipLoading && clipItems.length === 0 && !clipError ? (
-              <div style={{ color: C.textDim, fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Sem resultados para "{clipQuery}".</div>
+              <div style={{ color: C.textDim, fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Sem resultados para «{clipQuery}».</div>
             ) : (
               <>
-                <div style={{ fontSize: 12, color: C.textDim, marginBottom: 12 }}>{clipItems.length} resultados para "{clipQuery}"</div>
+                <div style={{ fontSize: 12, color: C.textDim, marginBottom: 12 }}>{clipItems.length} resultados para «{clipQuery}»</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {clipItems.map((it, i) => (
                     <a key={i} href={it.link} target="_blank" rel="noopener noreferrer"
