@@ -170,6 +170,7 @@ interface Analysis {
   reviewCount: number;
   dimensions: Record<string, number>;
   marketSources?: string[];
+  marketSentiment?: { market: string; score: number; note?: string }[];
 }
 
 interface AnalysisSnapshot {
@@ -179,6 +180,7 @@ interface AnalysisSnapshot {
   negative: number;
   reviewCount: number;
   dimensions: Record<string, number>;
+  topNegative?: string[];
 }
 
 interface Location {
@@ -195,7 +197,7 @@ interface Location {
   googleReviewCount?: number;   // nº total de reviews no Google
 }
 
-type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'relatorio' | 'problemas' | 'observatorio' | 'detalhe';
+type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'relatorio' | 'problemas' | 'clipping' | 'observatorio' | 'detalhe';
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -384,6 +386,67 @@ function countTop(arr: string[], n = 8): [string, number][] {
 
 const DIMS = ['localizacao', 'servico', 'precoQualidade', 'limpeza', 'experiencia', 'acessibilidade'];
 const DIM_LABELS = ['Localização', 'Serviço', 'Preço/Qualidade', 'Limpeza', 'Experiência', 'Acessibilidade'];
+const dimLabel = (key: string) => { const i = DIMS.indexOf(key); return i >= 0 ? DIM_LABELS[i] : key; };
+
+// Tempo relativo em pt-PT a partir de uma data
+function relTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const diff = Date.now() - d.getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return 'agora mesmo';
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h} h`;
+  const dias = Math.floor(h / 24);
+  if (dias < 30) return `há ${dias} ${dias === 1 ? 'dia' : 'dias'}`;
+  return d.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// Robustez da análise em função do volume de reviews analisadas (e cobertura vs Google)
+function robustness(loc: Location): { level: string; color: string; pct: number; n: number; coverage: number | null } {
+  const n = loc.analysis?.reviewCount || loc.reviews.length;
+  const g = loc.googleReviewCount || 0;
+  let level = 'Baixa', color = '#f87171', pct = 33;
+  if (n >= 50) { level = 'Alta'; color = '#34d399'; pct = 100; }
+  else if (n >= 15) { level = 'Média'; color = '#fbbf24'; pct = 66; }
+  const coverage = g > 0 ? Math.min(100, Math.round((n / g) * 100)) : null;
+  return { level, color, pct, n, coverage };
+}
+
+// Deteção de mudanças entre a análise atual e a anterior (snapshot)
+function whatChanged(loc: Location): null | {
+  scoreDelta: number; negDelta: number;
+  dimUp: { dim: string; delta: number } | null; dimDown: { dim: string; delta: number } | null;
+  newIssues: string[]; resolvedIssues: string[]; prevDate: string;
+} {
+  const h = loc.analysisHistory;
+  if (!h || h.length < 2 || !loc.analysis) return null;
+  const prev = h[h.length - 2];
+  const cur = loc.analysis;
+  const scoreDelta = +(cur.sentimentScore - prev.score).toFixed(1);
+  const negDelta = Math.round((cur.sentimentBreakdown?.negative ?? 0) - prev.negative);
+  let dimUp: { dim: string; delta: number } | null = null;
+  let dimDown: { dim: string; delta: number } | null = null;
+  for (const k of Object.keys(cur.dimensions || {})) {
+    const pv = prev.dimensions?.[k];
+    if (pv == null) continue;
+    const d = +(cur.dimensions[k] - pv).toFixed(1);
+    if (d > 0 && (!dimUp || d > dimUp.delta)) dimUp = { dim: k, delta: d };
+    if (d < 0 && (!dimDown || d < dimDown.delta)) dimDown = { dim: k, delta: d };
+  }
+  const norm = (s: string) => s.toLowerCase().trim();
+  const prevNeg = prev.topNegative;
+  const curNeg = cur.topThemesNegative || [];
+  let newIssues: string[] = [], resolvedIssues: string[] = [];
+  if (prevNeg && prevNeg.length) {
+    const prevSet = new Set(prevNeg.map(norm));
+    const curSet = new Set(curNeg.map(norm));
+    newIssues = curNeg.filter((t) => !prevSet.has(norm(t)));
+    resolvedIssues = prevNeg.filter((t) => !curSet.has(norm(t)));
+  }
+  return { scoreDelta, negDelta, dimUp, dimDown, newIssues, resolvedIssues, prevDate: prev.date };
+}
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 
@@ -414,6 +477,13 @@ export default function Home() {
   const [reportLocId, setReportLocId] = useState<string | null>(null);
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [genReport, setGenReport] = useState(false);
+  const CLIP_PRESETS = ['turismo Braga', 'Visit Braga', 'Braga After Dark', 'Bom Jesus Braga', 'eventos Braga'];
+  const [clipQuery, setClipQuery] = useState('turismo Braga');
+  const [clipInput, setClipInput] = useState('turismo Braga');
+  const [clipItems, setClipItems] = useState<{ title: string; link: string; pubDate: string; source: string }[]>([]);
+  const [clipLoading, setClipLoading] = useState(false);
+  const [clipError, setClipError] = useState<string | null>(null);
+  const clipLoadedFor = useRef<string | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const locationsRef = useRef<Location[]>([]);
@@ -426,6 +496,34 @@ export default function Home() {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
   }, []);
+
+  // ── Clipping de notícias (Google News via rota serverless) ──
+  const loadClipping = useCallback(async (q: string) => {
+    const query = q.trim();
+    if (!query) return;
+    setClipQuery(query);
+    setClipLoading(true);
+    setClipError(null);
+    try {
+      const res = await fetch(`/api/clipping?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setClipItems(data.items || []);
+      clipLoadedFor.current = query;
+    } catch (e: any) {
+      setClipError(e?.message || 'Não foi possível obter notícias.');
+      setClipItems([]);
+    } finally {
+      setClipLoading(false);
+    }
+  }, []);
+
+  // Auto-carrega ao entrar na vista de notícias (uma vez)
+  useEffect(() => {
+    if (view === 'clipping' && clipLoadedFor.current === null && !clipLoading) {
+      loadClipping(clipQuery);
+    }
+  }, [view, clipQuery, clipLoading, loadClipping]);
 
   // ── Load from Firestore ──
   useEffect(() => {
@@ -734,6 +832,7 @@ INSTRUÇÕES:
 - O score deve refletir a realidade: 10 só se não houver NENHUMA crítica
 - O reviewCount é ${allReviews.length}
 - Lista todos os idiomas/mercados emissores identificados
+- Para cada mercado emissor relevante, estima um score de satisfação (1-10) com base no tom das reviews desse idioma/país
 
 Responde APENAS com JSON válido, sem markdown, sem backticks. Estrutura:
 {
@@ -750,7 +849,8 @@ Responde APENAS com JSON válido, sem markdown, sem backticks. Estrutura:
     "localizacao": <1-10>, "servico": <1-10>, "precoQualidade": <1-10>,
     "limpeza": <1-10>, "experiencia": <1-10>, "acessibilidade": <1-10>
   },
-  "marketSources": ["lista de idiomas/países detetados nas reviews"]
+  "marketSources": ["lista de idiomas/países detetados nas reviews"],
+  "marketSentiment": [{"market": "idioma/país", "score": <1-10>, "note": "nota muito curta sobre o que esse mercado valoriza ou critica"}]
 }
 
 Resumos parciais dos blocos:
@@ -774,6 +874,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         negative: analysis.sentimentBreakdown?.negative ?? 0,
         reviewCount: analysis.reviewCount || allReviews.length,
         dimensions: analysis.dimensions || {},
+        topNegative: analysis.topThemesNegative || [],
       };
       save(locations.map((l) =>
         l.id === id
@@ -944,6 +1045,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     { id: 'mapa', label: 'Mapa', icon: '◎' },
     { id: 'comparar', label: 'Comparar', icon: '⊟' },
     { id: 'problemas', label: 'Problemas', icon: '▦' },
+    { id: 'clipping', label: 'Notícias', icon: '◰' },
     { id: 'relatorio', label: 'Relatório', icon: '≡' },
   ];
 
@@ -1816,6 +1918,78 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 ) : (
                   <>
                     <GoogleCompare loc={detailLoc} />
+                    {(() => {
+                      const rob = robustness(detailLoc);
+                      const ch = whatChanged(detailLoc);
+                      return (
+                        <div style={{ display: 'grid', gridTemplateColumns: ch ? '300px 1fr' : '1fr', gap: 14, marginBottom: 14 }}>
+                          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px' }}>
+                            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Robustez da Análise</div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                              <span style={{ fontSize: 22, fontWeight: 700, color: rob.color }}>{rob.level}</span>
+                              <span style={{ fontSize: 12, color: C.textMuted }}>{rob.n} reviews analisadas</span>
+                            </div>
+                            <div style={{ height: 7, borderRadius: 4, background: C.bg, overflow: 'hidden', marginBottom: 8 }}>
+                              <div style={{ width: `${rob.pct}%`, height: '100%', background: rob.color }} />
+                            </div>
+                            {rob.coverage != null && (
+                              <div style={{ fontSize: 11, color: C.textMuted }}>cobertura: <strong style={{ color: C.text }}>{rob.coverage}%</strong> das {detailLoc.googleReviewCount?.toLocaleString('pt-PT')} reviews do Google</div>
+                            )}
+                            <div style={{ fontSize: 10, color: C.textDim, marginTop: 6 }}>Quanto mais reviews analisadas, mais fiável é o score.</div>
+                          </div>
+
+                          {ch && (
+                            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px' }}>
+                              <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+                                O que mudou desde a última análise <span style={{ color: C.textDim, textTransform: 'none', letterSpacing: 0 }}>· {new Date(ch.prevDate).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                              </div>
+                              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: ch.newIssues.length || ch.resolvedIssues.length ? 12 : 0 }}>
+                                <div>
+                                  <div style={{ fontSize: 10, color: C.textDim, marginBottom: 2 }}>Score</div>
+                                  <div style={{ fontSize: 16, fontWeight: 700, color: ch.scoreDelta > 0 ? C.positive : ch.scoreDelta < 0 ? C.negative : C.textMuted }}>
+                                    {ch.scoreDelta > 0 ? '↑ +' : ch.scoreDelta < 0 ? '↓ ' : '→ '}{ch.scoreDelta}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: 10, color: C.textDim, marginBottom: 2 }}>Sentimento negativo</div>
+                                  <div style={{ fontSize: 16, fontWeight: 700, color: ch.negDelta < 0 ? C.positive : ch.negDelta > 0 ? C.negative : C.textMuted }}>
+                                    {ch.negDelta > 0 ? '+' : ''}{ch.negDelta} pp
+                                  </div>
+                                </div>
+                                {ch.dimUp && (
+                                  <div>
+                                    <div style={{ fontSize: 10, color: C.textDim, marginBottom: 2 }}>Mais melhorou</div>
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: C.positive }}>{dimLabel(ch.dimUp.dim)} +{ch.dimUp.delta}</div>
+                                  </div>
+                                )}
+                                {ch.dimDown && (
+                                  <div>
+                                    <div style={{ fontSize: 10, color: C.textDim, marginBottom: 2 }}>Mais piorou</div>
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: C.negative }}>{dimLabel(ch.dimDown.dim)} {ch.dimDown.delta}</div>
+                                  </div>
+                                )}
+                              </div>
+                              {(ch.newIssues.length > 0 || ch.resolvedIssues.length > 0) && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                  {ch.newIssues.length > 0 && (
+                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                                      <span style={{ fontSize: 11, color: C.negative }}>⚠ Novos temas negativos:</span>
+                                      {ch.newIssues.map((t, i) => <span key={i} style={{ fontSize: 11, background: C.negativeBg, color: C.negative, padding: '2px 8px', borderRadius: 7 }}>{t}</span>)}
+                                    </div>
+                                  )}
+                                  {ch.resolvedIssues.length > 0 && (
+                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                                      <span style={{ fontSize: 11, color: C.positive }}>✓ Temas que deixaram de aparecer:</span>
+                                      {ch.resolvedIssues.map((t, i) => <span key={i} style={{ fontSize: 11, background: C.positiveBg, color: C.positive, padding: '2px 8px', borderRadius: 7 }}>{t}</span>)}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
                       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Resumo Analítico</div>
                       <p style={{ fontSize: 14, color: C.text, lineHeight: 1.75, margin: 0 }}>{detailLoc.analysis.summaryPT}</p>
@@ -1825,6 +1999,22 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                           {detailLoc.analysis.marketSources.map((m, i) => (
                             <span key={i} style={{ fontSize: 11, background: C.infoBg, color: C.info, padding: '2px 8px', borderRadius: 8 }}>{m}</span>
                           ))}
+                        </div>
+                      )}
+                      {detailLoc.analysis.marketSentiment && detailLoc.analysis.marketSentiment.length > 0 && (
+                        <div style={{ marginTop: 16 }}>
+                          <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Sentimento por Mercado</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
+                            {[...detailLoc.analysis.marketSentiment].sort((a, b) => b.score - a.score).map((m, i) => (
+                              <div key={i} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{m.market}</span>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(m.score), background: scoreBg(m.score), padding: '2px 9px', borderRadius: 7 }}>{m.score}</span>
+                                </div>
+                                {m.note && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 5, lineHeight: 1.4 }}>{m.note}</div>}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2238,6 +2428,81 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             </div>
           );
         })()}
+
+        {/* ── CLIPPING DE NOTÍCIAS ── */}
+        {view === 'clipping' && (
+          <div style={{ padding: '28px 30px' }}>
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: '0 0 4px' }}>Clipping de Notícias</h2>
+              <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>Menções na imprensa sobre o turismo de Braga, em tempo real (Google News).</p>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+              <input
+                value={clipInput}
+                onChange={(e) => setClipInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') loadClipping(clipInput); }}
+                placeholder="Pesquisar notícias…"
+                style={{ flex: 1, minWidth: 220, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: '11px 14px', color: C.text, fontSize: 14, outline: 'none' }}
+              />
+              <button onClick={() => loadClipping(clipInput)} disabled={clipLoading}
+                style={{ background: C.accent, color: '#1a1205', border: 'none', borderRadius: 10, padding: '0 20px', fontSize: 14, fontWeight: 600, cursor: clipLoading ? 'default' : 'pointer', opacity: clipLoading ? 0.6 : 1 }}>
+                {clipLoading ? 'A procurar…' : 'Pesquisar'}
+              </button>
+              <button onClick={() => loadClipping(clipQuery)} disabled={clipLoading} title="Atualizar"
+                style={{ background: C.card, color: C.textMuted, border: `1px solid ${C.border}`, borderRadius: 10, padding: '0 16px', fontSize: 16, cursor: clipLoading ? 'default' : 'pointer' }}>
+                ↻
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
+              {CLIP_PRESETS.map((p) => (
+                <button key={p} onClick={() => { setClipInput(p); loadClipping(p); }}
+                  style={{
+                    background: clipQuery === p ? C.accentBg : C.card,
+                    color: clipQuery === p ? C.accentLight : C.textMuted,
+                    border: `1px solid ${clipQuery === p ? C.accent + '66' : C.border}`,
+                    borderRadius: 20, padding: '6px 14px', fontSize: 12.5, cursor: 'pointer', fontWeight: clipQuery === p ? 600 : 400,
+                  }}>
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            {clipError && (
+              <div style={{ background: C.negativeBg, border: `1px solid ${C.negative}40`, borderRadius: 10, padding: '14px 16px', color: C.negative, fontSize: 13, marginBottom: 16 }}>
+                {clipError}
+              </div>
+            )}
+
+            {clipLoading && clipItems.length === 0 ? (
+              <div style={{ color: C.textDim, fontSize: 14, padding: '40px 0', textAlign: 'center' }}>A obter notícias para "{clipQuery}"…</div>
+            ) : !clipLoading && clipItems.length === 0 && !clipError ? (
+              <div style={{ color: C.textDim, fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Sem resultados para "{clipQuery}".</div>
+            ) : (
+              <>
+                <div style={{ fontSize: 12, color: C.textDim, marginBottom: 12 }}>{clipItems.length} resultados para "{clipQuery}"</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {clipItems.map((it, i) => (
+                    <a key={i} href={it.link} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'block', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 18px', textDecoration: 'none', transition: 'border-color 0.15s' }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: C.text, lineHeight: 1.4, marginBottom: 8 }}>{it.title}</div>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12, color: C.textMuted, flexWrap: 'wrap' }}>
+                        {it.source && <span style={{ color: C.accentLight, fontWeight: 600 }}>{it.source}</span>}
+                        {it.pubDate && <span>{relTime(it.pubDate)}</span>}
+                        <span style={{ color: C.textDim }}>↗ abrir</span>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <p style={{ fontSize: 11, color: C.textDim, marginTop: 22, lineHeight: 1.6 }}>
+              Fonte: Google News (RSS público, pt-PT). Os resultados refletem a indexação do Google e podem incluir fontes de qualidade variável. Usa termos específicos (ex.: aspas para expressões exatas) para afinar a pesquisa.
+            </p>
+          </div>
+        )}
 
         {/* ── RELATÓRIO ── */}
         {view === 'relatorio' && (
