@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ResponsiveContainer, ComposedChart, LineChart, BarChart, AreaChart,
   Line, Bar, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
@@ -11,6 +11,11 @@ import {
   DORMIDAS_BRAGA, HOSPEDES_BRAGA, DORMIDAS_ANUAL, HOSPEDES_ANUAL,
   REVPAR_MENSAL, ADR_ANUAL, HEADLINE, INFRA, TAXA_TURISTICA, BALCAO, SUSTENTABILIDADE,
 } from '@/app/lib/observatorio-dados';
+import { DIGITAL } from '@/app/lib/audiencia-digital-dados';
+import {
+  ACESSIBILIDADE, BALCAO_DIARIO, BALCAO_LAT, BALCAO_LON,
+  BALCAO_DIARIO_INICIO, BALCAO_DIARIO_FIM,
+} from '@/app/lib/acessibilidade-meteo-dados';
 
 const C = {
   bg: '#0c0e14', card: '#161920', cardAlt: '#1c2030', border: '#252836',
@@ -28,7 +33,7 @@ const YEAR_COLORS: Record<string, string> = {
 };
 const PAL = [C.accent, C.info, C.positive, C.purple, C.pink, C.cyan, C.orange, '#f472b6'];
 
-type Tab = 'geral' | 'procura' | 'economia' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade';
+type Tab = 'geral' | 'procura' | 'economia' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo';
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; }
 
@@ -52,6 +57,9 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'balcao', label: 'Atendimento Balcão' },
     { id: 'taxa', label: 'Taxa Turística' },
     { id: 'sustentabilidade', label: 'Sustentabilidade' },
+    { id: 'digital', label: 'Audiência Digital' },
+    { id: 'acessibilidade', label: 'Acessibilidade' },
+    { id: 'meteo', label: 'Meteorologia' },
   ];
   const tabLabel = TABS.find((t) => t.id === tab)?.label || '';
 
@@ -122,6 +130,9 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'balcao' && <Balcao />}
         {tab === 'taxa' && <Taxa />}
         {tab === 'sustentabilidade' && <Sustentabilidade />}
+        {tab === 'digital' && <Digital />}
+        {tab === 'acessibilidade' && <Acessibilidade />}
+        {tab === 'meteo' && <Meteorologia />}
       </div>
     </div>
   );
@@ -166,6 +177,23 @@ function Chips({ options, sel, toggle, single }: { options: string[]; sel: strin
   );
 }
 const tipStyle = { background: C.cardAlt, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 };
+
+function pearson(xs: number[], ys: number[]): number {
+  const n = xs.length;
+  if (n < 3) return NaN;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++) { const dx = xs[i] - mx, dy = ys[i] - my; sxy += dx * dy; sxx += dx * dx; syy += dy * dy; }
+  const den = Math.sqrt(sxx * syy);
+  return den === 0 ? NaN : sxy / den;
+}
+const corrLabel = (r: number): string => {
+  if (isNaN(r)) return '-';
+  const a = Math.abs(r);
+  const f = a < 0.2 ? 'muito fraca' : a < 0.4 ? 'fraca' : a < 0.6 ? 'moderada' : 'forte';
+  return `${r >= 0 ? '+' : ''}${r.toFixed(2)} (${f})`;
+};
 
 function HBars({ data, color }: { data: [string, number][]; color?: string }) {
   const max = Math.max(...data.map((d) => d[1]), 1);
@@ -649,5 +677,223 @@ function Taxa() {
         </ResponsiveContainer>
       </Card>
     </>
+  );
+}
+
+// ─── Audiência Digital (Google Analytics - visitbraga.travel) ───
+function Digital() {
+  const k = DIGITAL.kpis;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <SectionTitle sub={`Google Analytics · ${DIGITAL.periodo}`}>Audiência Digital - visitbraga.travel</SectionTitle>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+        <KPI label="Utilizadores" value={fmt(k.utilizadores)} color={C.accent} />
+        <KPI label="Novos utilizadores" value={fmt(k.novos)} color={C.info} />
+        <KPI label="Visualizações" value={fmt(k.visualizacoes)} color={C.positive} />
+        <KPI label="Taxa de envolvimento" value={`${k.taxaEnvolvimento.toLocaleString('pt-PT')}%`} color={C.purple} />
+        <KPI label="Tempo médio" value={`${k.tempoMedioSeg}s`} sub="por utilizador" color={C.cyan} />
+        <KPI label="Páginas / utilizador" value={k.pagsPorUtilizador.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} color={C.orange} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+        <Card title="Canais de aquisição"><MiniPie data={DIGITAL.canais} /></Card>
+        <Card title="Dispositivo"><MiniPie data={DIGITAL.dispositivos} /></Card>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+        <Card title="Top países"><HBars data={DIGITAL.paises} color={C.info} /></Card>
+        <Card title="Top idiomas"><HBars data={DIGITAL.idiomas} color={C.positive} /></Card>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+        <Card title="Top cidades"><HBars data={DIGITAL.cidades} color={C.accent} /></Card>
+        <Card title="Páginas mais vistas"><HBars data={DIGITAL.paginas} color={C.purple} /></Card>
+      </div>
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px' }}>
+        <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Leitura estratégica</div>
+        <ul style={{ margin: 0, paddingLeft: 18, color: C.text, fontSize: 13, lineHeight: 1.7 }}>
+          <li><strong>63%</strong> dos utilizadores chegam por <strong>pesquisa orgânica</strong> - reforça a prioridade da estratégia SEO/GEO para o Visit Braga.</li>
+          <li><strong>74%</strong> acede por <strong>telemóvel</strong> - a experiência mobile é determinante.</li>
+          <li>Mercados internacionais com mais tráfego: <strong>França, Espanha, China, EUA e Brasil</strong> - alinhado com os mercados emissores físicos do balcão.</li>
+          <li>Os picos de tráfego coincidem com <strong>eventos sazonais</strong> (Luzes de Natal, Passagem de Ano), que dominam as páginas mais vistas.</li>
+        </ul>
+      </div>
+
+      <p style={{ fontSize: 11, color: C.textDim, lineHeight: 1.6 }}>
+        Fonte: Google Analytics 4 (propriedade visitbraga.travel), período {DIGITAL.periodo}. As cidades resultam de deteção aproximada por IP; entradas sem cidade definida foram excluídas dos tops.
+      </p>
+    </div>
+  );
+}
+
+// ─── Acessibilidade no Atendimento (balcão) ───
+function Acessibilidade() {
+  const A = ACESSIBILIDADE;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <SectionTitle sub="Necessidades especiais registadas no balcão de turismo">Acessibilidade no Atendimento</SectionTitle>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+        <KPI label="Atendimentos registados" value={fmt(A.total)} color={C.accent} />
+        <KPI label="Pessoas abrangidas" value={fmt(A.pax)} color={C.info} />
+        <KPI label="% do total de atendimentos" value={`${A.pct.toLocaleString('pt-PT')}%`} color={C.purple} />
+      </div>
+
+      <div style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 12, padding: '16px 18px' }}>
+        <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 6 }}>⚠ Amostra reduzida - leitura cautelosa</div>
+        <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
+          O registo de necessidades especiais só começou em 2026 e está fortemente subutilizado ({A.total} em {fmt(A.totalAtendimentos)} atendimentos). Os números abaixo são um ponto de partida e não refletem a procura real. O valor deste módulo cresce com o registo sistemático no balcão - vale a pena reforçar essa prática junto da equipa de atendimento.
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+        <Card title="Por tipo de necessidade"><HBars data={A.tipos} color={C.info} /></Card>
+        <Card title="Por mês (2026)"><HBars data={A.porMes} color={C.accent} /></Card>
+      </div>
+    </div>
+  );
+}
+
+// ─── Meteorologia × Afluência (open-meteo) ───
+function Meteorologia() {
+  const [wx, setWx] = useState<Record<string, { tmax: number; precip: number }> | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const cap = new Date(); cap.setDate(cap.getDate() - 5);
+        const capStr = cap.toISOString().slice(0, 10);
+        const endDate = BALCAO_DIARIO_FIM < capStr ? BALCAO_DIARIO_FIM : capStr;
+        const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${BALCAO_LAT}&longitude=${BALCAO_LON}&start_date=${BALCAO_DIARIO_INICIO}&end_date=${endDate}&daily=temperature_2m_max,precipitation_sum&timezone=Europe%2FLisbon`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const j = await res.json();
+        const map: Record<string, { tmax: number; precip: number }> = {};
+        (j.daily.time as string[]).forEach((d, i) => {
+          map[d] = { tmax: j.daily.temperature_2m_max[i], precip: j.daily.precipitation_sum[i] };
+        });
+        if (alive) { setWx(map); setStatus('ok'); }
+      } catch (e: any) {
+        if (alive) { setErr(e?.message || 'erro'); setStatus('error'); }
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  if (status === 'loading') {
+    return <div style={{ padding: '50px 0', textAlign: 'center', color: C.textDim, fontSize: 14 }}>A obter dados meteorológicos (open-meteo)…</div>;
+  }
+  if (status === 'error' || !wx) {
+    return (
+      <div style={{ background: C.negativeBg, border: `1px solid ${C.negative}40`, borderRadius: 10, padding: '16px 18px', color: C.negative, fontSize: 13 }}>
+        Não foi possível obter os dados meteorológicos. Detalhe: {err}. A API open-meteo é gratuita e sem chave - confirma a ligação e tenta novamente.
+      </div>
+    );
+  }
+
+  const joined = BALCAO_DIARIO
+    .map(([d, n]) => { const w = wx[d]; return w ? { d, n, tmax: w.tmax, precip: w.precip, ano: +d.slice(0, 4) } : null; })
+    .filter(Boolean) as { d: string; n: number; tmax: number; precip: number; ano: number }[];
+
+  const avg = (a: { n: number }[]) => (a.length ? a.reduce((s, r) => s + r.n, 0) / a.length : 0);
+  const perYear = [2025, 2026].map((ano) => {
+    const rows = joined.filter((r) => r.ano === ano);
+    const dry = rows.filter((r) => r.precip < 1);
+    const rainy = rows.filter((r) => r.precip >= 1);
+    return {
+      ano, n: rows.length,
+      dryAvg: avg(dry), rainyAvg: avg(rainy), dryN: dry.length, rainyN: rainy.length,
+      corrTemp: pearson(rows.map((r) => r.tmax), rows.map((r) => r.n)),
+      corrPrec: pearson(rows.map((r) => r.precip), rows.map((r) => r.n)),
+    };
+  }).filter((y) => y.n > 0);
+
+  // Agregação semanal (segunda-feira) para o gráfico
+  const weeks: Record<string, { atSum: number; atN: number; tSum: number; order: number }> = {};
+  joined.forEach((r) => {
+    const dt = new Date(r.d + 'T00:00:00');
+    const off = (dt.getDay() + 6) % 7;
+    const mon = new Date(dt); mon.setDate(dt.getDate() - off);
+    const key = mon.toISOString().slice(0, 10);
+    if (!weeks[key]) weeks[key] = { atSum: 0, atN: 0, tSum: 0, order: mon.getTime() };
+    weeks[key].atSum += r.n; weeks[key].atN += 1; weeks[key].tSum += r.tmax;
+  });
+  const weekly = Object.entries(weeks).sort((a, b) => a[1].order - b[1].order).map(([key, w]) => ({
+    sem: key.slice(5).replace('-', '/'),
+    atend: Math.round(w.atSum / Math.max(w.atN, 1)),
+    temp: +(w.tSum / Math.max(w.atN, 1)).toFixed(1),
+  }));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <SectionTitle sub={`Atendimentos do balcão × meteorologia · ${BALCAO_DIARIO.length} dias`}>Meteorologia e Afluência</SectionTitle>
+
+      <div style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 12, padding: '16px 18px' }}>
+        <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 6 }}>Leitura exploratória</div>
+        <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
+          A afluência ao balcão depende sobretudo da época do ano, do dia da semana e de eventos - não só do tempo. Além disso, 2026 tem um nível de registo muito superior a 2025. Por isso a análise é feita <strong>separadamente por ano</strong> e deve ser lida como exploratória, não como prova de causa-efeito.
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+        {perYear.map((y) => {
+          const mx = Math.max(y.dryAvg, y.rainyAvg, 1);
+          return (
+            <Card key={y.ano} title={`${y.ano} · ${y.n} dias com dados`}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: C.text }}>☀ Dias secos ({y.dryN})</span>
+                    <span style={{ color: C.textMuted }}>{y.dryAvg.toFixed(1)} atend./dia</span>
+                  </div>
+                  <div style={{ height: 8, borderRadius: 4, background: C.bg, overflow: 'hidden' }}>
+                    <div style={{ width: `${(y.dryAvg / mx) * 100}%`, height: '100%', background: C.accent }} />
+                  </div>
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: C.text }}>🌧 Dias de chuva ({y.rainyN})</span>
+                    <span style={{ color: C.textMuted }}>{y.rainyAvg.toFixed(1)} atend./dia</span>
+                  </div>
+                  <div style={{ height: 8, borderRadius: 4, background: C.bg, overflow: 'hidden' }}>
+                    <div style={{ width: `${(y.rainyAvg / mx) * 100}%`, height: '100%', background: C.info }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 18, fontSize: 11.5, color: C.textMuted, marginTop: 4 }}>
+                  <span>Correlação c/ temperatura: <strong style={{ color: C.text }}>{corrLabel(y.corrTemp)}</strong></span>
+                </div>
+                <div style={{ fontSize: 11.5, color: C.textMuted }}>
+                  Correlação c/ precipitação: <strong style={{ color: C.text }}>{corrLabel(y.corrPrec)}</strong>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card title="Evolução semanal - atendimento médio vs temperatura máxima média">
+        <ResponsiveContainer width="100%" height={300}>
+          <ComposedChart data={weekly} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <CartesianGrid stroke={C.border} strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="sem" stroke={C.textDim} tick={{ fontSize: 9, fill: C.textMuted }} interval={9} />
+            <YAxis yAxisId="l" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+            <YAxis yAxisId="r" orientation="right" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${v}°`} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+              formatter={(v: any, name: any) => [name === 'temp' ? `${v}°C` : v, name === 'temp' ? 'Temp. máx. média' : 'Atend./dia (média)']} />
+            <Bar yAxisId="l" dataKey="atend" fill={C.accent} radius={[3, 3, 0, 0]} opacity={0.85} />
+            <Line yAxisId="r" dataKey="temp" stroke={C.orange} strokeWidth={2} dot={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </Card>
+
+      <p style={{ fontSize: 11, color: C.textDim, lineHeight: 1.6 }}>
+        Fonte meteorológica: open-meteo.com (arquivo histórico, gratuito, sem chave), coordenadas {BALCAO_LAT}, {BALCAO_LON}. Dia de chuva = precipitação ≥ 1 mm. Atendimento = registos do balcão por dia.
+      </p>
+    </div>
   );
 }
