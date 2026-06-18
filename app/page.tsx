@@ -1449,7 +1449,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 <div style={{ fontSize: 10.5, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 8 }}>Reputação média</div>
                 {analyzed.length > 0 ? (
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: 34, fontWeight: 700, color: scoreColor(avgScore), lineHeight: 1 }}>{avgScore.toFixed(1)}</span>
+                    <span style={{ fontSize: 34, fontWeight: 700, color: scoreColor(avgScore ?? 0), lineHeight: 1 }}>{(avgScore ?? 0).toFixed(1)}</span>
                     <span style={{ fontSize: 15, color: C.textDim }}>/10</span>
                   </div>
                 ) : (

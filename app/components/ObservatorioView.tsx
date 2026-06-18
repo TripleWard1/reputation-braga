@@ -33,14 +33,14 @@ const YEAR_COLORS: Record<string, string> = {
 };
 const PAL = [C.accent, C.info, C.positive, C.purple, C.pink, C.cyan, C.orange, '#f472b6'];
 
-type Tab = 'geral' | 'procura' | 'economia' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo';
+type Tab = 'geral' | 'procura' | 'economia' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'cruzamentos';
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; }
 
 const fmt = (n: number | null | undefined, c = 0) =>
-  n == null || isNaN(n as number) ? '-' : (n as number).toLocaleString('pt-PT', { minimumFractionDigits: c, maximumFractionDigits: c });
+  n == null || isNaN(n as number) ? '—' : (n as number).toLocaleString('pt-PT', { minimumFractionDigits: c, maximumFractionDigits: c });
 const fmtE = (n: number | null | undefined) => {
-  if (n == null) return '-';
+  if (n == null) return '—';
   if (n >= 1e6) return `${(n / 1e6).toLocaleString('pt-PT', { maximumFractionDigits: 2 })} M€`;
   if (n >= 1e3) return `${(n / 1e3).toLocaleString('pt-PT', { maximumFractionDigits: 0 })} k€`;
   return `${fmt(n)} €`;
@@ -60,6 +60,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'digital', label: 'Audiência Digital' },
     { id: 'acessibilidade', label: 'Acessibilidade' },
     { id: 'meteo', label: 'Meteorologia' },
+    { id: 'cruzamentos', label: 'Cruzamentos' },
   ];
   const tabLabel = TABS.find((t) => t.id === tab)?.label || '';
 
@@ -71,7 +72,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     const hoje = new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' });
     const html =
       '<!DOCTYPE html><html lang="pt"><head><meta charset="utf-8">' +
-      '<title>Observatório de Turismo de Braga - ' + tabLabel + '</title>' +
+      '<title>Observatório de Turismo de Braga — ' + tabLabel + '</title>' +
       '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">' +
       '<style>' +
       '*{box-sizing:border-box;}' +
@@ -102,7 +103,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 14, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em', color: C.text }}>Observatório de Turismo de Braga</h1>
-          <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Análise integrada de dados reais - INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística</p>
+          <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Análise integrada de dados reais — INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística</p>
         </div>
         <button onClick={exportarPDF} style={{
           padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: C.accentBg,
@@ -133,6 +134,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'digital' && <Digital />}
         {tab === 'acessibilidade' && <Acessibilidade />}
         {tab === 'meteo' && <Meteorologia />}
+        {tab === 'cruzamentos' && <Cruzamentos />}
       </div>
     </div>
   );
@@ -189,7 +191,7 @@ function pearson(xs: number[], ys: number[]): number {
   return den === 0 ? NaN : sxy / den;
 }
 const corrLabel = (r: number): string => {
-  if (isNaN(r)) return '-';
+  if (isNaN(r)) return '—';
   const a = Math.abs(r);
   const f = a < 0.2 ? 'muito fraca' : a < 0.4 ? 'fraca' : a < 0.6 ? 'moderada' : 'forte';
   return `${r >= 0 ? '+' : ''}${r.toFixed(2)} (${f})`;
@@ -283,13 +285,13 @@ function Geral({ rep, repL, repR }: { rep?: number | null; repL?: number; repR?:
 
       <Card title="◈ Cruzamento Reputação Online × Procura Real">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-          <Cruz label="Reputação média (plataforma)" value={rep != null ? `${rep.toFixed(1)}/10` : '-'} color={C.accent} nota={`${repL ?? 0} locais · ${fmt(repR ?? 0)} reviews`} />
+          <Cruz label="Reputação média (plataforma)" value={rep != null ? `${rep.toFixed(1)}/10` : '—'} color={C.accent} nota={`${repL ?? 0} locais · ${fmt(repR ?? 0)} reviews`} />
           <Cruz label="Dormidas 2025 (INE)" value={fmt(HEADLINE.dormidas2025)} color={C.info} nota={`+${HEADLINE.dormidasVar}% homólogo`} />
           <Cruz label="Atendimentos balcão 2025" value={fmt(BALCAO['2025'].atendimentos)} color={C.positive} nota={`${fmt(BALCAO['2025'].pax)} visitantes`} />
           <Cruz label="Receita taxa 2025" value={fmtE(TAXA_TURISTICA['2025'].Total)} color={C.purple} nota="dado próprio do Município" />
         </div>
         <p style={{ fontSize: 12, color: C.textMuted, margin: '14px 0 0', lineHeight: 1.6 }}>
-          Três fontes independentes a triangular a mesma realidade: o que as pessoas <strong>dizem</strong> (reputação), onde <strong>dormem</strong> (INE + taxa) e o que <strong>procuram</strong> ao balcão. Quando a reputação de um POI âncora cai, costuma anteceder quebras na procura - e a receita da taxa permite quantificar o retorno de cada intervenção.
+          Três fontes independentes a triangular a mesma realidade: o que as pessoas <strong>dizem</strong> (reputação), onde <strong>dormem</strong> (INE + taxa) e o que <strong>procuram</strong> ao balcão. Quando a reputação de um POI âncora cai, costuma anteceder quebras na procura — e a receita da taxa permite quantificar o retorno de cada intervenção.
         </p>
       </Card>
     </>
@@ -322,7 +324,7 @@ function Procura() {
 
   return (
     <>
-      <Card title={`${metric === 'dormidas' ? 'Dormidas' : 'Hóspedes'} mensais em Braga - comparação plurianual`}
+      <Card title={`${metric === 'dormidas' ? 'Dormidas' : 'Hóspedes'} mensais em Braga — comparação plurianual`}
         right={<div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
           <Chips options={['dormidas', 'hospedes']} sel={[metric]} toggle={(o) => setMetric(o as any)} single />
           <Chips options={todosAnos} sel={anos} toggle={toggleAno} />
@@ -368,13 +370,13 @@ function Economia() {
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 14 }}>
-        <CompareBars title="RevPAR 2024 - rendimento por quarto disponível (€)" vals={HEADLINE.revpar2024} unit="€" />
-        <CompareBars title="ADR 2024 - rendimento por quarto ocupado (€)" vals={HEADLINE.adr2024} unit="€" />
+        <CompareBars title="RevPAR 2024 — rendimento por quarto disponível (€)" vals={HEADLINE.revpar2024} unit="€" />
+        <CompareBars title="ADR 2024 — rendimento por quarto ocupado (€)" vals={HEADLINE.adr2024} unit="€" />
         <CompareBars title="Taxa líquida de ocupação-quarto 2024 (%)" vals={HEADLINE.ocupQuarto} unit="%" />
         <CompareBars title="Taxa líquida de ocupação-cama 2024 (%)" vals={HEADLINE.ocupCama} unit="%" />
       </div>
 
-      <Card title="RevPAR mensal em Braga (€) - 2022 a 2024">
+      <Card title="RevPAR mensal em Braga (€) — 2022 a 2024">
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={revparData} margin={{ top: 6, right: 10, left: -14, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -388,7 +390,7 @@ function Economia() {
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 14 }}>
-        <Card title="ADR anual em Braga (€) - 2018 a 2024">
+        <Card title="ADR anual em Braga (€) — 2018 a 2024">
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={adrData} margin={{ top: 6, right: 8, left: -16, bottom: 0 }}>
               <defs><linearGradient id="adrg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.accent} stopOpacity={0.5} /><stop offset="100%" stopColor={C.accent} stopOpacity={0} /></linearGradient></defs>
@@ -422,10 +424,10 @@ function Mercados() {
         <Chips options={['2025', '2026']} sel={[ano]} toggle={(o) => setAno(o as any)} single />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={`Nacionalidades no balcão - ${ano}`}>
+        <Card title={`Nacionalidades no balcão — ${ano}`}>
           <HBars data={b.nacionalidades.slice(0, 12)} />
         </Card>
-        <Card title={`Cidades de origem dos visitantes - ${ano}`}>
+        <Card title={`Cidades de origem dos visitantes — ${ano}`}>
           <HBars data={b.cidades.slice(0, 12)} color={C.info} />
         </Card>
       </div>
@@ -459,7 +461,7 @@ function Balcao() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
         <p style={{ fontSize: 12, color: C.textMuted, margin: 0, maxWidth: 560, lineHeight: 1.5 }}>
-          Dados do Posto de Turismo - cada registo é um atendimento ao balcão. {ano === '2026' ? 'Ano em curso (até junho).' : 'Ano completo.'}
+          Dados do Posto de Turismo — cada registo é um atendimento ao balcão. {ano === '2026' ? 'Ano em curso (até junho).' : 'Ano completo.'}
         </p>
         <Chips options={['2025', '2026']} sel={[ano]} toggle={(o) => setAno(o as any)} single />
       </div>
@@ -473,7 +475,7 @@ function Balcao() {
         <KPI label="Com crianças" value={fmt(b.criancas)} color={C.pink} />
       </div>
 
-      <Card title={`Atendimentos e pessoas por mês - ${ano}`}>
+      <Card title={`Atendimentos e pessoas por mês — ${ano}`}>
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={mensal} margin={{ top: 6, right: 8, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -489,10 +491,10 @@ function Balcao() {
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={`O que procuram (interesses) - ${ano}`}><HBars data={b.interesses.slice(0, 10)} color={C.accent} /></Card>
-        <Card title={`Nacionalidades - ${ano}`}><HBars data={b.nacionalidades.slice(0, 10)} color={C.info} /></Card>
-        {b.meioChegada.length > 0 && <Card title={`Meio de chegada - ${ano}`}><HBars data={b.meioChegada} color={C.positive} /></Card>}
-        {b.alojamento.length > 0 && <Card title={`Tipo de alojamento - ${ano}`}><HBars data={b.alojamento} color={C.purple} /></Card>}
+        <Card title={`O que procuram (interesses) — ${ano}`}><HBars data={b.interesses.slice(0, 10)} color={C.accent} /></Card>
+        <Card title={`Nacionalidades — ${ano}`}><HBars data={b.nacionalidades.slice(0, 10)} color={C.info} /></Card>
+        {b.meioChegada.length > 0 && <Card title={`Meio de chegada — ${ano}`}><HBars data={b.meioChegada} color={C.positive} /></Card>}
+        {b.alojamento.length > 0 && <Card title={`Tipo de alojamento — ${ano}`}><HBars data={b.alojamento} color={C.purple} /></Card>}
       </div>
 
       {ano === '2025' && (
@@ -558,7 +560,7 @@ function Sustentabilidade() {
       <div style={{ background: `linear-gradient(135deg, ${C.positiveBg}, ${C.card})`, border: `1px solid ${C.positive}40`, borderRadius: 14, padding: '20px 24px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ width: 54, height: 54, borderRadius: '50%', background: C.positiveBg, border: `2px solid ${C.positive}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🌿</div>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: C.positive }}>Green Destinations - Certificação {D.certificacao}</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: C.positive }}>Green Destinations — Certificação {D.certificacao}</div>
           <div style={{ fontSize: 12, color: C.textMuted }}>Monitorização da sustentabilidade turística, qualidade de vida e governação do destino · em progresso para a certificação Full</div>
         </div>
       </div>
@@ -590,12 +592,12 @@ function Sustentabilidade() {
         </Card>
       </div>
 
-      {/* B) Pegada do visitante - App Eco */}
+      {/* B) Pegada do visitante — App Eco */}
       <SectionTitle sub={`App Eco · Posto de Turismo · piloto com ${A.submissoes} submissões`}>Pegada Ambiental do Visitante</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 14 }}>
         <Badge icon="🌍" value={`${A.pegadaMedia}`} label="kg CO₂e por visitante (pegada média)" color={C.accent} />
         <Badge icon="♻️" value={`${A.taxaReciclagem}%`} label="dos visitantes reciclam" color={C.positive} />
-        <Badge icon="📝" value={`${A.submissoes}`} label="submissões no piloto" color={C.info} hint="amostra reduzida - projeto em arranque" />
+        <Badge icon="📝" value={`${A.submissoes}`} label="submissões no piloto" color={C.info} hint="amostra reduzida — projeto em arranque" />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
         <Card title="Meio de chegada do visitante (App Eco)"><MiniPie data={A.transporte} /></Card>
@@ -607,8 +609,8 @@ function Sustentabilidade() {
         <Card title="Uso de climatização"><HBars data={A.climatizacao} color={C.info} /></Card>
       </div>
 
-      {/* C) Indicadores do destino - Green Destinations TIA */}
-      <SectionTitle sub="Green Destinations - Tourism Impact Assessment Braga 2025">Indicadores de Sustentabilidade do Destino</SectionTitle>
+      {/* C) Indicadores do destino — Green Destinations TIA */}
+      <SectionTitle sub="Green Destinations — Tourism Impact Assessment Braga 2025">Indicadores de Sustentabilidade do Destino</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
         <Badge icon="📅" value={`${D.sazonalidade}%`} label={`sazonalidade (nacional ${D.sazonalidadeNacional}%)`} color={C.positive} hint="abaixo da média nacional = mais equilibrado" />
         <Badge icon="👥" value={`${D.turistasPorHabitante}`} label="turistas por habitante (pico)" color={C.info} />
@@ -680,12 +682,12 @@ function Taxa() {
   );
 }
 
-// ─── Audiência Digital (Google Analytics - visitbraga.travel) ───
+// ─── Audiência Digital (Google Analytics — visitbraga.travel) ───
 function Digital() {
   const k = DIGITAL.kpis;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <SectionTitle sub={`Google Analytics · ${DIGITAL.periodo}`}>Audiência Digital - visitbraga.travel</SectionTitle>
+      <SectionTitle sub={`Google Analytics · ${DIGITAL.periodo}`}>Audiência Digital — visitbraga.travel</SectionTitle>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
         <KPI label="Utilizadores" value={fmt(k.utilizadores)} color={C.accent} />
@@ -714,9 +716,9 @@ function Digital() {
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px' }}>
         <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Leitura estratégica</div>
         <ul style={{ margin: 0, paddingLeft: 18, color: C.text, fontSize: 13, lineHeight: 1.7 }}>
-          <li><strong>63%</strong> dos utilizadores chegam por <strong>pesquisa orgânica</strong> - reforça a prioridade da estratégia SEO/GEO para o Visit Braga.</li>
-          <li><strong>74%</strong> acede por <strong>telemóvel</strong> - a experiência mobile é determinante.</li>
-          <li>Mercados internacionais com mais tráfego: <strong>França, Espanha, China, EUA e Brasil</strong> - alinhado com os mercados emissores físicos do balcão.</li>
+          <li><strong>63%</strong> dos utilizadores chegam por <strong>pesquisa orgânica</strong> — reforça a prioridade da estratégia SEO/GEO para o Visit Braga.</li>
+          <li><strong>74%</strong> acede por <strong>telemóvel</strong> — a experiência mobile é determinante.</li>
+          <li>Mercados internacionais com mais tráfego: <strong>França, Espanha, China, EUA e Brasil</strong> — alinhado com os mercados emissores físicos do balcão.</li>
           <li>Os picos de tráfego coincidem com <strong>eventos sazonais</strong> (Luzes de Natal, Passagem de Ano), que dominam as páginas mais vistas.</li>
         </ul>
       </div>
@@ -742,9 +744,9 @@ function Acessibilidade() {
       </div>
 
       <div style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 12, padding: '16px 18px' }}>
-        <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 6 }}>⚠ Amostra reduzida - leitura cautelosa</div>
+        <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 6 }}>⚠ Amostra reduzida — leitura cautelosa</div>
         <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
-          O registo de necessidades especiais só começou em 2026 e está fortemente subutilizado ({A.total} em {fmt(A.totalAtendimentos)} atendimentos). Os números abaixo são um ponto de partida e não refletem a procura real. O valor deste módulo cresce com o registo sistemático no balcão - vale a pena reforçar essa prática junto da equipa de atendimento.
+          O registo de necessidades especiais só começou em 2026 e está fortemente subutilizado ({A.total} em {fmt(A.totalAtendimentos)} atendimentos). Os números abaixo são um ponto de partida e não refletem a procura real. O valor deste módulo cresce com o registo sistemático no balcão — vale a pena reforçar essa prática junto da equipa de atendimento.
         </div>
       </div>
 
@@ -791,7 +793,7 @@ function Meteorologia() {
   if (status === 'error' || !wx) {
     return (
       <div style={{ background: C.negativeBg, border: `1px solid ${C.negative}40`, borderRadius: 10, padding: '16px 18px', color: C.negative, fontSize: 13 }}>
-        Não foi possível obter os dados meteorológicos. Detalhe: {err}. A API open-meteo é gratuita e sem chave - confirma a ligação e tenta novamente.
+        Não foi possível obter os dados meteorológicos. Detalhe: {err}. A API open-meteo é gratuita e sem chave — confirma a ligação e tenta novamente.
       </div>
     );
   }
@@ -836,7 +838,7 @@ function Meteorologia() {
       <div style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 12, padding: '16px 18px' }}>
         <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 6 }}>Leitura exploratória</div>
         <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
-          A afluência ao balcão depende sobretudo da época do ano, do dia da semana e de eventos - não só do tempo. Além disso, 2026 tem um nível de registo muito superior a 2025. Por isso a análise é feita <strong>separadamente por ano</strong> e deve ser lida como exploratória, não como prova de causa-efeito.
+          A afluência ao balcão depende sobretudo da época do ano, do dia da semana e de eventos — não só do tempo. Além disso, 2026 tem um nível de registo muito superior a 2025. Por isso a análise é feita <strong>separadamente por ano</strong> e deve ser lida como exploratória, não como prova de causa-efeito.
         </div>
       </div>
 
@@ -876,7 +878,7 @@ function Meteorologia() {
         })}
       </div>
 
-      <Card title="Evolução semanal - atendimento médio vs temperatura máxima média">
+      <Card title="Evolução semanal — atendimento médio vs temperatura máxima média">
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={weekly} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid stroke={C.border} strokeDasharray="3 3" vertical={false} />
@@ -893,6 +895,99 @@ function Meteorologia() {
 
       <p style={{ fontSize: 11, color: C.textDim, lineHeight: 1.6 }}>
         Fonte meteorológica: open-meteo.com (arquivo histórico, gratuito, sem chave), coordenadas {BALCAO_LAT}, {BALCAO_LON}. Dia de chuva = precipitação ≥ 1 mm. Atendimento = registos do balcão por dia.
+      </p>
+    </div>
+  );
+}
+
+// ─── Cruzamentos de dados (físico × digital × INE) ───
+function Cruzamentos() {
+  const canon = (s: string) => (s === 'Estados Unidos' ? 'EUA' : s);
+  const bal: [string, number][] = (BALCAO['2026'].nacionalidades as [string, number][])
+    .map(([c, n]) => [canon(c), n] as [string, number]).filter(([c]) => c !== 'Portugal');
+  const dig: [string, number][] = DIGITAL.paises
+    .map(([c, n]) => [canon(c), n] as [string, number]).filter(([c]) => c !== 'Portugal');
+  const balTotal = bal.reduce((s, [, n]) => s + n, 0) || 1;
+  const digTotal = dig.reduce((s, [, n]) => s + n, 0) || 1;
+  const balMap: Record<string, number> = {}; bal.forEach(([c, n]) => { balMap[c] = (n / balTotal) * 100; });
+  const digMap: Record<string, number> = {}; dig.forEach(([c, n]) => { digMap[c] = (n / digTotal) * 100; });
+  const ineRank: Record<string, number> = {}; HEADLINE.mercados2025.forEach((c, i) => { ineRank[canon(c)] = i + 1; });
+
+  const markets = Array.from(new Set([...Object.keys(balMap), ...Object.keys(digMap)]));
+  const rows = markets.map((m) => ({
+    m, bal: balMap[m] || 0, dig: digMap[m] || 0, ine: ineRank[m] || null, gap: (digMap[m] || 0) - (balMap[m] || 0),
+  })).sort((a, b) => (b.bal + b.dig) - (a.bal + a.dig)).slice(0, 12);
+  const maxShare = Math.max(...rows.map((r) => Math.max(r.bal, r.dig)), 1);
+  const digitalOver = [...rows].filter((r) => r.gap > 3).sort((a, b) => b.gap - a.gap).slice(0, 3);
+  const fisicoOver = [...rows].filter((r) => r.gap < -3).sort((a, b) => a.gap - b.gap).slice(0, 3);
+  const dot = (cor: string) => ({ display: 'inline-block', width: 9, height: 9, borderRadius: 3, background: cor, marginRight: 5 });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <SectionTitle sub="Os mesmos mercados vistos por três fontes independentes">Cruzamentos de Dados</SectionTitle>
+
+      <div style={{ display: 'flex', gap: 20, fontSize: 12, color: C.textMuted, flexWrap: 'wrap' }}>
+        <span><span style={dot(C.accent)} />Balcão — presença física</span>
+        <span><span style={dot(C.info)} />Digital — interesse online</span>
+        <span style={{ color: C.textDim }}>#n = posição no ranking INE (dormidas)</span>
+      </div>
+
+      <Card title="Mercados emissores · presença física vs interesse digital (quota %, excluindo Portugal)">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+          {rows.map((r) => (
+            <div key={r.m} style={{ display: 'grid', gridTemplateColumns: '160px 1fr 52px', gap: 12, alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 13, color: C.text }}>{r.m}</span>
+                {r.ine && <span style={{ fontSize: 10, color: C.accent, background: C.accentBg, padding: '1px 6px', borderRadius: 6 }}>#{r.ine}</span>}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ height: 7, borderRadius: 4, background: C.bg, overflow: 'hidden' }}>
+                  <div style={{ width: `${(r.bal / maxShare) * 100}%`, height: '100%', background: C.accent }} />
+                </div>
+                <div style={{ height: 7, borderRadius: 4, background: C.bg, overflow: 'hidden' }}>
+                  <div style={{ width: `${(r.dig / maxShare) * 100}%`, height: '100%', background: C.info }} />
+                </div>
+              </div>
+              <div style={{ fontSize: 11, textAlign: 'right' }}>
+                <div style={{ color: C.accent }}>{r.bal.toFixed(1)}%</div>
+                <div style={{ color: C.info }}>{r.dig.toFixed(1)}%</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+        <Card title="Mais interesse online que presença física">
+          {digitalOver.length ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {digitalOver.map((r) => (
+                <div key={r.m} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                  <span style={{ color: C.text }}>{r.m}</span>
+                  <span style={{ color: C.info, fontWeight: 600 }}>+{r.gap.toFixed(1)} pp</span>
+                </div>
+              ))}
+            </div>
+          ) : <div style={{ fontSize: 12.5, color: C.textDim }}>Sem divergências relevantes.</div>}
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 10, lineHeight: 1.5 }}>Mercados com curiosidade online ainda por converter em visita — ou tráfego de pesquisa/bots a validar.</div>
+        </Card>
+        <Card title="Mais presença física que pegada online">
+          {fisicoOver.length ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {fisicoOver.map((r) => (
+                <div key={r.m} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                  <span style={{ color: C.text }}>{r.m}</span>
+                  <span style={{ color: C.accent, fontWeight: 600 }}>{r.gap.toFixed(1)} pp</span>
+                </div>
+              ))}
+            </div>
+          ) : <div style={{ fontSize: 12.5, color: C.textDim }}>Sem divergências relevantes.</div>}
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 10, lineHeight: 1.5 }}>Chegam sem passar tanto pelo site — há margem para os captar em canais digitais.</div>
+        </Card>
+      </div>
+
+      <p style={{ fontSize: 11, color: C.textDim, lineHeight: 1.6 }}>
+        As três fontes medem coisas diferentes: INE = dormidas reais; balcão = apenas quem entra no posto de turismo (fatia pequena e auto-selecionada, dados de 2026); digital = audiência do site (inclui investigação e possível tráfego automatizado, p. ex. valores elevados da China). Portugal foi excluído por ser mercado doméstico. Lê isto como indício para investigar, não como prova.
       </p>
     </div>
   );
