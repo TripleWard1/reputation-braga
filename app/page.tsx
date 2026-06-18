@@ -9,8 +9,6 @@ import {
 import { db } from './firebase';
 import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import ObservatorioView from '@/app/components/ObservatorioView';
-import { HEADLINE, TAXA_TURISTICA, BALCAO, SUSTENTABILIDADE } from '@/app/lib/observatorio-dados';
-import { DIGITAL } from '@/app/lib/audiencia-digital-dados';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -199,7 +197,7 @@ interface Location {
   googleReviewCount?: number;   // nº total de reviews no Google
 }
 
-type ViewType = 'cockpit' | 'overview' | 'locais' | 'mapa' | 'comparar' | 'relatorio' | 'problemas' | 'clipping' | 'observatorio' | 'detalhe';
+type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'relatorio' | 'problemas' | 'observatorio' | 'detalhe';
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -264,7 +262,7 @@ function GoogleCompare({ loc }: { loc: Location }) {
         <div>
           <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Sentimento IA</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-            <span style={{ fontSize: 26, fontWeight: 700, color: ai != null ? scoreColor(ai) : C.textDim }}>{ai != null ? ai : '—'}</span>
+            <span style={{ fontSize: 26, fontWeight: 700, color: ai != null ? scoreColor(ai) : C.textDim }}>{ai != null ? ai : '-'}</span>
             <span style={{ fontSize: 13, color: C.textDim }}>/10</span>
           </div>
         </div>
@@ -390,21 +388,6 @@ const DIMS = ['localizacao', 'servico', 'precoQualidade', 'limpeza', 'experienci
 const DIM_LABELS = ['Localização', 'Serviço', 'Preço/Qualidade', 'Limpeza', 'Experiência', 'Acessibilidade'];
 const dimLabel = (key: string) => { const i = DIMS.indexOf(key); return i >= 0 ? DIM_LABELS[i] : key; };
 
-// Tempo relativo em pt-PT a partir de uma data
-function relTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return '';
-  const diff = Date.now() - d.getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return 'agora mesmo';
-  if (min < 60) return `há ${min} min`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `há ${h} h`;
-  const dias = Math.floor(h / 24);
-  if (dias < 30) return `há ${dias} ${dias === 1 ? 'dia' : 'dias'}`;
-  return d.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 // Robustez da análise em função do volume de reviews analisadas (e cobertura vs Google)
 function robustness(loc: Location): { level: string; color: string; pct: number; n: number; coverage: number | null } {
   const n = loc.analysis?.reviewCount || loc.reviews.length;
@@ -454,7 +437,7 @@ function whatChanged(loc: Location): null | {
 
 export default function Home() {
   const [locations, setLocations] = useState<Location[]>([]);
-  const [view, setView] = useState<ViewType>('cockpit');
+  const [view, setView] = useState<ViewType>('overview');
   const [selId, setSelId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -479,15 +462,6 @@ export default function Home() {
   const [reportLocId, setReportLocId] = useState<string | null>(null);
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [genReport, setGenReport] = useState(false);
-  const CLIP_PRESETS = ['turismo Braga', 'Visit Braga', 'Braga After Dark', 'Bom Jesus Braga', 'eventos Braga'];
-  const [clipQuery, setClipQuery] = useState('turismo Braga');
-  const [clipInput, setClipInput] = useState('turismo Braga');
-  const [clipItems, setClipItems] = useState<{ title: string; link: string; pubDate: string; source: string }[]>([]);
-  const [clipLoading, setClipLoading] = useState(false);
-  const [clipError, setClipError] = useState<string | null>(null);
-  const clipLoadedFor = useRef<string | null>(null);
-  const [cockpitNews, setCockpitNews] = useState<{ title: string; link: string; source: string; pubDate: string }[]>([]);
-  const cockpitNewsLoaded = useRef(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const locationsRef = useRef<Location[]>([]);
@@ -500,45 +474,6 @@ export default function Home() {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
   }, []);
-
-  // ── Clipping de notícias (Google News via rota serverless) ──
-  const loadClipping = useCallback(async (q: string) => {
-    const query = q.trim();
-    if (!query) return;
-    setClipQuery(query);
-    setClipLoading(true);
-    setClipError(null);
-    try {
-      const res = await fetch(`/api/clipping?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      setClipItems(data.items || []);
-      clipLoadedFor.current = query;
-    } catch (e: any) {
-      setClipError(e?.message || 'Não foi possível obter notícias.');
-      setClipItems([]);
-    } finally {
-      setClipLoading(false);
-    }
-  }, []);
-
-  // Auto-carrega ao entrar na vista de notícias (uma vez)
-  useEffect(() => {
-    if (view === 'clipping' && clipLoadedFor.current === null && !clipLoading) {
-      loadClipping(clipQuery);
-    }
-  }, [view, clipQuery, clipLoading, loadClipping]);
-
-  // Cockpit: carrega 4 notícias recentes (degradação graciosa)
-  useEffect(() => {
-    if (view === 'cockpit' && !cockpitNewsLoaded.current) {
-      cockpitNewsLoaded.current = true;
-      fetch('/api/clipping?q=turismo Braga')
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => { if (d?.items) setCockpitNews(d.items.slice(0, 4)); })
-        .catch(() => {});
-    }
-  }, [view]);
 
   // ── Load from Firestore ──
   useEffect(() => {
@@ -712,7 +647,7 @@ DADOS REAIS (${analyzed.length} locais monitorizados; score médio de sentimento
 - Problemas transversais mais frequentes nas críticas: ${problemas.join('; ') || 'nenhum relevante este período'}
 - Reputação IA vs nota Google: ${div.join('; ') || 'sem dados de Google introduzidos'}
 
-ESTRUTURA OBRIGATÓRIA — usa exatamente estes títulos, cada um numa linha começada por "## ":
+ESTRUTURA OBRIGATÓRIA - usa exatamente estes títulos, cada um numa linha começada por "## ":
 ## Sumário Executivo
 ## Destaques do Período
 ## Locais a Acompanhar
@@ -732,7 +667,7 @@ REGRAS:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }] }),
       });
-      if (!res.ok) { const e = await res.text(); throw new Error(`HTTP ${res.status} — ${e.slice(0, 200)}`); }
+      if (!res.ok) { const e = await res.text(); throw new Error(`HTTP ${res.status} - ${e.slice(0, 200)}`); }
       const data = await res.json();
       const txt = data.choices?.[0]?.message?.content?.trim() || '';
       if (!txt) throw new Error('Resposta vazia da IA.');
@@ -754,7 +689,7 @@ REGRAS:
     const mesAno = new Date().toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
     const html =
       '<!DOCTYPE html><html lang="pt"><head><meta charset="utf-8">' +
-      '<title>Relatório Mensal de Reputação Turística — ' + mesAno + '</title>' +
+      '<title>Relatório Mensal de Reputação Turística - ' + mesAno + '</title>' +
       '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">' +
       '<style>' +
       '*{box-sizing:border-box;}' +
@@ -819,7 +754,7 @@ ${chunkText}`,
         });
         if (!partialRes.ok) {
           const errBody = await partialRes.text();
-          throw new Error(`Bloco ${i + 1}/${chunks.length}: HTTP ${partialRes.status} — ${errBody.slice(0, 200)}`);
+          throw new Error(`Bloco ${i + 1}/${chunks.length}: HTTP ${partialRes.status} - ${errBody.slice(0, 200)}`);
         }
         const partialData = await partialRes.json();
         partials.push(partialData.choices?.[0]?.message?.content || '');
@@ -877,7 +812,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       });
       if (!res.ok) {
         const errBody = await res.text();
-        throw new Error(`Síntese final: HTTP ${res.status} — ${errBody.slice(0, 200)}`);
+        throw new Error(`Síntese final: HTTP ${res.status} - ${errBody.slice(0, 200)}`);
       }
       const data = await res.json();
       const analysis: Analysis = JSON.parse(data.choices?.[0]?.message?.content || '{}');
@@ -950,7 +885,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         const pop = `<div style="min-width:220px">
           <div style="font-size:15px;font-weight:700;color:#e2e0db;margin-bottom:4px">${loc.name}</div>
           <div style="font-size:11px;color:#8b8a8f;margin-bottom:10px">${loc.category} · ${loc.platform}</div>
-          ${score != null ? `<div style="margin-bottom:8px"><span style="background:${color};color:#000;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:700">${score}/10 — ${scoreLabel(score)}</span></div>` : '<div style="font-size:11px;color:#8b8a8f">Sem análise ainda</div>'}
+          ${score != null ? `<div style="margin-bottom:8px"><span style="background:${color};color:#000;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:700">${score}/10 - ${scoreLabel(score)}</span></div>` : '<div style="font-size:11px;color:#8b8a8f">Sem análise ainda</div>'}
           ${loc.analysis?.summaryPT ? `<div style="font-size:12px;color:#8b8a8f;line-height:1.5;margin-top:6px">${loc.analysis.summaryPT.slice(0, 180)}…</div>` : ''}
           <div style="font-size:10px;color:#4a4960;margin-top:10px;border-top:1px solid #252836;padding-top:8px">📍 Arrasta para reposicionar</div>
         </div>`;
@@ -1022,18 +957,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     .sort((a, b) => (a.analysis?.sentimentScore || 0) - (b.analysis?.sentimentScore || 0))
     .slice(0, 4);
 
-  // ── Cockpit: locais cuja reputação desceu na última análise ──
-  const droppedLocs = analyzed
-    .map((l) => ({ loc: l, ch: whatChanged(l) }))
-    .filter((x) => x.ch && x.ch.scoreDelta < 0)
-    .sort((a, b) => (a.ch!.scoreDelta) - (b.ch!.scoreDelta))
-    .slice(0, 4);
-
-  // ── Cockpit: variação da receita da taxa turística (último ano fechado vs anterior) ──
-  const taxa2025 = TAXA_TURISTICA['2025']?.Total || 0;
-  const taxa2024 = TAXA_TURISTICA['2024']?.Total || 0;
-  const taxaYoY = taxa2024 > 0 ? ((taxa2025 - taxa2024) / taxa2024) * 100 : 0;
-
   // Category stats
   const categoryStats = CATEGORIES.map((cat) => {
     const inCat = analyzed.filter((l) => l.category === cat);
@@ -1066,14 +989,12 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
   };
 
   const NAV: { id: ViewType; label: string; icon: string }[] = [
-    { id: 'cockpit', label: 'Cockpit', icon: '◳' },
     { id: 'overview', label: 'Visão Geral', icon: '◈' },
     { id: 'observatorio', label: 'Observatório', icon: '◔' },
     { id: 'locais', label: 'Locais', icon: '⊞' },
     { id: 'mapa', label: 'Mapa', icon: '◎' },
     { id: 'comparar', label: 'Comparar', icon: '⊟' },
     { id: 'problemas', label: 'Problemas', icon: '▦' },
-    { id: 'clipping', label: 'Notícias', icon: '◰' },
     { id: 'relatorio', label: 'Relatório', icon: '≡' },
   ];
 
@@ -1091,7 +1012,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     const reportInsights = Array.from(new Set(targets.flatMap((l) => l.analysis?.actionableInsights || []))).slice(0, 9);
 
     return [
-      `RELATÓRIO DE REPUTAÇÃO TURÍSTICA — BRAGA`,
+      `RELATÓRIO DE REPUTAÇÃO TURÍSTICA - BRAGA`,
       `${'═'.repeat(50)}`,
       `Data: ${date}  |  Município de Braga`,
       `${'═'.repeat(50)}`,
@@ -1100,7 +1021,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       `${'─'.repeat(40)}`,
       `• Locais analisados:        ${targets.length}`,
       `• Reviews processadas:      ${reportTotalReviews}`,
-      `• Score global:             ${reportAvgScore?.toFixed(1) || 'N/D'}/10  (${reportAvgScore ? scoreLabel(reportAvgScore) : '—'})`,
+      `• Score global:             ${reportAvgScore?.toFixed(1) || 'N/D'}/10  (${reportAvgScore ? scoreLabel(reportAvgScore) : '-'})`,
       `• Mercados emissores:       ${reportMarkets.join(', ') || 'N/D'}`,
       ``,
       `RANKING POR LOCAL`,
@@ -1115,7 +1036,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         ``,
         `▶ ${l.name.toUpperCase()}`,
         `   Categoria: ${l.category}  ·  Plataforma: ${l.platform}`,
-        `   Score: ${l.analysis!.sentimentScore}/10  —  ${scoreLabel(l.analysis!.sentimentScore)}`,
+        `   Score: ${l.analysis!.sentimentScore}/10  -  ${scoreLabel(l.analysis!.sentimentScore)}`,
         `   Sentimento: ${l.analysis!.sentimentBreakdown.positive}% positivo · ${l.analysis!.sentimentBreakdown.neutral}% neutro · ${l.analysis!.sentimentBreakdown.negative}% negativo`,
         `   Reviews analisadas: ${l.analysis!.reviewCount || l.reviews.length}`,
         `   Mercados: ${l.analysis!.marketSources?.join(', ') || 'N/D'}`,
@@ -1148,7 +1069,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       ...reportInsights.map((ins, i) => `${i + 1}. ${ins}`),
       ``,
       `${'═'.repeat(50)}`,
-      `Relatório gerado automaticamente — Município de Braga`,
+      `Relatório gerado automaticamente - Município de Braga`,
     ].join('\n');
   };
 
@@ -1435,124 +1356,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       {/* ═══ MAIN ═══ */}
       <main style={{ marginLeft: 220, flex: 1, minHeight: '100vh', minWidth: 0 }}>
 
-        {/* ── COCKPIT (Resumo Executivo) ── */}
-        {view === 'cockpit' && (
-          <div style={{ padding: '28px 30px', maxWidth: 1180 }}>
-            <div style={{ marginBottom: 22 }}>
-              <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em' }}>Cockpit</h1>
-              <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Resumo executivo do destino · Município de Braga</p>
-            </div>
-
-            {/* Linha de topo: reputação + indicadores-chave */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14, marginBottom: 20 }}>
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px' }}>
-                <div style={{ fontSize: 10.5, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 8 }}>Reputação média</div>
-                {analyzed.length > 0 ? (
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: 34, fontWeight: 700, color: scoreColor(avgScore ?? 0), lineHeight: 1 }}>{(avgScore ?? 0).toFixed(1)}</span>
-                    <span style={{ fontSize: 15, color: C.textDim }}>/10</span>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 28, fontWeight: 700, color: C.textDim }}>—</div>
-                )}
-                <div style={{ fontSize: 11.5, color: C.textMuted, marginTop: 8 }}>
-                  {analyzed.length} locais · {analyzed.reduce((s, l) => s + (l.analysis?.reviewCount || l.reviews.length), 0).toLocaleString('pt-PT')} reviews
-                </div>
-              </div>
-
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px' }}>
-                <div style={{ fontSize: 10.5, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 8 }}>Dormidas (INE)</div>
-                <div style={{ fontSize: 26, fontWeight: 700, color: C.text, lineHeight: 1 }}>{HEADLINE.dormidas2025.toLocaleString('pt-PT')}</div>
-                <div style={{ fontSize: 11.5, color: C.positive, marginTop: 8 }}>↑ +{HEADLINE.dormidasVar.toLocaleString('pt-PT')}% · jan–nov 2025</div>
-              </div>
-
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px' }}>
-                <div style={{ fontSize: 10.5, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 8 }}>Receita da taxa 2025</div>
-                <div style={{ fontSize: 26, fontWeight: 700, color: C.text, lineHeight: 1 }}>€{taxa2025.toLocaleString('pt-PT')}</div>
-                <div style={{ fontSize: 11.5, color: taxaYoY >= 0 ? C.positive : C.negative, marginTop: 8 }}>{taxaYoY >= 0 ? '↑ +' : '↓ '}{taxaYoY.toFixed(0)}% vs 2024</div>
-              </div>
-
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px' }}>
-                <div style={{ fontSize: 10.5, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 8 }}>Perceção dos residentes</div>
-                <div style={{ fontSize: 26, fontWeight: 700, color: C.positive, lineHeight: 1 }}>{SUSTENTABILIDADE.percecao.positiva.toLocaleString('pt-PT')}%</div>
-                <div style={{ fontSize: 11.5, color: C.textMuted, marginTop: 8 }}>avaliação positiva do turismo</div>
-              </div>
-            </div>
-
-            {/* Alertas */}
-            {analyzed.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, marginBottom: 24 }}>
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px' }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 14 }}>⚠ Locais a acompanhar</div>
-                  {priorityLocs.length > 0 ? priorityLocs.map((l) => (
-                    <div key={l.id} onClick={() => { setDetailId(l.id); setView('detalhe'); }}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
-                      <span style={{ fontSize: 13, color: C.text }}>{l.name}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(l.analysis?.sentimentScore || 0), background: scoreBg(l.analysis?.sentimentScore || 0), padding: '2px 9px', borderRadius: 7 }}>{(l.analysis?.sentimentScore || 0).toFixed(1)}</span>
-                    </div>
-                  )) : <div style={{ fontSize: 12.5, color: C.textDim }}>Sem locais críticos. Boa reputação geral.</div>}
-                </div>
-
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px' }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 14 }}>↧ Desceram desde a última análise</div>
-                  {droppedLocs.length > 0 ? droppedLocs.map(({ loc, ch }) => (
-                    <div key={loc.id} onClick={() => { setDetailId(loc.id); setView('detalhe'); }}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }}>
-                      <span style={{ fontSize: 13, color: C.text }}>{loc.name}</span>
-                      <span style={{ fontSize: 12.5, fontWeight: 700, color: C.negative }}>{ch!.scoreDelta}</span>
-                    </div>
-                  )) : <div style={{ fontSize: 12.5, color: C.textDim }}>Nenhuma descida registada entre análises.</div>}
-                </div>
-              </div>
-            ) : (
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '28px', textAlign: 'center', marginBottom: 24 }}>
-                <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 14 }}>Ainda não há locais analisados. O painel de reputação fica completo depois da primeira análise.</div>
-                <button onClick={() => { setView('locais'); setShowAdd(true); }}
-                  style={{ padding: '9px 22px', borderRadius: 8, border: 'none', background: C.accent, color: C.bg, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>+ Adicionar primeiro local</button>
-              </div>
-            )}
-
-            {/* Indicadores do destino → Observatório */}
-            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 12 }}>Indicadores do destino</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 24 }}>
-              {[
-                { t: 'Atendimento no balcão', v: `${BALCAO['2025'].atendimentos.toLocaleString('pt-PT')}`, s: `${BALCAO['2025'].pax.toLocaleString('pt-PT')} pax · top ${BALCAO['2025'].nacionalidades[0][0]}` },
-                { t: 'Audiência digital', v: `${DIGITAL.kpis.utilizadores.toLocaleString('pt-PT')}`, s: `${Math.round(DIGITAL.canais[0][1] / DIGITAL.canais.reduce((a, c) => a + c[1], 0) * 100)}% pesquisa orgânica · ${Math.round(DIGITAL.dispositivos[0][1] / DIGITAL.dispositivos.reduce((a, c) => a + c[1], 0) * 100)}% telemóvel` },
-                { t: 'Ocupação-quarto', v: `${HEADLINE.ocupQuarto.Braga.toLocaleString('pt-PT')}%`, s: `Norte ${HEADLINE.ocupQuarto.Norte}% · PT ${HEADLINE.ocupQuarto.Portugal}%` },
-                { t: 'Principais mercados', v: `${HEADLINE.mercados2025[0]}`, s: `${HEADLINE.mercados2025.slice(1, 4).join(' · ')}` },
-                { t: 'Sustentabilidade', v: 'Platinum', s: 'Green Destinations · sazonalidade 32,4%' },
-                { t: 'Estada média', v: `${HEADLINE.estadaMedia.Braga.toLocaleString('pt-PT')} noites`, s: `não residentes ${HEADLINE.estadaMedia.naoResidentes}` },
-              ].map((c) => (
-                <div key={c.t} onClick={() => setView('observatorio')}
-                  style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '15px 17px', cursor: 'pointer' }}>
-                  <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 7 }}>{c.t}</div>
-                  <div style={{ fontSize: 19, fontWeight: 700, color: C.text, marginBottom: 5 }}>{c.v}</div>
-                  <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.4 }}>{c.s}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Notícias recentes */}
-            {cockpitNews.length > 0 && (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.09em' }}>Na imprensa</div>
-                  <span onClick={() => setView('clipping')} style={{ fontSize: 11.5, color: C.accent, cursor: 'pointer' }}>ver todas →</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {cockpitNews.map((it, i) => (
-                    <a key={i} href={it.link} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 15px', textDecoration: 'none' }}>
-                      <span style={{ fontSize: 13, color: C.text, lineHeight: 1.4 }}>{it.title}</span>
-                      <span style={{ fontSize: 11, color: C.textDim, whiteSpace: 'nowrap' }}>{it.source}</span>
-                    </a>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
         {/* ── OVERVIEW ── */}
         {view === 'overview' && (
           <div style={{ padding: '28px 30px' }}>
@@ -1599,7 +1402,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 {priorityLocs.length > 0 && (
                   <div style={{ background: C.card, border: `1px solid ${C.negative}30`, borderRadius: 12, padding: '18px 22px', marginBottom: 14 }}>
                     <div style={{ fontSize: 11, color: C.negative, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      ⚠ Locais a Acompanhar — menor reputação
+                      ⚠ Locais a Acompanhar - menor reputação
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                       {priorityLocs.map((l) => {
@@ -1751,7 +1554,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 </div>
 
                 {/* Location cards */}
-                <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>Detalhe por Local — clica para análise completa</div>
+                <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>Detalhe por Local - clica para análise completa</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
                   {sortedAnalyzed.map((loc) => (
                     <div key={loc.id} onClick={() => { setDetailId(loc.id); setView('detalhe'); }}
@@ -2045,7 +1848,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                         </button>
                         <div style={{ background: scoreBg(detailLoc.analysis.sentimentScore), border: `1px solid ${scoreColor(detailLoc.analysis.sentimentScore)}40`, borderRadius: 10, padding: '10px 18px', textAlign: 'center' }}>
                           <div style={{ fontSize: 36, fontWeight: 700, color: scoreColor(detailLoc.analysis.sentimentScore), lineHeight: 1 }}>{detailLoc.analysis.sentimentScore}</div>
-                          <div style={{ fontSize: 11, color: scoreColor(detailLoc.analysis.sentimentScore), marginTop: 2 }}>/10 — {scoreLabel(detailLoc.analysis.sentimentScore)}</div>
+                          <div style={{ fontSize: 11, color: scoreColor(detailLoc.analysis.sentimentScore), marginTop: 2 }}>/10 - {scoreLabel(detailLoc.analysis.sentimentScore)}</div>
                           <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>{detailLoc.analysis.reviewCount || detailLoc.reviews.length} reviews</div>
                         </div>
                       </>
@@ -2343,7 +2146,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                       color: isSel ? scoreColor(loc.analysis!.sentimentScore) : C.textMuted,
                       cursor: 'pointer', fontSize: 12, fontWeight: isSel ? 600 : 400,
                     }}>
-                    {categoryIcon(loc.category)} {loc.name} — {loc.analysis!.sentimentScore}/10
+                    {categoryIcon(loc.category)} {loc.name} - {loc.analysis!.sentimentScore}/10
                   </button>
                 );
               })}
@@ -2412,7 +2215,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 </div>
 
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                  <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>Comparação Visual — Dimensões</div>
+                  <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>Comparação Visual - Dimensões</div>
                   {DIMS.map((d, di) => (
                     <div key={di} style={{ marginBottom: 16 }}>
                       <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6 }}>{DIM_LABELS[di]}</div>
@@ -2506,7 +2309,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
                   {/* Ranking de problemas */}
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Ranking — nº de locais afetados por cada problema</div>
+                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Ranking - nº de locais afetados por cada problema</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
                       {agg.map((p) => (
                         <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '190px 1fr 130px', gap: 12, alignItems: 'center' }}>
@@ -2528,7 +2331,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   {/* Mapa de calor problema × local */}
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Mapa de Calor — problema × local</div>
+                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Mapa de Calor - problema × local</div>
                       <div style={{ fontSize: 10, color: C.textDim }}>intensidade = nº de termos que correspondem ao problema</div>
                     </div>
                     {/* Legenda dos ícones */}
@@ -2555,7 +2358,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                             {cols.map((p) => {
                               const n = probs[p.id] || 0;
                               return (
-                                <div key={p.id} title={n > 0 ? `${loc.name} — ${p.label}: ${n}` : ''}
+                                <div key={p.id} title={n > 0 ? `${loc.name} - ${p.label}: ${n}` : ''}
                                   style={{ height: 34, borderRadius: 6, background: problemCellBg(n), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: n > 0 ? '#fff' : 'transparent', border: `1px solid ${n > 0 ? 'transparent' : C.border}` }}>
                                   {n > 0 ? n : ''}
                                 </div>
@@ -2574,81 +2377,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             </div>
           );
         })()}
-
-        {/* ── CLIPPING DE NOTÍCIAS ── */}
-        {view === 'clipping' && (
-          <div style={{ padding: '28px 30px' }}>
-            <div style={{ marginBottom: 20 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: '0 0 4px' }}>Clipping de Notícias</h2>
-              <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>Menções na imprensa sobre o turismo de Braga, em tempo real (Google News).</p>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-              <input
-                value={clipInput}
-                onChange={(e) => setClipInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') loadClipping(clipInput); }}
-                placeholder="Pesquisar notícias…"
-                style={{ flex: 1, minWidth: 220, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: '11px 14px', color: C.text, fontSize: 14, outline: 'none' }}
-              />
-              <button onClick={() => loadClipping(clipInput)} disabled={clipLoading}
-                style={{ background: C.accent, color: '#1a1205', border: 'none', borderRadius: 10, padding: '0 20px', fontSize: 14, fontWeight: 600, cursor: clipLoading ? 'default' : 'pointer', opacity: clipLoading ? 0.6 : 1 }}>
-                {clipLoading ? 'A procurar…' : 'Pesquisar'}
-              </button>
-              <button onClick={() => loadClipping(clipQuery)} disabled={clipLoading} title="Atualizar"
-                style={{ background: C.card, color: C.textMuted, border: `1px solid ${C.border}`, borderRadius: 10, padding: '0 16px', fontSize: 16, cursor: clipLoading ? 'default' : 'pointer' }}>
-                ↻
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
-              {CLIP_PRESETS.map((p) => (
-                <button key={p} onClick={() => { setClipInput(p); loadClipping(p); }}
-                  style={{
-                    background: clipQuery === p ? C.accentBg : C.card,
-                    color: clipQuery === p ? C.accentLight : C.textMuted,
-                    border: `1px solid ${clipQuery === p ? C.accent + '66' : C.border}`,
-                    borderRadius: 20, padding: '6px 14px', fontSize: 12.5, cursor: 'pointer', fontWeight: clipQuery === p ? 600 : 400,
-                  }}>
-                  {p}
-                </button>
-              ))}
-            </div>
-
-            {clipError && (
-              <div style={{ background: C.negativeBg, border: `1px solid ${C.negative}40`, borderRadius: 10, padding: '14px 16px', color: C.negative, fontSize: 13, marginBottom: 16 }}>
-                {clipError}
-              </div>
-            )}
-
-            {clipLoading && clipItems.length === 0 ? (
-              <div style={{ color: C.textDim, fontSize: 14, padding: '40px 0', textAlign: 'center' }}>A obter notícias para «{clipQuery}»…</div>
-            ) : !clipLoading && clipItems.length === 0 && !clipError ? (
-              <div style={{ color: C.textDim, fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Sem resultados para «{clipQuery}».</div>
-            ) : (
-              <>
-                <div style={{ fontSize: 12, color: C.textDim, marginBottom: 12 }}>{clipItems.length} resultados para «{clipQuery}»</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {clipItems.map((it, i) => (
-                    <a key={i} href={it.link} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'block', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 18px', textDecoration: 'none', transition: 'border-color 0.15s' }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: C.text, lineHeight: 1.4, marginBottom: 8 }}>{it.title}</div>
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12, color: C.textMuted, flexWrap: 'wrap' }}>
-                        {it.source && <span style={{ color: C.accentLight, fontWeight: 600 }}>{it.source}</span>}
-                        {it.pubDate && <span>{relTime(it.pubDate)}</span>}
-                        <span style={{ color: C.textDim }}>↗ abrir</span>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </>
-            )}
-
-            <p style={{ fontSize: 11, color: C.textDim, marginTop: 22, lineHeight: 1.6 }}>
-              Fonte: Google News (RSS público, pt-PT). Os resultados refletem a indexação do Google e podem incluir fontes de qualidade variável. Usa termos específicos (ex.: aspas para expressões exatas) para afinar a pesquisa.
-            </p>
-          </div>
-        )}
 
         {/* ── RELATÓRIO ── */}
         {view === 'relatorio' && (
@@ -2691,7 +2419,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     </div>
                   ) : (
                     <div style={{ marginTop: 16, background: C.bg, border: `1px dashed ${C.border}`, borderRadius: 10, padding: '20px 22px', fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>
-                      Clica em <strong style={{ color: C.accentLight }}>Gerar relatório</strong> para a IA redigir um sumário executivo do mês — destaques, locais a acompanhar, problemas transversais e recomendações de monitorização. Demora alguns segundos (uma chamada à IA).
+                      Clica em <strong style={{ color: C.accentLight }}>Gerar relatório</strong> para a IA redigir um sumário executivo do mês - destaques, locais a acompanhar, problemas transversais e recomendações de monitorização. Demora alguns segundos (uma chamada à IA).
                     </div>
                   )}
                 </div>
@@ -2754,7 +2482,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       <select value={reportLocId || ''} onChange={(e) => setReportLocId(e.target.value || null)}
                         style={{ ...IS, width: 'auto', minWidth: 200 }}>
-                        <option value="">— Todos os locais —</option>
+                        <option value="">- Todos os locais -</option>
                         {sortedAnalyzed.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>
                       <button onClick={() => {
@@ -2797,7 +2525,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Nome do Local</label>
                 <input value={newLoc.name} list="braga-pois-list" onChange={(e) => setNewLoc({ ...newLoc, name: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && addLocation()}
-                  placeholder="Começa a escrever — sugestões aparecem" style={IS} autoFocus />
+                  placeholder="Começa a escrever - sugestões aparecem" style={IS} autoFocus />
                 <datalist id="braga-pois-list">
                   {KNOWN_POI_NAMES.map((name) => <option key={name} value={name} />)}
                 </datalist>
@@ -2952,7 +2680,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px' }}>Importar Reviews</h3>
             <p style={{ fontSize: 12, color: C.textMuted, margin: '0 0 16px', lineHeight: 1.5 }}>
-              <strong style={{ color: C.accent }}>{selLoc.name}</strong> — importação em massa por texto ou ficheiro CSV.
+              <strong style={{ color: C.accent }}>{selLoc.name}</strong> - importação em massa por texto ou ficheiro CSV.
             </p>
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
