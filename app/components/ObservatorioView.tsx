@@ -638,20 +638,53 @@ function Cruz({ label, value, color, nota }: { label: string; value: string; col
 // ─── PROCURA (INE) ───────────────────────────────────────────────────────────
 function Procura() {
   const [metric, setMetric] = useState<'dormidas' | 'hospedes'>('dormidas');
-  const [anos, setAnos] = useState<string[]>(['2023', '2024', '2025']);
+  const [anos, setAnos] = useState<string[]>(['2024', '2025', '2026']);
   const src = metric === 'dormidas' ? DORMIDAS_BRAGA : HOSPEDES_BRAGA;
   const data = MESES.map((m, i) => {
     const row: any = { mes: MESES_CURTO[i] };
     anos.forEach((y) => { row[y] = src[m]?.[y] ?? null; });
     return row;
   });
-  const todosAnos = ['2019', '2020', '2021', '2022', '2023', '2024', '2025'];
+  const todosAnos = ['2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
   const toggleAno = (y: string) => setAnos((p) => p.includes(y) ? p.filter((x) => x !== y) : [...p, y].sort());
   const anual = metric === 'dormidas' ? DORMIDAS_ANUAL : HOSPEDES_ANUAL;
   const anualData = Object.entries(anual).filter(([, v]) => v != null).map(([y, v]) => ({ ano: y, v: v as number }));
 
+  // 2026 em curso (meses com dados)
+  const meses26 = MESES.filter((m) => DORMIDAS_BRAGA[m]?.['2026'] != null);
+  const somaY = (src: Record<string, Record<string, number | null>>, y: string) => meses26.reduce((s, m) => s + (src[m]?.[y] ?? 0), 0);
+  const d26 = somaY(DORMIDAS_BRAGA, '2026'), d25p = somaY(DORMIDAS_BRAGA, '2025');
+  const h26 = somaY(HOSPEDES_BRAGA, '2026'), h25p = somaY(HOSPEDES_BRAGA, '2025');
+  const dVar26 = d25p ? (d26 / d25p - 1) * 100 : 0;
+  const hVar26 = h25p ? (h26 / h25p - 1) * 100 : 0;
+  const periodo26 = meses26.length ? `${MESES_CURTO[MESES.indexOf(meses26[0])]}–${MESES_CURTO[MESES.indexOf(meses26[meses26.length - 1])]} 2026` : '';
+  const fnum = (n: number) => n.toLocaleString('pt-PT');
+  const fvar = (v: number) => (v >= 0 ? '+' : '') + String(+v.toFixed(1)).replace('.', ',') + '%';
+
   return (
     <>
+      {meses26.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', background: C.cardAlt, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.accent}`, borderRadius: 12, padding: '14px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.accent, background: C.accentBg, padding: '4px 10px', borderRadius: 20 }}>2026 em curso</span>
+            <span style={{ fontSize: 12, color: C.textDim }}>{periodo26}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap' }}>
+            <div>
+              <span style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{fnum(d26)}</span>
+              <span style={{ fontSize: 12, color: C.textMuted, marginLeft: 6 }}>dormidas</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: dVar26 >= 0 ? C.positive : C.negative, marginLeft: 8 }}>{fvar(dVar26)}</span>
+            </div>
+            <div>
+              <span style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{fnum(h26)}</span>
+              <span style={{ fontSize: 12, color: C.textMuted, marginLeft: 6 }}>hóspedes</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: hVar26 >= 0 ? C.positive : C.negative, marginLeft: 8 }}>{fvar(hVar26)}</span>
+            </div>
+          </div>
+          <span style={{ fontSize: 11, color: C.textDim, marginLeft: 'auto' }}>face ao mesmo período de 2025</span>
+        </div>
+      )}
+
       <Card title={`${metric === 'dormidas' ? 'Dormidas' : 'Hóspedes'} mensais em Braga - comparação plurianual`}
         right={<div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
           <Chips options={['dormidas', 'hospedes']} sel={[metric]} toggle={(o) => setMetric(o as any)} single />

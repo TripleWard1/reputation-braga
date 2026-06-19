@@ -940,10 +940,14 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
   };
 
   // ── Share link ──
+  const shareUrl = (locId: string) => `${window.location.origin}${window.location.pathname}?r=${locId}`;
+  const openShareLink = (locId: string) => {
+    if (typeof window === 'undefined') return;
+    window.open(shareUrl(locId), '_blank', 'noopener');
+  };
   const copyShareLink = (locId: string) => {
     if (typeof window === 'undefined') return;
-    const url = `${window.location.origin}${window.location.pathname}?r=${locId}`;
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(shareUrl(locId));
     setCopiedLinkId(locId);
     setTimeout(() => setCopiedLinkId(null), 2000);
     showToast('✓ Link partilhável copiado!');
@@ -1201,12 +1205,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     }
 
     return (
-      <div style={{ background: C.bg, minHeight: '100vh', color: C.text }}>
+      <div style={{ background: C.appGrad, minHeight: '100vh', color: C.text }}>
         {/* Botão exportar PDF (escondido na impressão) */}
         <button onClick={() => window.print()} className="no-print" style={{
           position: 'fixed', top: 20, right: 20, zIndex: 50,
-          padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`,
-          background: C.card, color: C.accentLight, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          padding: '10px 18px', borderRadius: 10, border: `1px solid ${C.accent}`,
+          background: C.cardGrad, color: C.accentLight, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          boxShadow: C.shadowSoft,
         }}>⬇ Guardar em PDF</button>
 
         {/* Public Header */}
@@ -1237,7 +1242,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           <div style={{
             background: scoreBg(detailLoc.analysis.sentimentScore),
             border: `1px solid ${scoreColor(detailLoc.analysis.sentimentScore)}40`,
-            borderRadius: 14, padding: '28px 32px', marginBottom: 20,
+            borderRadius: 14, padding: '28px 32px', marginBottom: 20, boxShadow: C.shadowSoft,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20,
           }}>
             <div>
@@ -1268,11 +1273,48 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             </div>
           </div>
 
+          {/* Benchmark vs cidade */}
+          {(() => {
+            const sc = detailLoc.analysis!.sentimentScore;
+            const city = avgScore ?? sc;
+            const delta = +(sc - city).toFixed(1);
+            const ranked = analyzed
+              .filter((l) => l.analysis)
+              .sort((a, b) => (b.analysis!.sentimentScore || 0) - (a.analysis!.sentimentScore || 0));
+            const rank = ranked.findIndex((l) => l.id === detailLoc.id) + 1;
+            const rob = robustness(detailLoc);
+            const cell = (label: string, value: ReactNode, sub: string) => (
+              <div style={{ flex: 1, minWidth: 150, padding: '18px 22px' }}>
+                <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>{label}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.05 }}>{value}</div>
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 5 }}>{sub}</div>
+              </div>
+            );
+            return (
+              <div style={{
+                display: 'flex', flexWrap: 'wrap', background: C.cardGrad, border: `1px solid ${C.border}`,
+                borderRadius: 14, marginBottom: 20, boxShadow: C.shadow, overflow: 'hidden',
+              }}>
+                {cell('Média da cidade',
+                  <span style={{ color: delta >= 0 ? C.positive : C.negative }}>{delta >= 0 ? '+' : ''}{delta} <span style={{ fontSize: 13, color: C.textDim, fontWeight: 400 }}>pts</span></span>,
+                  `${delta >= 0 ? 'acima' : 'abaixo'} da média (${city.toFixed(1)}/10)`)}
+                <div style={{ width: 1, background: C.border }} />
+                {rank > 0 && cell('Posição na cidade',
+                  <span>{rank}<span style={{ fontSize: 14, color: C.textDim, fontWeight: 400 }}>.º</span> <span style={{ fontSize: 13, color: C.textDim, fontWeight: 400 }}>de {ranked.length}</span></span>,
+                  'entre os locais avaliados')}
+                <div style={{ width: 1, background: C.border }} />
+                {cell('Robustez da análise',
+                  <span style={{ color: rob.color }}>{rob.level}</span>,
+                  `${rob.n} reviews analisadas${rob.coverage !== null ? ` · ${rob.coverage}% do Google` : ''}`)}
+              </div>
+            );
+          })()}
+
           {/* Comparação com Google */}
           <GoogleCompare loc={detailLoc} />
 
           {/* Summary */}
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 28px', marginBottom: 14 }}>
+          <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Resumo Analítico</div>
             <p style={{ fontSize: 15, color: C.text, lineHeight: 1.8, margin: 0 }}>{detailLoc.analysis.summaryPT}</p>
             {detailLoc.analysis.marketSources && detailLoc.analysis.marketSources.length > 0 && (
@@ -1287,7 +1329,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
           {/* Evolução temporal */}
           {detailLoc.analysisHistory && detailLoc.analysisHistory.length >= 2 && (
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 28px', marginBottom: 14 }}>
+            <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
                 <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Evolução da Reputação ao Longo do Tempo</div>
                 {(() => {
@@ -1313,7 +1355,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           )}
 
           {/* Dimensions */}
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 28px', marginBottom: 14 }}>
+          <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 18 }}>Dimensões de Avaliação</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
               {DIMS.map((d, i) => {
@@ -1339,7 +1381,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
               { title: '✦ Pontos Fortes', items: detailLoc.analysis.keyPraises || [], color: C.positive, sign: '+' },
               { title: '⚠ Problemas Identificados', items: detailLoc.analysis.keyIssues || [], color: C.negative, sign: '−' },
             ].map((col, ci) => (
-              <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 26px' }}>
+              <div key={ci} style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '22px 26px' }}>
                 <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{col.title}</div>
                 {col.items.map((p, i) => (
                   <div key={i} style={{ display: 'flex', gap: 10, padding: '9px 0', borderBottom: i < col.items.length - 1 ? `1px solid ${C.border}` : 'none', alignItems: 'flex-start' }}>
@@ -1352,7 +1394,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           </div>
 
           {/* Actionable Insights */}
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 28px', marginBottom: 14 }}>
+          <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>💡 Sugestões Acionáveis para a Gestão</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
               {(detailLoc.analysis.actionableInsights || []).map((ins, i) => (
@@ -2562,14 +2604,23 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                             👁
                           </button>
                           <button onClick={() => copyShareLink(loc.id)}
+                            title="Copiar link partilhável"
                             style={{
-                              padding: '6px 12px', borderRadius: 6,
-                              border: `1px solid ${copiedLinkId === loc.id ? C.positive : C.accent}`,
-                              background: copiedLinkId === loc.id ? C.positiveBg : C.accentBg,
-                              color: copiedLinkId === loc.id ? C.positive : C.accent,
-                              cursor: 'pointer', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                              padding: '6px 10px', borderRadius: 6,
+                              border: `1px solid ${copiedLinkId === loc.id ? C.positive : C.border}`,
+                              background: copiedLinkId === loc.id ? C.positiveBg : 'transparent',
+                              color: copiedLinkId === loc.id ? C.positive : C.textMuted,
+                              cursor: 'pointer', fontSize: 11,
                             }}>
-                            {copiedLinkId === loc.id ? '✓' : '🔗'} Copiar Link
+                            {copiedLinkId === loc.id ? '✓' : '🔗'}
+                          </button>
+                          <button onClick={() => openShareLink(loc.id)}
+                            style={{
+                              padding: '6px 14px', borderRadius: 6,
+                              border: `1px solid ${C.accent}`, background: C.accentBg,
+                              color: C.accent, cursor: 'pointer', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                            }}>
+                            ↗ Abrir página
                           </button>
                         </div>
                       </div>
