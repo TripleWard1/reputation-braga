@@ -12,7 +12,7 @@ import ObservatorioView from '@/app/components/ObservatorioView';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
-const LOGO_URL = 'https://i.imgur.com/Yakcz6G.png';
+const LOGO_URL = 'https://i.imgur.com/Vij12Qd.png';
 
 const CATEGORIES = ['Monumento', 'Museu', 'Restaurante', 'Alojamento', 'Experiência', 'Espaço Público', 'Outro'];
 const PLATFORMS = ['Google Maps', 'TripAdvisor', 'Booking.com', 'Outro'];
@@ -152,6 +152,13 @@ const C = {
   textDim: '#4a4960',
   sidebar: '#0e1016',
   sidebarBorder: '#1a1d28',
+  // ── premium depth tokens ──
+  shadow: '0 1px 2px rgba(0,0,0,0.4), 0 10px 30px -14px rgba(0,0,0,0.65)',
+  shadowSoft: '0 18px 50px -22px rgba(0,0,0,0.75)',
+  cardGrad: 'linear-gradient(180deg, #181b23 0%, #14171d 100%)',
+  sidebarGrad: 'linear-gradient(180deg, #0f1218 0%, #0b0d12 100%)',
+  accentGlow: 'rgba(201,168,76,0.22)',
+  appGrad: 'radial-gradient(1200px 600px at 70% -10%, rgba(201,168,76,0.05), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(96,165,250,0.04), transparent 55%), #0c0e14',
 };
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -469,6 +476,38 @@ export default function Home() {
   // Keep ref in sync with locations for use in stale closures
   useEffect(() => { locationsRef.current = locations; }, [locations]);
 
+  // Premium typography + global polish (injected once, no dependency)
+  useEffect(() => {
+    if (document.getElementById('rb-premium-style')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap';
+    document.head.appendChild(link);
+    const style = document.createElement('style');
+    style.id = 'rb-premium-style';
+    style.textContent = `
+      :root { --rb-display: 'Fraunces', Georgia, 'Times New Roman', serif; --rb-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+      body { font-family: var(--rb-body); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; letter-spacing: -0.005em; }
+      h1, .rb-display { font-family: var(--rb-display); font-optical-sizing: auto; }
+      h1 { letter-spacing: -0.02em !important; }
+      ::selection { background: rgba(201,168,76,0.28); color: #fff; }
+      *:focus-visible { outline: 2px solid rgba(201,168,76,0.7); outline-offset: 2px; border-radius: 4px; }
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #2a2e3d; border-radius: 8px; border: 2px solid #0c0e14; }
+      ::-webkit-scrollbar-thumb:hover { background: #3a3f52; }
+      .rb-nav { transition: background .15s ease, color .15s ease; }
+      .rb-nav:hover { background: rgba(255,255,255,0.04) !important; color: #d8d7d2 !important; }
+      .rb-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+      .rb-card:hover { border-color: rgba(201,168,76,0.35) !important; box-shadow: 0 18px 50px -22px rgba(0,0,0,0.75); }
+      @keyframes rbFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+      @keyframes rbPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+      @keyframes rbShimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   // Toast helper
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -477,6 +516,8 @@ export default function Home() {
 
   // ── Load from Firestore ──
   useEffect(() => {
+    const t0 = Date.now();
+    const MIN_SPLASH = 1600; // tempo mínimo de ecrã de entrada (ms)
     (async () => {
       try {
         const snap = await getDocs(collection(db, 'locations'));
@@ -494,7 +535,8 @@ export default function Home() {
       } catch (e) {
         console.error('Firestore load error:', e);
       }
-      setLoading(false);
+      const elapsed = Date.now() - t0;
+      setTimeout(() => setLoading(false), Math.max(0, MIN_SPLASH - elapsed));
     })();
   }, []);
 
@@ -681,35 +723,80 @@ REGRAS:
   };
 
   const exportReportPDF = () => {
-    const node = document.getElementById('ai-report-print');
-    if (!node) return;
+    if (!aiReport) { alert('Gera primeiro o relatório.'); return; }
     const win = window.open('', '_blank', 'width=1100,height=860');
     if (!win) { alert('Permita pop-ups para exportar o PDF.'); return; }
     const hoje = new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' });
     const mesAno = new Date().toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
-    const html =
-      '<!DOCTYPE html><html lang="pt"><head><meta charset="utf-8">' +
-      '<title>Relatório Mensal de Reputação Turística - ' + mesAno + '</title>' +
-      '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">' +
-      '<style>' +
-      '*{box-sizing:border-box;}' +
-      'body{margin:0;font-family:"DM Sans",sans-serif;background:#0c0e14;color:#e2e0db;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
-      '.brand{display:flex;align-items:center;justify-content:space-between;padding:22px 30px;border-bottom:2px solid #c9a84c;}' +
-      '.brand img{height:32px;}' +
-      '.brand .meta{text-align:right;}' +
-      '.brand h1{font-size:17px;margin:0;color:#c9a84c;letter-spacing:-0.01em;}' +
-      '.brand .sub{font-size:12px;color:#9a99a0;margin-top:2px;}' +
-      '.content{padding:24px 34px;max-width:820px;}' +
-      'footer{padding:16px 30px;border-top:1px solid #252836;font-size:10px;color:#8a8c9e;display:flex;justify-content:space-between;}' +
-      '@page{margin:14mm;}' +
-      '</style></head><body>' +
-      '<div class="brand"><img src="' + LOGO_URL + '" alt="Visit Braga">' +
-      '<div class="meta"><h1>Relatório Mensal de Reputação Turística</h1><div class="sub">' + mesAno + ' · gerado em ' + hoje + '</div></div></div>' +
-      '<div class="content">' + node.innerHTML + '</div>' +
-      '<footer><span>Município de Braga · Divisão de Atividades Económicas e Turismo</span>' +
-      '<span>Reputação Turística · análise assistida por IA</span></footer>' +
-      '<script>setTimeout(function(){window.focus();window.print();},700);</script>' +
-      '</body></html>';
+    const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // Parse do texto da IA (## títulos, - bullets, parágrafos)
+    let bodyHtml = ''; let inList = false;
+    aiReport.split('\n').forEach((raw) => {
+      const line = raw.trim();
+      if (!line) { if (inList) { bodyHtml += '</ul>'; inList = false; } return; }
+      if (line.startsWith('## ') || line.startsWith('# ')) {
+        if (inList) { bodyHtml += '</ul>'; inList = false; }
+        bodyHtml += '<h2>' + esc(line.replace(/^#+\s*/, '')) + '</h2>';
+      } else if (line.startsWith('- ') || line.startsWith('• ')) {
+        if (!inList) { bodyHtml += '<ul>'; inList = true; }
+        bodyHtml += '<li>' + esc(line.slice(2)) + '</li>';
+      } else {
+        if (inList) { bodyHtml += '</ul>'; inList = false; }
+        bodyHtml += '<p>' + esc(line) + '</p>';
+      }
+    });
+    if (inList) bodyHtml += '</ul>';
+    const kpis: [string, string][] = [
+      ['Score Global', (avgScore ?? 0).toFixed(1) + ' / 10'],
+      ['Locais analisados', String(analyzed.length)],
+      ['Reviews processadas', totalReviews.toLocaleString('pt-PT')],
+      ['Problemas detetados', String(allIssues.length)],
+      ['Mercados emissores', String(Array.from(new Set(allMarkets)).length)],
+    ];
+    const kpiHtml = kpis.map(([l, v]) => `<div class="kpi"><div class="kv">${v}</div><div class="kl">${l}</div></div>`).join('');
+    const html = `<!DOCTYPE html><html lang="pt"><head><meta charset="utf-8">
+<title>Relatório de Reputação Turística - ${mesAno}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{--ink:#1f232c;--ink2:#3a3f4b;--muted:#7c8190;--gold:#9c7d28;--goldL:#c9a84c;--paper:#ffffff;--band:#14171d;--line:#e7e3d8;--tint:#faf8f3;}
+  html,body{background:#e9e9ec;}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .sheet{background:var(--paper);width:210mm;min-height:297mm;margin:0 auto;display:flex;flex-direction:column;box-shadow:0 4px 30px rgba(0,0,0,.18);}
+  .band{background:var(--band);padding:26px 32px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--goldL);}
+  .band img{height:36px;width:auto;}
+  .band .t{text-align:right;}
+  .band .eyebrow{font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--goldL);margin-bottom:7px;}
+  .band h1{font-family:'Fraunces',serif;font-weight:600;font-size:22px;color:#fff;letter-spacing:-.01em;line-height:1.1;}
+  .band .sub{font-size:11px;color:#9aa0ad;margin-top:6px;}
+  .kpis{display:flex;gap:10px;padding:22px 32px 6px;}
+  .kpi{flex:1;background:var(--tint);border:1px solid var(--line);border-radius:10px;padding:14px 15px;}
+  .kv{font-family:'Fraunces',serif;font-weight:600;font-size:20px;color:var(--ink);line-height:1;}
+  .kl{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:8px;}
+  .content{flex:1;padding:18px 36px 30px;}
+  .content h2{font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--ink);margin:24px 0 6px;padding-bottom:7px;position:relative;break-after:avoid;}
+  .content h2:after{content:'';position:absolute;left:0;bottom:0;width:34px;height:2px;background:var(--goldL);}
+  .content h2:first-child{margin-top:6px;}
+  .content p{font-size:11pt;line-height:1.62;color:var(--ink2);margin:9px 0;}
+  .content ul{list-style:none;margin:9px 0;padding:0;}
+  .content li{font-size:11pt;line-height:1.55;color:var(--ink2);padding-left:18px;position:relative;margin:6px 0;}
+  .content li:before{content:'';position:absolute;left:2px;top:8px;width:5px;height:5px;border-radius:50%;background:var(--gold);}
+  .foot{padding:12px 32px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:8.5px;color:var(--muted);}
+  @page{size:A4;margin:0;}
+  @media print{html,body{background:#fff;}.sheet{margin:0;box-shadow:none;}}
+</style></head><body>
+<div class="sheet">
+  <div class="band">
+    <img src="${LOGO_URL}" alt="Visit Braga">
+    <div class="t"><div class="eyebrow">Município de Braga · Observatório</div><h1>Relatório de Reputação Turística</h1><div class="sub">${mesAno} · gerado em ${hoje}</div></div>
+  </div>
+  <div class="kpis">${kpiHtml}</div>
+  <div class="content">${bodyHtml}</div>
+  <div class="foot"><span>Município de Braga · Divisão de Atividades Económicas e Turismo</span><span>Análise assistida por IA · dados de reputação pública</span></div>
+</div>
+<script>setTimeout(function(){window.focus();window.print();},800);</script>
+</body></html>`;
     win.document.open(); win.document.write(html); win.document.close();
   };
 
@@ -1075,10 +1162,16 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
   if (loading) {
     return (
-      <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', color: C.textMuted }}>
-          <img src={LOGO_URL} alt="Visit Braga" style={{ width: 80, height: 'auto', marginBottom: 16, opacity: 0.8 }} />
-          <div style={{ fontSize: 14 }}>A carregar dados…</div>
+      <div style={{ background: C.appGrad, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', animation: 'rbFadeUp 0.6s ease both' }}>
+          <img src={LOGO_URL} alt="Visit Braga" style={{ width: 230, height: 'auto', marginBottom: 26 }} />
+          <div className="rb-display" style={{ fontSize: 15, color: C.accentLight, letterSpacing: '0.04em', marginBottom: 24 }}>
+            Observatório de Reputação Turística
+          </div>
+          <div style={{ width: 180, height: 3, borderRadius: 3, background: C.border, overflow: 'hidden', margin: '0 auto', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '40%', height: '100%', borderRadius: 3, background: `linear-gradient(90deg, transparent, ${C.accent}, transparent)`, animation: 'rbShimmer 1.3s ease-in-out infinite' }} />
+          </div>
+          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 18, letterSpacing: '0.02em' }}>A carregar dados…</div>
         </div>
       </div>
     );
@@ -1089,7 +1182,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     if (!detailLoc || !detailLoc.analysis) {
       return (
         <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-          <img src={LOGO_URL} alt="Visit Braga" style={{ width: 120, height: 'auto', opacity: 0.6 }} />
+          <img src={LOGO_URL} alt="Visit Braga" style={{ width: 150, height: 'auto' }} />
           <p style={{ color: C.textMuted, fontSize: 14 }}>Relatório não encontrado.</p>
         </div>
       );
@@ -1110,7 +1203,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           borderBottom: `1px solid ${C.border}`, padding: '32px 40px 28px',
           textAlign: 'center',
         }}>
-          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 56, width: 'auto', marginBottom: 18 }} />
+          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 64, width: 'auto', marginBottom: 18 }} />
           <div style={{
             width: 64, height: 64, borderRadius: '50%', margin: '0 auto 14px',
             background: scoreBg(detailLoc.analysis.sentimentScore),
@@ -1281,7 +1374,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             textAlign: 'center', padding: '20px 0 40px',
             borderTop: `1px solid ${C.border}`, marginTop: 20,
           }}>
-            <img src={LOGO_URL} alt="Visit Braga" style={{ height: 36, width: 'auto', opacity: 0.7, marginBottom: 8 }} />
+            <img src={LOGO_URL} alt="Visit Braga" style={{ height: 44, width: 'auto', marginBottom: 8 }} />
             <div style={{ fontSize: 11, color: C.textDim, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
               Município de Braga · Reputação Turística
             </div>
@@ -1298,33 +1391,34 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
   // ─── NORMAL APP VIEW ───
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', color: C.text }}>
+    <div style={{ background: C.appGrad, minHeight: '100vh', display: 'flex', color: C.text }}>
 
       {/* ═══ SIDEBAR ═══ */}
       <aside style={{
-        width: 220, flexShrink: 0, background: C.sidebar,
+        width: 232, flexShrink: 0, background: C.sidebarGrad,
         borderRight: `1px solid ${C.sidebarBorder}`,
         display: 'flex', flexDirection: 'column',
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 20,
       }}>
-        <div style={{ padding: '22px 18px 18px', borderBottom: `1px solid ${C.sidebarBorder}`, textAlign: 'center' }}>
-          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 44, width: 'auto', marginBottom: 8 }} />
-          <div style={{ fontSize: 10, color: C.accent, letterSpacing: '0.18em', textTransform: 'uppercase' }}>Reputação</div>
+        <div style={{ padding: '28px 20px 22px', borderBottom: `1px solid ${C.sidebarBorder}`, textAlign: 'center' }}>
+          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 32, width: 'auto', marginBottom: 12 }} />
+          <div className="rb-display" style={{ fontSize: 11.5, color: C.accentLight, letterSpacing: '0.03em' }}>Observatório de Reputação</div>
         </div>
 
-        <nav style={{ padding: '12px 8px', flex: 1 }}>
+        <nav style={{ padding: '14px 10px', flex: 1 }}>
           {NAV.map((item) => {
             const isActive = view === item.id || (item.id === 'overview' && view === 'detalhe');
             return (
-              <button key={item.id} onClick={() => setView(item.id)}
+              <button key={item.id} onClick={() => setView(item.id)} className="rb-nav"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                  padding: '9px 12px', borderRadius: 8, border: 'none',
+                  position: 'relative', display: 'flex', alignItems: 'center', gap: 11, width: '100%',
+                  padding: '10px 13px', borderRadius: 9, border: 'none',
                   background: isActive ? C.accentBg : 'transparent',
-                  color: isActive ? C.accent : C.textMuted,
+                  color: isActive ? C.accentLight : C.textMuted,
                   cursor: 'pointer', fontSize: 13, fontWeight: isActive ? 600 : 400,
-                  marginBottom: 2, textAlign: 'left',
+                  marginBottom: 3, textAlign: 'left',
                 }}>
+                {isActive && <span style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: 3, height: 20, borderRadius: 3, background: C.accent, boxShadow: `0 0 10px ${C.accentGlow}` }} />}
                 <span style={{ fontSize: 15, lineHeight: 1, width: 18, textAlign: 'center' }}>{item.icon}</span>
                 {item.label}
                 {item.id === 'locais' && locations.length > 0 && (
@@ -1338,30 +1432,31 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         </nav>
 
         {avgScore !== null && (
-          <div style={{ padding: '14px 18px', borderTop: `1px solid ${C.sidebarBorder}` }}>
-            <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Score Global</div>
+          <div style={{ margin: '0 12px 14px', padding: '16px 18px', borderRadius: 12, background: C.cardGrad, border: `1px solid ${C.border}`, boxShadow: C.shadow }}>
+            <div style={{ fontSize: 9.5, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 7 }}>Score Global</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-              <span style={{ fontSize: 30, fontWeight: 700, color: scoreColor(avgScore), lineHeight: 1 }}>{avgScore.toFixed(1)}</span>
+              <span style={{ fontSize: 32, fontWeight: 700, color: scoreColor(avgScore), lineHeight: 1 }}>{avgScore.toFixed(1)}</span>
               <span style={{ fontSize: 13, color: C.textDim }}>/10</span>
             </div>
-            <div style={{ fontSize: 11, color: scoreColor(avgScore), marginTop: 2 }}>{scoreLabel(avgScore)}</div>
-            <div style={{ height: 4, borderRadius: 2, background: C.border, overflow: 'hidden', marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: scoreColor(avgScore), marginTop: 3 }}>{scoreLabel(avgScore)}</div>
+            <div style={{ height: 4, borderRadius: 2, background: C.border, overflow: 'hidden', marginTop: 9 }}>
               <div style={{ width: `${(avgScore / 10) * 100}%`, height: '100%', background: scoreColor(avgScore), borderRadius: 2 }} />
             </div>
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 6 }}>{analyzed.length} locais · {totalReviews} reviews</div>
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 7 }}>{analyzed.length} locais · {totalReviews} reviews</div>
           </div>
         )}
       </aside>
 
       {/* ═══ MAIN ═══ */}
-      <main style={{ marginLeft: 220, flex: 1, minHeight: '100vh', minWidth: 0 }}>
+      <main style={{ marginLeft: 232, flex: 1, minHeight: '100vh', minWidth: 0 }}>
 
         {/* ── OVERVIEW ── */}
         {view === 'overview' && (
           <div style={{ padding: '28px 30px' }}>
             <div style={{ marginBottom: 26 }}>
-              <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em' }}>Visão Geral</h1>
-              <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Análise consolidada de reputação turística · Município de Braga</p>
+              <div style={{ fontSize: 10.5, color: C.accent, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 8 }}>Município de Braga · Visit Braga</div>
+              <h1 style={{ fontSize: 30, fontWeight: 600, margin: '0 0 5px' }}>Visão Geral</h1>
+              <p style={{ color: C.textMuted, fontSize: 13.5, margin: 0 }}>Análise consolidada de reputação turística do destino</p>
             </div>
 
             {analyzed.length === 0 ? (
@@ -1387,10 +1482,10 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     { label: 'Problemas Detetados', value: String(allIssues.length), unit: '', sub: 'issues identificadas', color: C.negative },
                     { label: 'Mercados Emissores', value: String(Array.from(new Set(allMarkets)).length), unit: '', sub: 'idiomas/países', color: C.info },
                   ].map((k, i) => (
-                    <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px' }}>
-                      <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{k.label}</div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginBottom: 4 }}>
-                        <span style={{ fontSize: 28, fontWeight: 700, color: k.color, lineHeight: 1 }}>{k.value}</span>
+                    <div key={i} className="rb-card" style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '20px 22px', boxShadow: C.shadow }}>
+                      <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>{k.label}</div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 5 }}>
+                        <span style={{ fontSize: 30, fontWeight: 700, color: k.color, lineHeight: 1 }}>{k.value}</span>
                         {k.unit && <span style={{ fontSize: 13, color: C.textDim }}>{k.unit}</span>}
                       </div>
                       <div style={{ fontSize: 11, color: k.color, opacity: 0.8 }}>{k.sub}</div>
@@ -1604,7 +1699,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           <div style={{ padding: '28px 30px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
               <div>
-                <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em' }}>Locais Monitorizados</h1>
+                <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>Locais Monitorizados</h1>
                 <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{locations.length} local{locations.length !== 1 ? 'is' : ''} · {analyzed.length} analisado{analyzed.length !== 1 ? 's' : ''}</p>
               </div>
               <button onClick={() => setShowAdd(true)}
@@ -2130,7 +2225,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         {view === 'comparar' && (
           <div style={{ padding: '28px 30px' }}>
             <div style={{ marginBottom: 20 }}>
-              <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em' }}>Comparar Locais</h1>
+              <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>Comparar Locais</h1>
               <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Seleciona até 4 locais analisados para comparação lado a lado</p>
             </div>
 
@@ -2281,7 +2376,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           return (
             <div style={{ padding: '28px 30px' }}>
               <div style={{ marginBottom: 18 }}>
-                <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em' }}>Problemas da Cidade</h1>
+                <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>Problemas da Cidade</h1>
                 <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Classificação automática das críticas em categorias fixas, agregada ao nível da cidade. Permite ver padrões transversais a vários locais.</p>
               </div>
 
@@ -2382,7 +2477,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         {view === 'relatorio' && (
           <div style={{ padding: '28px 30px' }}>
             <div style={{ marginBottom: 22 }}>
-              <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em' }}>Relatórios e Partilha</h1>
+              <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>Relatórios e Partilha</h1>
               <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Gera relatórios completos ou links públicos partilháveis por POI</p>
             </div>
 

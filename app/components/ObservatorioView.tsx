@@ -17,6 +17,15 @@ import {
   BALCAO_DIARIO_INICIO, BALCAO_DIARIO_FIM,
 } from '@/app/lib/acessibilidade-meteo-dados';
 import { CAMINHOS } from '@/app/lib/caminhos-santiago-dados';
+import { openPremiumDoc, Section } from '@/app/lib/premium-doc';
+
+const LOGO = 'https://i.imgur.com/Vij12Qd.png';
+
+// Formatação para documentos (pt-PT)
+const dNum = (n: number) => n.toLocaleString('pt-PT');
+const dDec = (v: number) => String(v).replace('.', ',');
+const dPct = (v: number) => (v >= 0 ? '+' : '') + dDec(v) + '%';
+const dEur = (n: number) => (n >= 1e6 ? dDec(+(n / 1e6).toFixed(2)) + ' M€' : dNum(Math.round(n)) + ' €');
 
 const C = {
   bg: '#0c0e14', card: '#161920', cardAlt: '#1c2030', border: '#252836',
@@ -66,6 +75,301 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   ];
   const tabLabel = TABS.find((t) => t.id === tab)?.label || '';
 
+  const exportProcura = () => {
+    const H = HEADLINE;
+    const nf = (n: number) => n.toLocaleString('pt-PT');
+    const dec = (v: number) => String(v).replace('.', ',');
+    const pct = (v: number) => (v >= 0 ? '+' : '') + dec(v) + '%';
+    const anos = ['2019', '2020', '2021', '2022', '2023', '2024'];
+    const dormBars = anos.map((y) => ({ label: y, value: DORMIDAS_ANUAL[y] || 0, display: nf(DORMIDAS_ANUAL[y] || 0) }));
+    dormBars.push({ label: '2025 *', value: H.dormidas2025, display: nf(H.dormidas2025) + ' (prelim.)' });
+
+    const sections: Section[] = [
+      { kind: 'prose', paras: [
+        `Dados preliminares do INE/TravelBI relativos a ${H.periodo}. No acumulado, Braga registou ${nf(H.dormidas2025)} dormidas (${pct(H.dormidasVar)} face ao período homólogo) e ${nf(H.hospedes2025)} hóspedes (${pct(H.hospedesVar)}).`,
+        `O crescimento das dormidas em Braga (${pct(H.dormidasVar)}) acompanha o do país (${pct(H.dormidasPTVar)}), ficando abaixo do conjunto da Região Norte (${pct(H.dormidasNorteVar)}).`,
+      ] },
+      { kind: 'bars', title: 'Dormidas anuais em Braga (2019–2025)', data: dormBars,
+        note: 'A quebra de 2020–2021 reflete a pandemia; recuperação plena a partir de 2022. (*) 2025 com dados preliminares (jan–nov), sujeitos a revisão do INE.' },
+      { kind: 'table', title: 'Braga no contexto regional e nacional', head: ['Indicador', 'Braga', 'Norte', 'Portugal'],
+        rows: [
+          ['Ocupação por quarto', dec(H.ocupQuarto.Braga) + '%', dec(H.ocupQuarto.Norte) + '%', dec(H.ocupQuarto.Portugal) + '%'],
+          ['Ocupação por cama', dec(H.ocupCama.Braga) + '%', dec(H.ocupCama.Norte) + '%', dec(H.ocupCama.Portugal) + '%'],
+          ['Estada média (noites)', dec(H.estadaMedia.Braga), dec(H.estadaMedia.Norte), dec(H.estadaMedia.Portugal)],
+          ['Variação das dormidas (homóloga)', pct(H.dormidasVar), pct(H.dormidasNorteVar), pct(H.dormidasPTVar)],
+        ],
+        emphasizeRow: 0,
+        note: 'Fonte: INE/TravelBI. Indicadores do período mais recente consolidado.' },
+      { kind: 'prose', title: 'Leitura', paras: [
+        `A ocupação por quarto em Braga (${dec(H.ocupQuarto.Braga)}%) supera a média da Região Norte e aproxima-se da nacional, sinal de uma procura sólida apesar da estada curta.`,
+        `A estada média de ${dec(H.estadaMedia.Braga)} noites (${dec(H.estadaMedia.naoResidentes)} entre não residentes) confirma Braga como destino de curtas estadias e porta de entrada do Minho, com margem para estratégias que aumentem o número de noites.`,
+        'Os valores de 2025 são preliminares: o INE consolida com um desfasamento habitual de cerca de três meses, pelo que os totais anuais poderão ser revistos em alta.',
+      ] },
+    ];
+
+    openPremiumDoc({
+      logo: LOGO,
+      eyebrow: 'Município de Braga · Observatório',
+      title: 'Procura Turística',
+      subtitle: H.periodo,
+      kpis: [
+        { label: 'Dormidas 2025', value: nf(H.dormidas2025), sub: pct(H.dormidasVar) + ' homólogo' },
+        { label: 'Hóspedes 2025', value: nf(H.hospedes2025), sub: pct(H.hospedesVar) + ' homólogo' },
+        { label: 'Ocupação / quarto', value: dec(H.ocupQuarto.Braga) + '%', sub: 'Braga · Norte ' + dec(H.ocupQuarto.Norte) + '%' },
+        { label: 'Estada média', value: dec(H.estadaMedia.Braga) + ' noites', sub: dec(H.estadaMedia.naoResidentes) + ' não residentes' },
+      ],
+      sections,
+      footerR: 'Procura Turística · Fonte INE/TravelBI',
+    });
+  };
+
+  const exportEconomia = () => {
+    const H = HEADLINE;
+    openPremiumDoc({
+      logo: LOGO, eyebrow: 'Município de Braga · Observatório',
+      title: 'Economia do Alojamento', subtitle: 'INE/TravelBI · indicadores 2024',
+      kpis: [
+        { label: 'RevPAR Braga', value: dEur(H.revpar2024.Braga), sub: '2024' },
+        { label: 'ADR Braga', value: dEur(H.adr2024.Braga), sub: '2024' },
+        { label: 'Ocupação / quarto', value: dDec(H.ocupQuarto.Braga) + '%', sub: 'Braga' },
+        { label: 'Proveitos 2024', value: dDec(H.proveitos.Braga2024) + ' M€', sub: dPct(H.proveitos.varBraga) + ' face a 2023' },
+      ],
+      sections: [
+        { kind: 'table', title: 'Desempenho hoteleiro 2024 - Braga vs Norte vs Portugal',
+          head: ['Indicador', 'Braga', 'Norte', 'Portugal'],
+          rows: [
+            ['RevPAR (rendimento por quarto disponível)', dEur(H.revpar2024.Braga), dEur(H.revpar2024.Norte), dEur(H.revpar2024.Portugal)],
+            ['ADR (rendimento por quarto ocupado)', dEur(H.adr2024.Braga), dEur(H.adr2024.Norte), dEur(H.adr2024.Portugal)],
+            ['Ocupação por quarto', dDec(H.ocupQuarto.Braga) + '%', dDec(H.ocupQuarto.Norte) + '%', dDec(H.ocupQuarto.Portugal) + '%'],
+            ['Ocupação por cama', dDec(H.ocupCama.Braga) + '%', dDec(H.ocupCama.Norte) + '%', dDec(H.ocupCama.Portugal) + '%'],
+          ], emphasizeRow: 0,
+          note: 'Fonte: INE/TravelBI, 2024.' },
+        { kind: 'bars', title: 'Variação dos proveitos do alojamento (2023 → 2024)',
+          data: [
+            { label: 'Braga', value: H.proveitos.varBraga, display: dPct(H.proveitos.varBraga) },
+            { label: 'Norte', value: H.proveitos.varNorte, display: dPct(H.proveitos.varNorte) },
+            { label: 'Portugal', value: H.proveitos.varPortugal, display: dPct(H.proveitos.varPortugal) },
+          ],
+          note: `Proveitos de alojamento em Braga: ${dDec(H.proveitos.Braga2023)} M€ (2023) para ${dDec(H.proveitos.Braga2024)} M€ (2024).` },
+        { kind: 'prose', title: 'Leitura', paras: [
+          `Braga apresenta RevPAR e ADR abaixo das médias regional e nacional - preços médios mais baixos - mas uma ocupação por quarto (${dDec(H.ocupQuarto.Braga)}%) superior à da Região Norte e próxima da nacional.`,
+          'A combinação de ocupação elevada com preço médio contido aponta margem para estratégias de valorização do preço médio (qualificação da oferta, eventos âncora, captação de segmentos de maior valor), sem dependência de aumentar volumes.',
+        ] },
+      ],
+      footerR: 'Economia do Alojamento · Fonte INE/TravelBI',
+    });
+  };
+
+  const exportMercados = () => {
+    const b25 = BALCAO['2025']; const b26 = BALCAO['2026'];
+    const top = HEADLINE.mercados2025;
+    openPremiumDoc({
+      logo: LOGO, eyebrow: 'Município de Braga · Observatório',
+      title: 'Mercados Emissores', subtitle: 'INE 2025 · Atendimento de Balcão',
+      kpis: [
+        { label: 'Principal mercado', value: top[0], sub: 'INE · por dormidas' },
+        { label: 'Nacionalidade #1 (balcão)', value: b26.nacionalidades[0][0], sub: dNum(b26.nacionalidades[0][1]) + ' em 2026' },
+        { label: 'Cidade #1 (balcão)', value: b26.cidades[0][0], sub: dNum(b26.cidades[0][1]) + ' em 2026' },
+        { label: 'Mercados no top', value: String(top.length), sub: 'internacionais (INE)' },
+      ],
+      sections: [
+        { kind: 'table', title: 'Principais mercados internacionais (INE 2025, por dormidas)',
+          head: ['#', 'Mercado'], rows: top.map((m, i) => [String(i + 1), m]), emphasizeRow: 0,
+          note: 'Espanha lidera, seguida de Brasil, França e Reino Unido.' },
+        { kind: 'bars', title: 'Nacionalidades no balcão (2026, top 10)',
+          data: b26.nacionalidades.slice(0, 10).map((x: [string, number]) => ({ label: x[0], value: x[1], display: dNum(x[1]) })), color: '#60a5fa' },
+        { kind: 'bars', title: 'Cidades de origem dos visitantes (balcão 2026, top 10)',
+          data: b26.cidades.slice(0, 10).map((x: [string, number]) => ({ label: x[0], value: x[1], display: dNum(x[1]) })), color: '#c9a84c' },
+        { kind: 'prose', title: 'Leitura', paras: [
+          'O domínio ibérico é claro: Espanha encabeça tanto as dormidas (INE) como o atendimento físico no balcão, reforçada por cidades como Madrid, Vigo, A Coruña e Bilbao no topo das origens.',
+          `Para referência, em 2025 o balcão registou ${dNum(b25.nacionalidades[0][1])} atendimentos a espanhóis; em 2026 (ano em curso) já vai em ${dNum(b26.nacionalidades[0][1])}.`,
+        ] },
+      ],
+      footerR: 'Mercados Emissores · INE / Balcão',
+    });
+  };
+
+  const exportBalcao = () => {
+    const b = BALCAO['2026'];
+    const pctVisit = Math.round((b.visitantes / b.atendimentos) * 100);
+    openPremiumDoc({
+      logo: LOGO, eyebrow: 'Município de Braga · Posto de Turismo',
+      title: 'Atendimento de Balcão', subtitle: '2026 (ano em curso, até junho)',
+      kpis: [
+        { label: 'Atendimentos', value: dNum(b.atendimentos) },
+        { label: 'Pessoas (pax)', value: dNum(b.pax) },
+        { label: 'Visitantes', value: pctVisit + '%', sub: dNum(b.visitantes) + ' turistas' },
+        { label: 'Peregrinos', value: dNum(b.peregrinos), sub: 'Caminhos de Santiago' },
+      ],
+      sections: [
+        { kind: 'bars', title: 'O que procuram (interesses, top 10)',
+          data: b.interesses.slice(0, 10).map((x: [string, number]) => ({ label: x[0], value: x[1], display: dNum(x[1]) })), color: '#c9a84c' },
+        { kind: 'bars', title: 'Meio de chegada',
+          data: b.meioChegada.map((x: [string, number]) => ({ label: x[0], value: x[1], display: dNum(x[1]) })), color: '#34d399' },
+        { kind: 'table', title: 'Nacionalidades (top 10)',
+          head: ['Nacionalidade', 'Atendimentos'], rows: b.nacionalidades.slice(0, 10).map((x: [string, number]) => [x[0], dNum(x[1])]) },
+        { kind: 'prose', title: 'Nota', paras: [
+          'Cada registo corresponde a um atendimento no Posto de Turismo. Os dados de 2026 são do ano em curso (até junho), pelo que os totais anuais serão superiores.',
+        ] },
+      ],
+      footerR: 'Atendimento de Balcão · Posto de Turismo',
+    });
+  };
+
+  const exportTaxa = () => {
+    const t = TAXA_TURISTICA;
+    const anos = ['2021', '2022', '2023', '2024', '2025'];
+    openPremiumDoc({
+      logo: LOGO, eyebrow: 'Município de Braga · Observatório',
+      title: 'Taxa Municipal Turística', subtitle: 'Receita 2021–2026',
+      kpis: [
+        { label: 'Receita 2025', value: dEur(t['2025'].Total), sub: dPct(((t['2025'].Total - t['2024'].Total) / t['2024'].Total) * 100) + ' vs 2024' },
+        { label: 'Receita 2024', value: dEur(t['2024'].Total) },
+        { label: 'Empreendimentos', value: dNum(INFRA.empreendimentos), sub: 'hotéis e similares' },
+        { label: 'Alojamento Local', value: dNum(INFRA.alojamentoLocal), sub: 'registos AL' },
+      ],
+      sections: [
+        { kind: 'bars', title: 'Receita anual total (€)',
+          data: anos.map((y) => ({ label: y, value: t[y].Total, display: dEur(t[y].Total) })),
+          note: 'Crescimento sustentado desde a retoma pós-pandemia.' },
+        { kind: 'prose', title: 'Enquadramento', paras: [
+          'Regulamento n.º 927/2025: 1,50 € por dormida, até ao máximo de 4 noites, aplicável a hóspedes com mais de 16 anos.',
+          `A receita de 2025 totalizou ${dEur(t['2025'].Total)}, mais ${dPct(((t['2025'].Total - t['2024'].Total) / t['2024'].Total) * 100)} do que em 2024. O arranque de 2026 reflete a entrada em vigor do novo valor da taxa (janeiro: ${dEur(t['2026'].Janeiro)}).`,
+        ] },
+      ],
+      footerR: 'Taxa Municipal Turística',
+    });
+  };
+
+  const exportSustentabilidade = () => {
+    const S = SUSTENTABILIDADE; const P = S.percecao; const D = S.destino;
+    openPremiumDoc({
+      logo: LOGO, eyebrow: 'Município de Braga · Green Destinations',
+      title: 'Sustentabilidade do Destino', subtitle: `Certificação ${D.certificacao} · perceção e indicadores`,
+      kpis: [
+        { label: 'Certificação', value: 'Platinum', sub: 'Green Destinations' },
+        { label: 'Perceção positiva', value: dDec(P.positiva) + '%', sub: `residentes · n=${P.n}` },
+        { label: 'Sazonalidade', value: dDec(D.sazonalidade) + '%', sub: `nacional ${dDec(D.sazonalidadeNacional)}%` },
+        { label: 'Frota TUB verde', value: dDec(D.frotaVerde) + '%', sub: `${D.autocarrosEletricos} elétricos` },
+      ],
+      sections: [
+        { kind: 'bars', title: 'Perceção dos residentes - sinais positivos',
+          data: [
+            { label: 'O turismo beneficia a economia', value: P.beneficiaEconomia, display: dDec(P.beneficiaEconomia) + '%' },
+            { label: 'Valoriza a cultura local', value: P.valorizaCultura, display: dDec(P.valorizaCultura) + '%' },
+            { label: 'Respeito pela cultura local', value: P.respeitaCultura, display: dDec(P.respeitaCultura) + '%' },
+            { label: 'Melhora a vida dos residentes', value: P.melhoraVida, display: dDec(P.melhoraVida) + '%' },
+          ], color: '#34d399' },
+        { kind: 'bars', title: 'Tensões percebidas',
+          data: [
+            { label: 'Aumenta o custo de vida', value: P.custoVida, display: dDec(P.custoVida) + '%' },
+            { label: 'Impactos ambientais', value: P.impactosAmbientais, display: dDec(P.impactosAmbientais) + '%' },
+            { label: 'Causa sobrelotação', value: P.sobrelotacao, display: dDec(P.sobrelotacao) + '%' },
+            { label: 'Não se sentem ouvidos', value: P.naoOuvidos, display: dDec(P.naoOuvidos) + '%' },
+          ], color: '#f87171' },
+        { kind: 'table', title: 'Indicadores de sustentabilidade do destino',
+          head: ['Indicador', 'Valor'], rows: [
+            ['Sazonalidade (concentração no verão)', dDec(D.sazonalidade) + '%'],
+            ['Turistas por habitante (pico)', dDec(D.turistasPorHabitante)],
+            ['Frota TUB amiga do ambiente', dDec(D.frotaVerde) + '%'],
+            ['Iluminação pública em LED', dDec(D.iluminacaoLED) + '%'],
+            ['Economia turística gerida por locais', '>' + dDec(D.economiaLocal) + '%'],
+            ['Rede de percursos pedestres', dNum(D.redePedestre) + ' km'],
+          ],
+          note: `Fontes: Barómetro de Perceção dos Residentes 2026 (n=${P.n}, amostra não probabilística) e Green Destinations Tourism Impact Assessment Braga 2025.` },
+        { kind: 'prose', title: 'Leitura', paras: [
+          `A perceção global é muito positiva (${dDec(P.positiva)}%), com economia e cultura como dimensões mais fortes. A dimensão a reforçar é a governança e participação: apenas ${dDec(P.ouvidos)}% dos residentes sentem que são ouvidos nas decisões sobre turismo.`,
+        ] },
+      ],
+      footerR: 'Sustentabilidade · Green Destinations',
+    });
+  };
+
+  const exportDigital = () => {
+    const k = DIGITAL.kpis;
+    const totalCanais = DIGITAL.canais.reduce((s, x) => s + x[1], 0);
+    const totalDisp = DIGITAL.dispositivos.reduce((s, x) => s + x[1], 0);
+    const pctOrg = Math.round((DIGITAL.canais[0][1] / totalCanais) * 100);
+    const pctMob = Math.round((DIGITAL.dispositivos[0][1] / totalDisp) * 100);
+    openPremiumDoc({
+      logo: LOGO, eyebrow: 'Município de Braga · visitbraga.travel',
+      title: 'Audiência Digital', subtitle: `Google Analytics · ${DIGITAL.periodo}`,
+      kpis: [
+        { label: 'Utilizadores', value: dNum(k.utilizadores) },
+        { label: 'Visualizações', value: dNum(k.visualizacoes) },
+        { label: 'Envolvimento', value: dDec(k.taxaEnvolvimento) + '%' },
+        { label: 'Páginas / utilizador', value: dDec(k.pagsPorUtilizador) },
+      ],
+      sections: [
+        { kind: 'bars', title: 'Canais de aquisição',
+          data: DIGITAL.canais.map((x) => ({ label: x[0], value: x[1], display: dNum(x[1]) })), color: '#34d399' },
+        { kind: 'bars', title: 'Top países (utilizadores)',
+          data: DIGITAL.paises.slice(0, 8).map((x) => ({ label: x[0], value: x[1], display: dNum(x[1]) })), color: '#60a5fa' },
+        { kind: 'bars', title: 'Páginas mais vistas',
+          data: DIGITAL.paginas.slice(0, 8).map((x) => ({ label: x[0], value: x[1], display: dNum(x[1]) })), color: '#a78bfa' },
+        { kind: 'prose', title: 'Leitura estratégica', paras: [
+          `${pctOrg}% dos utilizadores chegam por pesquisa orgânica - o que reforça a prioridade da estratégia SEO/GEO para o Visit Braga.`,
+          `${pctMob}% acede por telemóvel: a experiência mobile é determinante.`,
+          'Os picos de tráfego coincidem com eventos sazonais (Luzes de Natal, Passagem de Ano), que dominam as páginas mais vistas. Cidades por deteção aproximada de IP; entradas sem cidade definida excluídas dos tops.',
+        ] },
+      ],
+      footerR: 'Audiência Digital · GA4 visitbraga.travel',
+    });
+  };
+
+  const exportAcessibilidade = () => {
+    const A = ACESSIBILIDADE;
+    openPremiumDoc({
+      logo: LOGO, eyebrow: 'Município de Braga · Posto de Turismo',
+      title: 'Acessibilidade no Atendimento', subtitle: 'Necessidades especiais registadas no balcão',
+      kpis: [
+        { label: 'Atendimentos registados', value: dNum(A.total) },
+        { label: 'Pessoas abrangidas', value: dNum(A.pax) },
+        { label: '% do total de atendimentos', value: dDec(A.pct) + '%' },
+      ],
+      sections: [
+        { kind: 'prose', title: 'Amostra reduzida - leitura cautelosa', paras: [
+          `O registo de necessidades especiais só começou em 2026 e está fortemente subutilizado (${A.total} em ${dNum(A.totalAtendimentos)} atendimentos). Os números abaixo são um ponto de partida e não refletem a procura real.`,
+          'O valor deste indicador cresce com o registo sistemático no balcão - vale a pena reforçar essa prática junto da equipa de atendimento.',
+        ] },
+        { kind: 'bars', title: 'Por tipo de necessidade',
+          data: A.tipos.map((x: [string, number]) => ({ label: x[0], value: x[1], display: dNum(x[1]) })), color: '#60a5fa' },
+        { kind: 'bars', title: 'Por mês (2026)',
+          data: A.porMes.map((x: [string, number]) => ({ label: x[0], value: x[1], display: dNum(x[1]) })), color: '#c9a84c' },
+      ],
+      footerR: 'Acessibilidade no Atendimento',
+    });
+  };
+
+  const exportCaminhos = () => {
+    const K = CAMINHOS;
+    openPremiumDoc({
+      logo: LOGO, eyebrow: 'Município de Braga · Observatório',
+      title: 'Caminhos de Santiago', subtitle: 'Partidas de Braga · Serviço de Peregrinos da Catedral de Santiago',
+      kpis: [
+        { label: 'Partidas de Braga 2025', value: dNum(K.partidasBraga[K.partidasBraga.length - 1][1]), sub: 'recorde' },
+        { label: 'Posição nacional', value: K.rankingNacional + '.ª', sub: `líder: ${K.liderNacional}` },
+        { label: 'Caminho da Geira 2025', value: dNum(K.porCaminho2025[0][1]), sub: 'lidera pela 1.ª vez' },
+        { label: 'Acumulado da Geira', value: dNum(K.acumulado.peregrinos), sub: 'desde 2017' },
+      ],
+      sections: [
+        { kind: 'table', title: 'Partidas de Braga por caminho (2023–2025)',
+          head: ['Ano', 'Geira e Arrieiros', 'Central Português'],
+          rows: K.evolucao.map((e) => [e.ano, dNum(e.Geira), dNum(e.Central)]), emphasizeRow: 2,
+          note: 'Em 2025 o Caminho da Geira ultrapassou pela primeira vez o Central nas partidas de Braga.' },
+        { kind: 'bars', title: 'Repartição por caminho (2025)',
+          data: K.porCaminho2025.map((x) => ({ label: x[0], value: x[1], display: dNum(x[1]) })) },
+        { kind: 'bars', title: 'Origem dos peregrinos do Caminho da Geira (2025)',
+          data: K.cga2025.nacionalidades.map((x) => ({ label: x[0], value: x[1], display: dDec(x[1]) + '%' })), color: '#60a5fa' },
+        { kind: 'prose', title: 'Leitura', paras: [
+          `Braga registou ${dNum(K.partidasBraga[K.partidasBraga.length - 1][1])} partidas em 2025 (o valor mais elevado de que há registo) e subiu à ${K.rankingNacional}.ª posição nacional como ponto de partida. ${dDec(K.cga2025.inicioBraga)}% dos peregrinos do Caminho da Geira iniciam na Sé de Braga.`,
+          'Os valores correspondem a Compostelas emitidas, pelo que subestimam o total real (muitos peregrinos não solicitam o documento). As associações estimam números superiores.',
+        ] },
+      ],
+      footerR: 'Caminhos de Santiago · Serviço de Peregrinos',
+    });
+  };
+
   const exportarPDF = () => {
     const node = document.getElementById('obs-print-area');
     if (!node) return;
@@ -90,7 +394,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       'footer{padding:14px 28px;border-top:1px solid #252836;font-size:10px;color:#8a8c9e;display:flex;justify-content:space-between;}' +
       '@page{margin:12mm;}' +
       '</style></head><body>' +
-      '<div class="brand"><img src="https://i.imgur.com/Yakcz6G.png" alt="Visit Braga">' +
+      '<div class="brand"><img src="https://i.imgur.com/Vij12Qd.png" alt="Visit Braga">' +
       '<div class="meta"><h1>Observatório de Turismo de Braga</h1><div class="sub">' + tabLabel + ' · ' + hoje + '</div></div></div>' +
       '<div class="content">' + node.innerHTML + '</div>' +
       '<footer><span>Município de Braga · Divisão de Atividades Económicas e Turismo</span>' +
@@ -107,7 +411,14 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em', color: C.text }}>Observatório de Turismo de Braga</h1>
           <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Análise integrada de dados reais - INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística</p>
         </div>
-        <button onClick={exportarPDF} style={{
+        <button onClick={() => {
+          const map: Record<string, () => void> = {
+            procura: exportProcura, economia: exportEconomia, mercados: exportMercados,
+            balcao: exportBalcao, taxa: exportTaxa, sustentabilidade: exportSustentabilidade,
+            digital: exportDigital, acessibilidade: exportAcessibilidade, caminhos: exportCaminhos,
+          };
+          (map[tab] || exportarPDF)();
+        }} style={{
           padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: C.accentBg,
           color: C.accentLight, cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
         }}>⬇ Exportar PDF</button>
