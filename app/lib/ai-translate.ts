@@ -74,12 +74,12 @@ async function translateAnalysis(locId: string, a: AnyAnalysis): Promise<void> {
  * PT: devolve a análise original. EN: devolve a traduzida (cache) ou a PT como
  * fallback, disparando a tradução em segundo plano na primeira chamada.
  */
-export function dispAnalysis<T extends { id: string; analysis?: AnyAnalysis }>(loc: T): AnyAnalysis {
-  const a = loc.analysis;
+export function dispAnalysis<A>(loc: { id: string; analysis?: A | null }): A {
+  const a = loc.analysis as A;
   if (!a) return a;
   if (getLang() !== 'en') return a;
   const c = cache.get(loc.id);
-  if (c) return c;
+  if (c) return c as A;
   translateAnalysis(loc.id, a); // fire-and-forget
   return a; // fallback PT até estar pronto
 }
