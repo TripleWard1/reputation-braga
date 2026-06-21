@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Reputação Braga — Painel de Análise Turística',
+  title: 'Reputação Braga - Painel de Análise Turística',
   description: 'Análise de reputação online dos pontos turísticos de Braga',
   applicationName: 'Reputação Braga',
   manifest: '/manifest.json',
