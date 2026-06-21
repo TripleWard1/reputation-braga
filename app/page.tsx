@@ -2177,11 +2177,11 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                           ))}
                         </div>
                       )}
-                      {dispAnalysis(detailLoc).marketSentiment && dispAnalysis(detailLoc).marketSentiment.length > 0 && (
+                      {(dispAnalysis(detailLoc).marketSentiment?.length ?? 0) > 0 && (
                         <div style={{ marginTop: 16 }}>
                           <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Sentimento por Mercado</div>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
-                            {[...dispAnalysis(detailLoc).marketSentiment].sort((a, b) => b.score - a.score).map((m, i) => (
+                            {[...(dispAnalysis(detailLoc).marketSentiment ?? [])].sort((a, b) => b.score - a.score).map((m, i) => (
                               <div key={i} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{m.market}</span>
