@@ -9,6 +9,7 @@ import {
 import { db } from './firebase';
 import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import ObservatorioView from '@/app/components/ObservatorioView';
+import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,11 @@ const LOGO_URL = 'https://i.imgur.com/Vij12Qd.png';
 
 const CATEGORIES = ['Monumento', 'Museu', 'Restaurante', 'Alojamento', 'Experiência', 'Espaço Público', 'Outro'];
 const PLATFORMS = ['Google Maps', 'TripAdvisor', 'Booking.com', 'Outro'];
+const DATA_EN: Record<string, string> = {
+  Monumento: 'Monument', Museu: 'Museum', Restaurante: 'Restaurant', Alojamento: 'Accommodation',
+  'Experiência': 'Experience', 'Espaço Público': 'Public Space', Outro: 'Other',
+};
+const catLabel = (x: string) => t(x, DATA_EN[x] ?? x);
 
 // Curated list of canonical POI names for autocomplete
 const KNOWN_POI_NAMES = [
@@ -318,6 +324,23 @@ const PROBLEM_TAXONOMY: { id: string; label: string; short: string; icon: string
   { id: 'horario', label: 'Horários / Encerramento', short: 'Horários', icon: '🕐', kw: ['horario', 'estava fechado', 'encerrado', 'closed', 'horarios'] },
 ];
 
+const PROBLEM_EN: Record<string, { label: string; short: string }> = {
+  wc: { label: 'Toilets / WC', short: 'WC' },
+  sinal: { label: 'Signage / Information', short: 'Signage' },
+  parq: { label: 'Parking', short: 'Parking' },
+  manut: { label: 'Maintenance / Upkeep', short: 'Upkeep' },
+  acess: { label: 'Accessibility', short: 'Access.' },
+  limp: { label: 'Cleanliness', short: 'Cleanl.' },
+  fila: { label: 'Queues / Waiting', short: 'Queues' },
+  preco: { label: 'Price / Cost', short: 'Price' },
+  atend: { label: 'Service / Staff', short: 'Service' },
+  lotac: { label: 'Crowding / Capacity', short: 'Crowding' },
+  ruido: { label: 'Noise', short: 'Noise' },
+  horario: { label: 'Opening hours / Closure', short: 'Hours' },
+};
+const probLabel = (p: { id: string; label: string }) => t(p.label, PROBLEM_EN[p.id]?.label ?? p.label);
+const probShort = (p: { id: string; short: string }) => t(p.short, PROBLEM_EN[p.id]?.short ?? p.short);
+
 function classifyProblems(loc: Location): Record<string, number> {
   const out: Record<string, number> = {};
   const a = loc.analysis;
@@ -368,7 +391,8 @@ function AIReportBody({ text }: { text: string }) {
 const scoreColor = (s: number) => (s >= 7.5 ? C.positive : s >= 5 ? C.neutral : C.negative);
 const scoreBg = (s: number) => (s >= 7.5 ? C.positiveBg : s >= 5 ? C.neutralBg : C.negativeBg);
 const scoreLabel = (s: number) =>
-  s >= 8.5 ? 'Excelente' : s >= 7 ? 'Bom' : s >= 5.5 ? 'Razoável' : s >= 4 ? 'Insatisfatório' : 'Crítico';
+  s >= 8.5 ? t('Excelente', 'Excellent') : s >= 7 ? t('Bom', 'Good') : s >= 5.5 ? t('Razoável', 'Fair') : s >= 4 ? t('Insatisfatório', 'Poor') : t('Crítico', 'Critical');
+const robLabel = (lvl: string) => lvl === 'Alta' ? t('Alta', 'High') : lvl === 'Média' ? t('Média', 'Medium') : t('Baixa', 'Low');
 
 const categoryIcon = (cat: string) =>
   (({ Monumento: '🏛', Museu: '🖼', Restaurante: '🍽', Alojamento: '🏨', Experiência: '🎭', 'Espaço Público': '🌳' } as Record<string, string>)[cat] || '📍');
@@ -393,7 +417,9 @@ function countTop(arr: string[], n = 8): [string, number][] {
 
 const DIMS = ['localizacao', 'servico', 'precoQualidade', 'limpeza', 'experiencia', 'acessibilidade'];
 const DIM_LABELS = ['Localização', 'Serviço', 'Preço/Qualidade', 'Limpeza', 'Experiência', 'Acessibilidade'];
-const dimLabel = (key: string) => { const i = DIMS.indexOf(key); return i >= 0 ? DIM_LABELS[i] : key; };
+const DIM_LABELS_EN = ['Location', 'Service', 'Price/Quality', 'Cleanliness', 'Experience', 'Accessibility'];
+const dimLabelI = (idx: number) => t(DIM_LABELS[idx] ?? '', DIM_LABELS_EN[idx] ?? '');
+const dimLabel = (key: string) => { const i = DIMS.indexOf(key); return i >= 0 ? dimLabelI(i) : key; };
 
 // Robustez da análise em função do volume de reviews analisadas (e cobertura vs Google)
 function robustness(loc: Location): { level: string; color: string; pct: number; n: number; coverage: number | null } {
@@ -444,6 +470,7 @@ function whatChanged(loc: Location): null | {
 
 export default function Home() {
   const [locations, setLocations] = useState<Location[]>([]);
+  const [lang, setLang] = useState<Lang>('pt');
   const [view, setView] = useState<ViewType>('overview');
   const [selId, setSelId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -551,6 +578,20 @@ export default function Home() {
       setTimeout(() => setLoading(false), Math.max(0, MIN_SPLASH - elapsed));
     })();
   }, []);
+
+  // ── Idioma (PT/EN) ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem('rb-lang');
+    const initial: Lang = saved === 'en' ? 'en' : 'pt';
+    setLang(initial);
+    setLangGlobal(initial);
+  }, []);
+  const changeLang = (l: Lang) => {
+    setLang(l);
+    setLangGlobal(l);
+    if (typeof window !== 'undefined') localStorage.setItem('rb-lang', l);
+  };
 
   // ── Check URL for public report mode ──
   useEffect(() => {
@@ -688,7 +729,7 @@ export default function Home() {
       const probAgg = PROBLEM_TAXONOMY
         .map((p) => ({ label: p.label, affected: rowsP.filter((x) => x.probs[p.id]).length }))
         .filter((p) => p.affected > 0).sort((a, b) => b.affected - a.affected).slice(0, 6);
-      const problemas = probAgg.map((p) => `${p.label}: ${p.affected} ${p.affected === 1 ? 'local' : 'locais'}`);
+      const problemas = probAgg.map((p) => `${p.label}: ${p.affected} ${t(p.affected === 1 ? 'local' : 'locais', p.affected === 1 ? 'place' : 'places')}`);
       const div = analyzed.filter((l) => l.googleRating != null && l.analysis)
         .map((l) => `${l.name}: IA ${l.analysis!.sentimentScore}/10 vs Google ${l.googleRating} (${l.googleReviewCount || '?'} reviews)`).slice(0, 8);
       const mesAno = new Date().toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
@@ -1069,7 +1110,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
   }).filter(Boolean) as { cat: string; count: number; avg: number }[];
 
   const radarData = DIMS.map((d, i) => ({
-    dimension: DIM_LABELS[i].replace('/Qualidade', '/Qual.'),
+    dimension: dimLabelI(i).replace('/Qualidade', '/Qual.'),
     value: analyzed.length > 0
       ? +(analyzed.reduce((s, l) => s + (l.analysis?.dimensions?.[d] || 0), 0) / analyzed.length).toFixed(1)
       : 0,
@@ -1092,13 +1133,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
   };
 
   const NAV: { id: ViewType; label: string; icon: string }[] = [
-    { id: 'overview', label: 'Visão Geral', icon: '◈' },
-    { id: 'observatorio', label: 'Observatório', icon: '◔' },
-    { id: 'locais', label: 'Locais', icon: '⊞' },
-    { id: 'mapa', label: 'Mapa', icon: '◎' },
-    { id: 'comparar', label: 'Comparar', icon: '⊟' },
-    { id: 'problemas', label: 'Problemas', icon: '▦' },
-    { id: 'relatorio', label: 'Relatório', icon: '≡' },
+    { id: 'overview', label: t('Visão Geral', 'Overview'), icon: '◈' },
+    { id: 'observatorio', label: t('Observatório', 'Observatory'), icon: '◔' },
+    { id: 'locais', label: t('Locais', 'Places'), icon: '⊞' },
+    { id: 'mapa', label: t('Mapa', 'Map'), icon: '◎' },
+    { id: 'comparar', label: t('Comparar', 'Compare'), icon: '⊟' },
+    { id: 'problemas', label: t('Problemas', 'Issues'), icon: '▦' },
+    { id: 'relatorio', label: t('Relatório', 'Report'), icon: '≡' },
   ];
 
   // ── Report generator ──
@@ -1182,12 +1223,12 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         <div style={{ textAlign: 'center', animation: 'rbFadeUp 0.6s ease both' }}>
           <img src={LOGO_URL} alt="Visit Braga" style={{ width: 230, height: 'auto', marginBottom: 26 }} />
           <div className="rb-display" style={{ fontSize: 15, color: C.accentLight, letterSpacing: '0.04em', marginBottom: 24 }}>
-            Observatório de Reputação Turística
+            {t('Observatório de Reputação Turística', 'Tourism Reputation Observatory')}
           </div>
           <div style={{ width: 180, height: 3, borderRadius: 3, background: C.border, overflow: 'hidden', margin: '0 auto', position: 'relative' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, width: '40%', height: '100%', borderRadius: 3, background: `linear-gradient(90deg, transparent, ${C.accent}, transparent)`, animation: 'rbShimmer 1.3s ease-in-out infinite' }} />
           </div>
-          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 18, letterSpacing: '0.02em' }}>A carregar dados…</div>
+          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 18, letterSpacing: '0.02em' }}>{t('A carregar dados…', 'Loading data…')}</div>
         </div>
       </div>
     );
@@ -1199,7 +1240,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       return (
         <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
           <img src={LOGO_URL} alt="Visit Braga" style={{ width: 150, height: 'auto' }} />
-          <p style={{ color: C.textMuted, fontSize: 14 }}>Relatório não encontrado.</p>
+          <p style={{ color: C.textMuted, fontSize: 14 }}>{t('Relatório não encontrado.', 'Report not found.')}</p>
         </div>
       );
     }
@@ -1212,7 +1253,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           padding: '10px 18px', borderRadius: 10, border: `1px solid ${C.accent}`,
           background: C.cardGrad, color: C.accentLight, cursor: 'pointer', fontSize: 13, fontWeight: 600,
           boxShadow: C.shadowSoft,
-        }}>⬇ Guardar em PDF</button>
+        }}>{t('⬇ Guardar em PDF', '⬇ Save as PDF')}</button>
 
         {/* Public Header */}
         <header style={{
@@ -1228,11 +1269,11 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30,
           }}>{categoryIcon(detailLoc.category)}</div>
           <div style={{ fontSize: 11, color: C.accent, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>
-            Relatório de Reputação Turística
+            {t('Relatório de Reputação Turística', 'Tourism Reputation Report')}
           </div>
           <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>{detailLoc.name}</h1>
           <div style={{ fontSize: 13, color: C.textMuted, marginTop: 8 }}>
-            {detailLoc.category} · {detailLoc.platform} · {detailLoc.analysis.reviewCount || detailLoc.reviews.length} reviews analisadas
+            {catLabel(detailLoc.category)} · {catLabel(detailLoc.platform)} · {detailLoc.analysis.reviewCount || detailLoc.reviews.length} {t('reviews analisadas', 'reviews analysed')}
           </div>
         </header>
 
@@ -1246,7 +1287,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20,
           }}>
             <div>
-              <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Score de Reputação</div>
+              <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{t('Score de Reputação', 'Reputation Score')}</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 <span style={{ fontSize: 56, fontWeight: 700, color: scoreColor(detailLoc.analysis.sentimentScore), lineHeight: 1 }}>
                   {detailLoc.analysis.sentimentScore}
@@ -1260,15 +1301,15 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             <div style={{ display: 'flex', gap: 24 }}>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: C.positive }}>{detailLoc.analysis.sentimentBreakdown.positive}%</div>
-                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Positivo</div>
+                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('Positivo', 'Positive')}</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: C.neutral }}>{detailLoc.analysis.sentimentBreakdown.neutral}%</div>
-                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Neutro</div>
+                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('Neutro', 'Neutral')}</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: C.negative }}>{detailLoc.analysis.sentimentBreakdown.negative}%</div>
-                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Negativo</div>
+                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('Negativo', 'Negative')}</div>
               </div>
             </div>
           </div>
@@ -1295,17 +1336,17 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 display: 'flex', flexWrap: 'wrap', background: C.cardGrad, border: `1px solid ${C.border}`,
                 borderRadius: 14, marginBottom: 20, boxShadow: C.shadow, overflow: 'hidden',
               }}>
-                {cell('Média da cidade',
+                {cell(t('Média da cidade', 'City average'),
                   <span style={{ color: delta >= 0 ? C.positive : C.negative }}>{delta >= 0 ? '+' : ''}{delta} <span style={{ fontSize: 13, color: C.textDim, fontWeight: 400 }}>pts</span></span>,
-                  `${delta >= 0 ? 'acima' : 'abaixo'} da média (${city.toFixed(1)}/10)`)}
+                  `${delta >= 0 ? t('acima', 'above') : t('abaixo', 'below')} ${t('da média', 'the average')} (${city.toFixed(1)}/10)`)}
                 <div style={{ width: 1, background: C.border }} />
-                {rank > 0 && cell('Posição na cidade',
-                  <span>{rank}<span style={{ fontSize: 14, color: C.textDim, fontWeight: 400 }}>.º</span> <span style={{ fontSize: 13, color: C.textDim, fontWeight: 400 }}>de {ranked.length}</span></span>,
-                  'entre os locais avaliados')}
+                {rank > 0 && cell(t('Posição na cidade', 'City ranking'),
+                  <span>{rank}<span style={{ fontSize: 14, color: C.textDim, fontWeight: 400 }}>{t('.º', '')}</span> <span style={{ fontSize: 13, color: C.textDim, fontWeight: 400 }}>{t('de', 'of')} {ranked.length}</span></span>,
+                  t('entre os locais avaliados', 'among evaluated places'))}
                 <div style={{ width: 1, background: C.border }} />
-                {cell('Robustez da análise',
-                  <span style={{ color: rob.color }}>{rob.level}</span>,
-                  `${rob.n} reviews analisadas${rob.coverage !== null ? ` · ${rob.coverage}% do Google` : ''}`)}
+                {cell(t('Robustez da análise', 'Analysis robustness'),
+                  <span style={{ color: rob.color }}>{robLabel(rob.level)}</span>,
+                  `${rob.n} ${t('reviews analisadas', 'reviews analysed')}${rob.coverage !== null ? ` · ${rob.coverage}% ${t('do Google', 'of Google')}` : ''}`)}
               </div>
             );
           })()}
@@ -1315,11 +1356,11 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
           {/* Summary */}
           <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Resumo Analítico</div>
+            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{t('Resumo Analítico', 'Analytical Summary')}</div>
             <p style={{ fontSize: 15, color: C.text, lineHeight: 1.8, margin: 0 }}>{detailLoc.analysis.summaryPT}</p>
             {detailLoc.analysis.marketSources && detailLoc.analysis.marketSources.length > 0 && (
               <div style={{ marginTop: 16, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: C.textDim }}>Mercados emissores:</span>
+                <span style={{ fontSize: 11, color: C.textDim }}>{t('Mercados emissores:', 'Source markets:')}</span>
                 {detailLoc.analysis.marketSources.map((m, i) => (
                   <span key={i} style={{ fontSize: 11, background: C.infoBg, color: C.info, padding: '3px 10px', borderRadius: 8 }}>{m}</span>
                 ))}
@@ -1331,24 +1372,24 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           {detailLoc.analysisHistory && detailLoc.analysisHistory.length >= 2 && (
             <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-                <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Evolução da Reputação ao Longo do Tempo</div>
+                <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('Evolução da Reputação ao Longo do Tempo', 'Reputation Evolution Over Time')}</div>
                 {(() => {
                   const h = detailLoc.analysisHistory!;
                   const delta = +(h[h.length - 1].score - h[0].score).toFixed(1);
                   const col = delta > 0 ? C.positive : delta < 0 ? C.negative : C.textMuted;
                   return <span style={{ fontSize: 13, fontWeight: 700, color: col, background: delta > 0 ? C.positiveBg : delta < 0 ? C.negativeBg : C.border, padding: '3px 12px', borderRadius: 8 }}>
-                    {delta > 0 ? '↑ +' : delta < 0 ? '↓ ' : '→ '}{delta} pts desde a 1ª análise
+                    {delta > 0 ? '↑ +' : delta < 0 ? '↓ ' : '→ '}{delta} {t('pts desde a 1ª análise', 'pts since first analysis')}
                   </span>;
                 })()}
               </div>
               <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={detailLoc.analysisHistory.map((s) => ({ label: new Date(s.date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }), score: s.score, negativo: s.negative }))} margin={{ top: 6, right: 12, left: -18, bottom: 0 }}>
+                <LineChart data={detailLoc.analysisHistory.map((s) => ({ label: new Date(s.date).toLocaleDateString(t('pt-PT', 'en-GB'), { day: '2-digit', month: 'short' }), score: s.score, negativo: s.negative }))} margin={{ top: 6, right: 12, left: -18, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                   <XAxis dataKey="label" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
                   <YAxis domain={[0, 10]} stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
                   <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} />
                   <Line type="monotone" dataKey="score" name="Score /10" stroke={C.accent} strokeWidth={2.5} dot={{ r: 4, fill: C.accent }} />
-                  <Line type="monotone" dataKey="negativo" name="% Negativo" stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="negativo" name={t('% Negativo', '% Negative')} stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -1356,14 +1397,14 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
           {/* Dimensions */}
           <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 18 }}>Dimensões de Avaliação</div>
+            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 18 }}>{t('Dimensões de Avaliação', 'Evaluation Dimensions')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
               {DIMS.map((d, i) => {
                 const val = detailLoc.analysis!.dimensions?.[d] || 0;
                 return (
                   <div key={i}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 13, color: C.textMuted }}>{DIM_LABELS[i]}</span>
+                      <span style={{ fontSize: 13, color: C.textMuted }}>{dimLabelI(i)}</span>
                       <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(val) }}>{val}/10</span>
                     </div>
                     <div style={{ height: 8, borderRadius: 4, background: C.border, overflow: 'hidden' }}>
@@ -1378,8 +1419,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           {/* Praises + Issues */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
             {[
-              { title: '✦ Pontos Fortes', items: detailLoc.analysis.keyPraises || [], color: C.positive, sign: '+' },
-              { title: '⚠ Problemas Identificados', items: detailLoc.analysis.keyIssues || [], color: C.negative, sign: '−' },
+              { title: t('✦ Pontos Fortes', '✦ Strengths'), items: detailLoc.analysis.keyPraises || [], color: C.positive, sign: '+' },
+              { title: t('⚠ Problemas Identificados', '⚠ Issues Identified'), items: detailLoc.analysis.keyIssues || [], color: C.negative, sign: '−' },
             ].map((col, ci) => (
               <div key={ci} style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '22px 26px' }}>
                 <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{col.title}</div>
@@ -1395,7 +1436,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
           {/* Actionable Insights */}
           <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>💡 Sugestões Acionáveis para a Gestão</div>
+            <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('💡 Sugestões Acionáveis para a Gestão', '💡 Actionable Suggestions for Management')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
               {(detailLoc.analysis.actionableInsights || []).map((ins, i) => (
                 <div key={i} style={{ display: 'flex', gap: 10, padding: '12px 16px', background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, alignItems: 'flex-start' }}>
@@ -1409,8 +1450,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           {/* Themes */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
             {[
-              { title: 'Temas Positivos', items: detailLoc.analysis.topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
-              { title: 'Temas Negativos', items: detailLoc.analysis.topThemesNegative || [], color: C.negative, bg: C.negativeBg, prefix: '−' },
+              { title: t('Temas Positivos', 'Positive Themes'), items: detailLoc.analysis.topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
+              { title: t('Temas Negativos', 'Negative Themes'), items: detailLoc.analysis.topThemesNegative || [], color: C.negative, bg: C.negativeBg, prefix: '−' },
             ].map((col, ci) => (
               <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 26px' }}>
                 <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{col.title}</div>
@@ -1430,11 +1471,11 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           }}>
             <img src={LOGO_URL} alt="Visit Braga" style={{ height: 44, width: 'auto', marginBottom: 8 }} />
             <div style={{ fontSize: 11, color: C.textDim, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              Município de Braga · Reputação Turística
+              {t('Município de Braga · Reputação Turística', 'Municipality of Braga · Tourism Reputation')}
             </div>
             {detailLoc.lastAnalyzed && (
               <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>
-                Análise gerada em {new Date(detailLoc.lastAnalyzed).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })}
+                {t('Análise gerada em', 'Analysis generated on')} {new Date(detailLoc.lastAnalyzed).toLocaleDateString(t('pt-PT', 'en-GB'), { day: '2-digit', month: 'long', year: 'numeric' })}
               </div>
             )}
           </footer>
@@ -1456,7 +1497,17 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       }}>
         <div style={{ padding: '28px 20px 22px', borderBottom: `1px solid ${C.sidebarBorder}`, textAlign: 'center' }}>
           <img src={LOGO_URL} alt="Visit Braga" style={{ height: 32, width: 'auto', marginBottom: 12 }} />
-          <div className="rb-display" style={{ fontSize: 11.5, color: C.accentLight, letterSpacing: '0.03em' }}>Observatório de Reputação</div>
+          <div className="rb-display" style={{ fontSize: 11.5, color: C.accentLight, letterSpacing: '0.03em' }}>{t('Observatório de Reputação', 'Reputation Observatory')}</div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginTop: 13 }}>
+            {(['pt', 'en'] as Lang[]).map((l) => (
+              <button key={l} onClick={() => changeLang(l)} style={{
+                padding: '3px 13px', borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                border: `1px solid ${lang === l ? C.accent : C.border}`,
+                background: lang === l ? C.accentBg : 'transparent',
+                color: lang === l ? C.accentLight : C.textMuted, letterSpacing: '0.06em',
+              }}>{l.toUpperCase()}</button>
+            ))}
+          </div>
         </div>
 
         <nav style={{ padding: '14px 10px', flex: 1 }}>
@@ -1487,7 +1538,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
         {avgScore !== null && (
           <div className="rb-side-score" style={{ margin: '0 12px 14px', padding: '16px 18px', borderRadius: 12, background: C.cardGrad, border: `1px solid ${C.border}`, boxShadow: C.shadow }}>
-            <div style={{ fontSize: 9.5, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 7 }}>Score Global</div>
+            <div style={{ fontSize: 9.5, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 7 }}>{t('Score Global', 'Overall Score')}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
               <span style={{ fontSize: 32, fontWeight: 700, color: scoreColor(avgScore), lineHeight: 1 }}>{avgScore.toFixed(1)}</span>
               <span style={{ fontSize: 13, color: C.textDim }}>/10</span>
@@ -1496,7 +1547,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             <div style={{ height: 4, borderRadius: 2, background: C.border, overflow: 'hidden', marginTop: 9 }}>
               <div style={{ width: `${(avgScore / 10) * 100}%`, height: '100%', background: scoreColor(avgScore), borderRadius: 2 }} />
             </div>
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 7 }}>{analyzed.length} locais · {totalReviews} reviews</div>
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 7 }}>{analyzed.length} {t('locais', 'places')} · {totalReviews} reviews</div>
           </div>
         )}
       </aside>
@@ -1509,20 +1560,20 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           <div style={{ padding: '28px 30px' }}>
             <div style={{ marginBottom: 26 }}>
               <div style={{ fontSize: 10.5, color: C.accent, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 8 }}>Município de Braga · Visit Braga</div>
-              <h1 style={{ fontSize: 30, fontWeight: 600, margin: '0 0 5px' }}>Visão Geral</h1>
-              <p style={{ color: C.textMuted, fontSize: 13.5, margin: 0 }}>Análise consolidada de reputação turística do destino</p>
+              <h1 style={{ fontSize: 30, fontWeight: 600, margin: '0 0 5px' }}>{t('Visão Geral', 'Overview')}</h1>
+              <p style={{ color: C.textMuted, fontSize: 13.5, margin: 0 }}>{t('Análise consolidada de reputação turística do destino', 'Consolidated tourism reputation analysis of the destination')}</p>
             </div>
 
             {analyzed.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '80px 20px' }}>
                 <div style={{ fontSize: 52, marginBottom: 16, opacity: 0.25 }}>📊</div>
-                <h2 style={{ fontSize: 20, marginBottom: 8, color: C.textMuted }}>Sem dados ainda</h2>
+                <h2 style={{ fontSize: 20, marginBottom: 8, color: C.textMuted }}>{t('Sem dados ainda', 'No data yet')}</h2>
                 <p style={{ color: C.textDim, fontSize: 13, maxWidth: 360, margin: '0 auto 24px', lineHeight: 1.6 }}>
-                  Adiciona locais, cola as reviews limpas e analisa com IA para ver o painel completo.
+                  {t('Adiciona locais, cola as reviews limpas e analisa com IA para ver o painel completo.', 'Add places, paste the cleaned reviews and run an AI analysis to see the full dashboard.')}
                 </p>
                 <button onClick={() => { setView('locais'); setShowAdd(true); }}
                   style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: C.accent, color: C.bg, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                  + Adicionar Primeiro Local
+                  {t('+ Adicionar Primeiro Local', '+ Add First Place')}
                 </button>
               </div>
             ) : (
@@ -1530,11 +1581,11 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 {/* KPIs */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
                   {[
-                    { label: 'Score Global', value: avgScore!.toFixed(1), unit: '/10', sub: scoreLabel(avgScore!), color: scoreColor(avgScore!) },
-                    { label: 'Locais Analisados', value: String(analyzed.length), unit: '', sub: `de ${locations.length} total`, color: C.accent },
-                    { label: 'Reviews Processadas', value: String(totalReviews), unit: '', sub: 'análise IA', color: C.accentLight },
-                    { label: 'Problemas Detetados', value: String(allIssues.length), unit: '', sub: 'issues identificadas', color: C.negative },
-                    { label: 'Mercados Emissores', value: String(Array.from(new Set(allMarkets)).length), unit: '', sub: 'idiomas/países', color: C.info },
+                    { label: t('Score Global', 'Overall Score'), value: avgScore!.toFixed(1), unit: '/10', sub: scoreLabel(avgScore!), color: scoreColor(avgScore!) },
+                    { label: t('Locais Analisados', 'Analysed Places'), value: String(analyzed.length), unit: '', sub: `${t('de', 'of')} ${locations.length} total`, color: C.accent },
+                    { label: t('Reviews Processadas', 'Reviews Processed'), value: String(totalReviews), unit: '', sub: t('análise IA', 'AI analysis'), color: C.accentLight },
+                    { label: t('Problemas Detetados', 'Issues Detected'), value: String(allIssues.length), unit: '', sub: t('issues identificadas', 'issues identified'), color: C.negative },
+                    { label: t('Mercados Emissores', 'Source Markets'), value: String(Array.from(new Set(allMarkets)).length), unit: '', sub: t('idiomas/países', 'languages/countries'), color: C.info },
                   ].map((k, i) => (
                     <div key={i} className="rb-card" style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '20px 22px', boxShadow: C.shadow }}>
                       <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>{k.label}</div>
@@ -1551,7 +1602,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 {priorityLocs.length > 0 && (
                   <div style={{ background: C.card, border: `1px solid ${C.negative}30`, borderRadius: 12, padding: '18px 22px', marginBottom: 14 }}>
                     <div style={{ fontSize: 11, color: C.negative, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      ⚠ Locais a Acompanhar - menor reputação
+                      {t('⚠ Locais a Acompanhar - menor reputação', '⚠ Places to Watch - lower reputation')}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                       {priorityLocs.map((l) => {
@@ -1576,19 +1627,19 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 {/* Category Stats */}
                 {categoryStats.length > 0 && (
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 22px', marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>Score Médio por Categoria</div>
+                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{t('Score Médio por Categoria', 'Average Score by Category')}</div>
                     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(categoryStats.length, 6)}, 1fr)`, gap: 12 }}>
                       {categoryStats.map((s) => (
                         <div key={s.cat} style={{ background: C.bg, borderRadius: 8, padding: '14px 16px', border: `1px solid ${C.border}` }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                             <span style={{ fontSize: 14 }}>{categoryIcon(s.cat)}</span>
-                            <span style={{ fontSize: 11, color: C.textMuted }}>{s.cat}</span>
+                            <span style={{ fontSize: 11, color: C.textMuted }}>{catLabel(s.cat)}</span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                             <span style={{ fontSize: 20, fontWeight: 700, color: scoreColor(s.avg) }}>{s.avg}</span>
                             <span style={{ fontSize: 11, color: C.textDim }}>/10</span>
                           </div>
-                          <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{s.count} local{s.count !== 1 ? 'is' : ''}</div>
+                          <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{s.count} {t(s.count !== 1 ? 'locais' : 'local', s.count !== 1 ? 'places' : 'place')}</div>
                         </div>
                       ))}
                     </div>
@@ -1600,8 +1651,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   {/* Compact ranking list */}
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Ranking por Sentimento</div>
-                      <div style={{ fontSize: 11, color: C.textDim }}>{sortedAnalyzed.length} locais</div>
+                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('Ranking por Sentimento', 'Ranking by Sentiment')}</div>
+                      <div style={{ fontSize: 11, color: C.textDim }}>{sortedAnalyzed.length} {t('locais', 'places')}</div>
                     </div>
                     <div style={{ maxHeight: 560, overflowY: 'auto', paddingRight: 4 }}>
                       {sortedAnalyzed.map((loc, i) => {
@@ -1631,7 +1682,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
                   {/* Radar */}
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Dimensões Médias</div>
+                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{t('Dimensões Médias', 'Average Dimensions')}</div>
                     <ResponsiveContainer width="100%" height={260}>
                       <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="78%">
                         <PolarGrid stroke={C.border} />
@@ -1655,12 +1706,12 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 {/* Three-col panels */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
                   {[
-                    { title: '✦ Elogios Frequentes', items: topPraises, color: C.positive, bg: C.positiveBg },
-                    { title: '⚠ Problemas Recorrentes', items: topProblems, color: C.negative, bg: C.negativeBg },
+                    { title: t('✦ Elogios Frequentes', '✦ Frequent Praises'), items: topPraises, color: C.positive, bg: C.positiveBg },
+                    { title: t('⚠ Problemas Recorrentes', '⚠ Recurring Issues'), items: topProblems, color: C.negative, bg: C.negativeBg },
                   ].map((col, ci) => (
                     <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 22px' }}>
                       <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{col.title}</div>
-                      {col.items.length === 0 && <p style={{ color: C.textDim, fontSize: 13 }}>Sem dados</p>}
+                      {col.items.length === 0 && <p style={{ color: C.textDim, fontSize: 13 }}>{t('Sem dados', 'No data')}</p>}
                       {col.items.map(([text, count], i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, padding: '7px 0', borderBottom: i < col.items.length - 1 ? `1px solid ${C.border}` : 'none' }}>
                           <span style={{ fontSize: 12, lineHeight: 1.45, flex: 1 }}>{text}</span>
@@ -1671,9 +1722,9 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   ))}
 
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 22px' }}>
-                    <div style={{ fontSize: 11, color: C.info, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>🌍 Mercados Emissores</div>
+                    <div style={{ fontSize: 11, color: C.info, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{t('🌍 Mercados Emissores', '🌍 Source Markets')}</div>
                     {marketFreq.length === 0
-                      ? <p style={{ color: C.textDim, fontSize: 13, lineHeight: 1.5 }}>Analisa locais para detetar mercados emissores</p>
+                      ? <p style={{ color: C.textDim, fontSize: 13, lineHeight: 1.5 }}>{t('Analisa locais para detetar mercados emissores', 'Analyse places to detect source markets')}</p>
                       : marketFreq.map(([market, count], i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < marketFreq.length - 1 ? `1px solid ${C.border}` : 'none' }}>
                           <span style={{ fontSize: 12 }}>{market}</span>
@@ -1691,7 +1742,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
                 {/* Actions */}
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>💡 Ações Prioritárias para o Município</div>
+                  <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('💡 Ações Prioritárias para o Município', '💡 Priority Actions for the Municipality')}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
                     {insightDeduped.map((ins, i) => (
                       <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 14px', background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, alignItems: 'flex-start' }}>
@@ -1703,7 +1754,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 </div>
 
                 {/* Location cards */}
-                <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>Detalhe por Local - clica para análise completa</div>
+                <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{t('Detalhe por Local - clica para análise completa', 'Detail by Place - click for full analysis')}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
                   {sortedAnalyzed.map((loc) => (
                     <div key={loc.id} onClick={() => { setDetailId(loc.id); setView('detalhe'); }}
@@ -1716,7 +1767,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                             <span style={{ fontSize: 18 }}>{categoryIcon(loc.category)}</span>
                             <h4 style={{ fontSize: 15, fontWeight: 600, margin: 0, lineHeight: 1.2 }}>{loc.name}</h4>
                           </div>
-                          <span style={{ fontSize: 11, color: C.textDim }}>{loc.category} · {loc.platform}</span>
+                          <span style={{ fontSize: 11, color: C.textDim }}>{catLabel(loc.category)} · {catLabel(loc.platform)}</span>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 8 }}>
                           <div style={{ fontSize: 22, fontWeight: 700, color: scoreColor(loc.analysis!.sentimentScore), lineHeight: 1 }}>{loc.analysis!.sentimentScore}/10</div>
@@ -1739,7 +1790,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                           <span key={i} style={{ fontSize: 10, background: C.negativeBg, color: C.negative, padding: '3px 8px', borderRadius: 10 }}>− {t}</span>
                         ))}
                       </div>
-                      <div style={{ marginTop: 10, fontSize: 10, color: C.textDim }}>{loc.analysis!.reviewCount || loc.reviews.length} reviews · Ver análise completa →</div>
+                      <div style={{ marginTop: 10, fontSize: 10, color: C.textDim }}>{loc.analysis!.reviewCount || loc.reviews.length} reviews · {t('Ver análise completa →', 'View full analysis →')}</div>
                     </div>
                   ))}
                 </div>
@@ -1753,17 +1804,17 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           <div style={{ padding: '28px 30px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
               <div>
-                <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>Locais Monitorizados</h1>
-                <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{locations.length} local{locations.length !== 1 ? 'is' : ''} · {analyzed.length} analisado{analyzed.length !== 1 ? 's' : ''}</p>
+                <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>{t('Locais Monitorizados', 'Monitored Places')}</h1>
+                <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{locations.length} {t(locations.length !== 1 ? 'locais' : 'local', locations.length !== 1 ? 'places' : 'place')} · {analyzed.length} {t(analyzed.length !== 1 ? 'analisados' : 'analisado', 'analysed')}</p>
               </div>
               <button onClick={() => setShowAdd(true)}
                 style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: C.accent, color: C.bg, cursor: 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                + Adicionar Local
+                {t('+ Adicionar Local', '+ Add Place')}
               </button>
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-              <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="🔍  Pesquisar locais…"
+              <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder={t('🔍  Pesquisar locais…', '🔍  Search places…')}
                 style={{ ...IS, maxWidth: 320, flex: 1 }} />
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {['Todos', ...CATEGORIES].map((cat) => (
@@ -1775,7 +1826,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                       color: filterCat === cat ? C.accent : C.textMuted,
                       cursor: 'pointer', fontSize: 12, fontWeight: filterCat === cat ? 600 : 400,
                     }}>
-                    {cat !== 'Todos' && filterCat === cat ? categoryIcon(cat) + ' ' : ''}{cat}
+                    {cat !== 'Todos' && filterCat === cat ? categoryIcon(cat) + ' ' : ''}{cat === 'Todos' ? t('Todos', 'All') : catLabel(cat)}
                   </button>
                 ))}
               </div>
@@ -1783,13 +1834,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
             {searchQ && (
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
-                {filteredLocations.length} resultado{filteredLocations.length !== 1 ? 's' : ''} para &quot;{searchQ}&quot;
+                {filteredLocations.length} {t(filteredLocations.length !== 1 ? 'resultados' : 'resultado', filteredLocations.length !== 1 ? 'results' : 'result')} {t('para', 'for')} &quot;{searchQ}&quot;
               </div>
             )}
 
             {filteredLocations.length === 0 && (
               <p style={{ textAlign: 'center', padding: 60, color: C.textMuted, fontSize: 14 }}>
-                {locations.length === 0 ? 'Nenhum local adicionado ainda.' : 'Nenhum resultado encontrado.'}
+                {locations.length === 0 ? t('Nenhum local adicionado ainda.', 'No places added yet.') : t('Nenhum resultado encontrado.', 'No results found.')}
               </p>
             )}
 
@@ -1811,7 +1862,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                         <div>
                           <h4 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 3px' }}>{loc.name}</h4>
                           <span style={{ fontSize: 11, color: C.textDim }}>
-                            {loc.category} · {loc.platform} · {loc.reviews.length} review{loc.reviews.length !== 1 ? 's' : ''}
+                            {catLabel(loc.category)} · {catLabel(loc.platform)} · {loc.reviews.length} review{loc.reviews.length !== 1 ? 's' : ''}
                             {loc.coords && <span style={{ marginLeft: 6, color: C.info }}>· 📍 geo</span>}
                           </span>
                         </div>
@@ -1823,15 +1874,15 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                             <div style={{ fontSize: 10, color: scoreColor(loc.analysis.sentimentScore) }}>{scoreLabel(loc.analysis.sentimentScore)}</div>
                           </div>
                         ) : loc.reviews.length > 0 ? (
-                          <span style={{ fontSize: 11, color: C.neutral, background: C.neutralBg, padding: '4px 10px', borderRadius: 8 }}>Por analisar</span>
+                          <span style={{ fontSize: 11, color: C.neutral, background: C.neutralBg, padding: '4px 10px', borderRadius: 8 }}>{t('Por analisar', 'Not analysed')}</span>
                         ) : (
-                          <span style={{ fontSize: 11, color: C.textDim, background: C.border, padding: '4px 10px', borderRadius: 8 }}>Sem reviews</span>
+                          <span style={{ fontSize: 11, color: C.textDim, background: C.border, padding: '4px 10px', borderRadius: 8 }}>{t('Sem reviews', 'No reviews')}</span>
                         )}
                         <button onClick={(e) => { e.stopPropagation(); startEdit(loc); }}
-                          title="Editar"
+                          title={t('Editar', 'Edit')}
                           style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 12 }}>✎</button>
-                        <button onClick={(e) => { e.stopPropagation(); if (confirm(`Apagar "${loc.name}"?`)) deleteLoc(loc.id); }}
-                          title="Apagar"
+                        <button onClick={(e) => { e.stopPropagation(); if (confirm(t(`Apagar "${loc.name}"?`, `Delete "${loc.name}"?`))) deleteLoc(loc.id); }}
+                          title={t('Apagar', 'Delete')}
                           style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, cursor: 'pointer', fontSize: 12 }}>✕</button>
                       </div>
                     </div>
@@ -1841,7 +1892,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                         <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
                           <button onClick={(e) => { e.stopPropagation(); setSelId(loc.id); setShowReview(true); }}
                             style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
-                            📋 Colar Reviews
+                            {t('📋 Colar Reviews', '📋 Paste Reviews')}
                           </button>
                           <button onClick={(e) => { e.stopPropagation(); analyze(loc.id); }}
                             disabled={loc.reviews.length === 0 || !!analyzing}
@@ -1852,17 +1903,17 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                               cursor: loc.reviews.length === 0 || !!analyzing ? 'not-allowed' : 'pointer',
                               fontSize: 12, fontWeight: 600,
                             }}>
-                            {isAnalyzing ? '⏳ A analisar…' : '🤖 Analisar com IA'}
+                            {isAnalyzing ? t('⏳ A analisar…', '⏳ Analysing…') : t('🤖 Analisar com IA', '🤖 Analyse with AI')}
                           </button>
                           {loc.analysis && (
                             <>
                               <button onClick={(e) => { e.stopPropagation(); setDetailId(loc.id); setView('detalhe'); }}
                                 style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 12 }}>
-                                Ver Análise Completa →
+                                {t('Ver Análise Completa →', 'View Full Analysis →')}
                               </button>
                               <button onClick={(e) => { e.stopPropagation(); copyShareLink(loc.id); }}
                                 style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${copiedLinkId === loc.id ? C.positive : C.border}`, background: copiedLinkId === loc.id ? C.positiveBg : 'transparent', color: copiedLinkId === loc.id ? C.positive : C.textMuted, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
-                                {copiedLinkId === loc.id ? '✓ Link copiado' : '🔗 Link Partilhável'}
+                                {copiedLinkId === loc.id ? t('✓ Link copiado', '✓ Link copied') : t('🔗 Link Partilhável', '🔗 Shareable Link')}
                               </button>
                             </>
                           )}
@@ -1883,16 +1934,16 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                               <span style={{ color: C.positive }}>▮ {loc.analysis.sentimentBreakdown.positive}% pos</span>
                               <span style={{ color: C.neutral }}>▮ {loc.analysis.sentimentBreakdown.neutral}% neu</span>
                               <span style={{ color: C.negative }}>▮ {loc.analysis.sentimentBreakdown.negative}% neg</span>
-                              <span style={{ marginLeft: 'auto' }}>Analisado em {new Date(loc.lastAnalyzed!).toLocaleDateString('pt-PT')}</span>
+                              <span style={{ marginLeft: 'auto' }}>{t('Analisado em', 'Analysed on')} {new Date(loc.lastAnalyzed!).toLocaleDateString(t('pt-PT', 'en-GB'))}</span>
                             </div>
                             <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, margin: '0 0 14px' }}>{loc.analysis.summaryPT}</p>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                               <div>
-                                <div style={{ fontSize: 10, color: C.positive, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Pontos Fortes</div>
+                                <div style={{ fontSize: 10, color: C.positive, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{t('Pontos Fortes', 'Strengths')}</div>
                                 {loc.analysis.keyPraises?.map((p, i) => <div key={i} style={{ fontSize: 12, padding: '3px 0', color: C.text, lineHeight: 1.4 }}>+ {p}</div>)}
                               </div>
                               <div>
-                                <div style={{ fontSize: 10, color: C.negative, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Problemas</div>
+                                <div style={{ fontSize: 10, color: C.negative, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{t('Problemas', 'Issues')}</div>
                                 {loc.analysis.keyIssues?.map((p, i) => <div key={i} style={{ fontSize: 12, padding: '3px 0', color: C.text, lineHeight: 1.4 }}>− {p}</div>)}
                               </div>
                             </div>
@@ -1901,7 +1952,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
                         {loc.reviews.length > 0 && (
                           <div>
-                            <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Reviews Coladas ({loc.reviews.length})</div>
+                            <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{t('Reviews Coladas', 'Pasted Reviews')} ({loc.reviews.length})</div>
                             <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {loc.reviews.map((rev) => (
                                 <div key={rev.id} style={{ background: C.bg, borderRadius: 8, padding: '8px 12px', fontSize: 12, color: C.textMuted, lineHeight: 1.5, display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
@@ -1926,9 +1977,9 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '16px 28px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
               <div>
-                <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 2px' }}>Mapa de Reputação</h1>
+                <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 2px' }}>{t('Mapa de Reputação', 'Reputation Map')}</h1>
                 <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>
-                  {analyzed.length} local{analyzed.length !== 1 ? 'is' : ''} com análise · <span style={{ color: C.accent }}>arrasta marcadores para reposicionar</span>
+                  {analyzed.length} {t(analyzed.length !== 1 ? 'locais' : 'local', analyzed.length !== 1 ? 'places' : 'place')} {t('com análise', 'analysed')} · <span style={{ color: C.accent }}>{t('arrasta marcadores para reposicionar', 'drag markers to reposition')}</span>
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -1967,8 +2018,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     <div>
                       <h1 style={{ fontSize: 26, fontWeight: 700, margin: '0 0 6px', letterSpacing: '-0.02em' }}>{detailLoc.name}</h1>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span style={{ fontSize: 12, color: C.textDim, background: C.border, padding: '3px 10px', borderRadius: 8 }}>{detailLoc.category}</span>
-                        <span style={{ fontSize: 12, color: C.textDim, background: C.border, padding: '3px 10px', borderRadius: 8 }}>{detailLoc.platform}</span>
+                        <span style={{ fontSize: 12, color: C.textDim, background: C.border, padding: '3px 10px', borderRadius: 8 }}>{catLabel(detailLoc.category)}</span>
+                        <span style={{ fontSize: 12, color: C.textDim, background: C.border, padding: '3px 10px', borderRadius: 8 }}>{catLabel(detailLoc.platform)}</span>
                         {detailLoc.coords && <span style={{ fontSize: 11, color: C.info }}>📍 {detailLoc.coords[0].toFixed(4)}, {detailLoc.coords[1].toFixed(4)}</span>}
                         {detailLoc.lastAnalyzed && <span style={{ fontSize: 11, color: C.textDim }}>Analisado a {new Date(detailLoc.lastAnalyzed).toLocaleString('pt-PT')}</span>}
                       </div>
@@ -1977,7 +2028,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <button onClick={() => { setSelId(detailLoc.id); setShowReview(true); }}
                       style={{ padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
-                      📋 Colar Reviews
+                      {t('📋 Colar Reviews', '📋 Paste Reviews')}
                     </button>
                     <button onClick={() => analyze(detailLoc.id)} disabled={detailLoc.reviews.length === 0 || !!analyzing}
                       style={{
@@ -2024,7 +2075,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px' }}>
                             <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Robustez da Análise</div>
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                              <span style={{ fontSize: 22, fontWeight: 700, color: rob.color }}>{rob.level}</span>
+                              <span style={{ fontSize: 22, fontWeight: 700, color: rob.color }}>{robLabel(rob.level)}</span>
                               <span style={{ fontSize: 12, color: C.textMuted }}>{rob.n} reviews analisadas</span>
                             </div>
                             <div style={{ height: 7, borderRadius: 4, background: C.bg, overflow: 'hidden', marginBottom: 8 }}>
@@ -2089,11 +2140,11 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                       );
                     })()}
                     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Resumo Analítico</div>
+                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{t('Resumo Analítico', 'Analytical Summary')}</div>
                       <p style={{ fontSize: 14, color: C.text, lineHeight: 1.75, margin: 0 }}>{detailLoc.analysis.summaryPT}</p>
                       {detailLoc.analysis.marketSources && detailLoc.analysis.marketSources.length > 0 && (
                         <div style={{ marginTop: 14, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: C.textDim }}>Mercados emissores:</span>
+                          <span style={{ fontSize: 11, color: C.textDim }}>{t('Mercados emissores:', 'Source markets:')}</span>
                           {detailLoc.analysis.marketSources.map((m, i) => (
                             <span key={i} style={{ fontSize: 11, background: C.infoBg, color: C.info, padding: '2px 8px', borderRadius: 8 }}>{m}</span>
                           ))}
@@ -2138,7 +2189,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                               <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
                                 <span style={{ fontSize: 12, color: C.textMuted }}>{hist.length} análises registadas</span>
                                 <span style={{ fontSize: 13, fontWeight: 700, color: deltaColor, background: delta > 0 ? C.positiveBg : delta < 0 ? C.negativeBg : C.border, padding: '3px 12px', borderRadius: 8 }}>
-                                  {delta > 0 ? '↑' : delta < 0 ? '↓' : '→'} {delta > 0 ? '+' : ''}{delta} pts desde a 1ª análise
+                                  {delta > 0 ? '↑' : delta < 0 ? '↓' : '→'} {delta > 0 ? '+' : ''}{delta} {t('pts desde a 1ª análise', 'pts since first analysis')}
                                 </span>
                               </div>
                             )}
@@ -2160,7 +2211,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                                   itemStyle={{ color: C.text }}
                                 />
                                 <Line type="monotone" dataKey="score" name="Score /10" stroke={C.accent} strokeWidth={2.5} dot={{ r: 4, fill: C.accent }} activeDot={{ r: 6 }} />
-                                <Line type="monotone" dataKey="negativo" name="% Negativo" stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="negativo" name={t('% Negativo', '% Negative')} stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 3 }} />
                               </LineChart>
                             </ResponsiveContainer>
                           )}
@@ -2191,13 +2242,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                       </div>
 
                       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                        <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Dimensões de Avaliação</div>
+                        <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('Dimensões de Avaliação', 'Evaluation Dimensions')}</div>
                         {DIMS.map((d, i) => {
                           const val = detailLoc.analysis!.dimensions?.[d] || 0;
                           return (
                             <div key={i} style={{ marginBottom: 12 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                                <span style={{ fontSize: 12, color: C.textMuted }}>{DIM_LABELS[i]}</span>
+                                <span style={{ fontSize: 12, color: C.textMuted }}>{dimLabelI(i)}</span>
                                 <span style={{ fontSize: 12, fontWeight: 700, color: scoreColor(val) }}>{val}/10</span>
                               </div>
                               <div style={{ height: 6, borderRadius: 3, background: C.border, overflow: 'hidden' }}>
@@ -2211,8 +2262,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                       {[
-                        { title: '✦ Pontos Fortes', items: detailLoc.analysis.keyPraises || [], color: C.positive, sign: '+' },
-                        { title: '⚠ Problemas Identificados', items: detailLoc.analysis.keyIssues || [], color: C.negative, sign: '−' },
+                        { title: t('✦ Pontos Fortes', '✦ Strengths'), items: detailLoc.analysis.keyPraises || [], color: C.positive, sign: '+' },
+                        { title: t('⚠ Problemas Identificados', '⚠ Issues Identified'), items: detailLoc.analysis.keyIssues || [], color: C.negative, sign: '−' },
                       ].map((col, ci) => (
                         <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
                           <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{col.title}</div>
@@ -2227,7 +2278,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     </div>
 
                     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>💡 Sugestões Acionáveis para a Gestão</div>
+                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('💡 Sugestões Acionáveis para a Gestão', '💡 Actionable Suggestions for Management')}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
                         {(detailLoc.analysis.actionableInsights || []).map((ins, i) => (
                           <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 14px', background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, alignItems: 'flex-start' }}>
@@ -2240,8 +2291,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                       {[
-                        { title: 'Temas Positivos', items: detailLoc.analysis.topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
-                        { title: 'Temas Negativos', items: detailLoc.analysis.topThemesNegative || [], color: C.negative, bg: C.negativeBg, prefix: '−' },
+                        { title: t('Temas Positivos', 'Positive Themes'), items: detailLoc.analysis.topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
+                        { title: t('Temas Negativos', 'Negative Themes'), items: detailLoc.analysis.topThemesNegative || [], color: C.negative, bg: C.negativeBg, prefix: '−' },
                       ].map((col, ci) => (
                         <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 22px' }}>
                           <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{col.title}</div>
@@ -2279,8 +2330,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         {view === 'comparar' && (
           <div style={{ padding: '28px 30px' }}>
             <div style={{ marginBottom: 20 }}>
-              <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>Comparar Locais</h1>
-              <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Seleciona até 4 locais analisados para comparação lado a lado</p>
+              <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>{t('Comparar Locais', 'Compare Places')}</h1>
+              <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{t('Seleciona até 4 locais analisados para comparação lado a lado', 'Select up to 4 analysed places for side-by-side comparison')}</p>
             </div>
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
@@ -2303,7 +2354,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
             {compareIds.length < 2 ? (
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 60, textAlign: 'center' }}>
-                <p style={{ color: C.textMuted, fontSize: 14 }}>Seleciona pelo menos 2 locais para comparar.</p>
+                <p style={{ color: C.textMuted, fontSize: 14 }}>{t('Seleciona pelo menos 2 locais para comparar.', 'Select at least 2 places to compare.')}</p>
               </div>
             ) : (
               <>
@@ -2311,7 +2362,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                        <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', width: 160 }}>Dimensão</th>
+                        <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', width: 160 }}>{t('Dimensão', 'Dimension')}</th>
                         {compareIds.map((id) => {
                           const l = locations.find((x) => x.id === id)!;
                           return (
@@ -2326,11 +2377,11 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     </thead>
                     <tbody>
                       {[
-                        { key: 'sentimentScore', label: 'Score Global', fmt: (v: number) => v + '/10' },
-                        { key: 'positive', label: 'Sentimento Positivo', fmt: (v: number) => v + '%' },
-                        { key: 'negative', label: 'Sentimento Negativo', fmt: (v: number) => v + '%' },
-                        ...DIMS.map((d, i) => ({ key: `dim_${d}`, label: DIM_LABELS[i], fmt: (v: number) => v + '/10' })),
-                        { key: 'reviewCount', label: 'Nº Reviews', fmt: (v: number) => String(v) },
+                        { key: 'sentimentScore', label: t('Score Global', 'Overall Score'), fmt: (v: number) => v + '/10' },
+                        { key: 'positive', label: t('Sentimento Positivo', 'Positive Sentiment'), fmt: (v: number) => v + '%' },
+                        { key: 'negative', label: t('Sentimento Negativo', 'Negative Sentiment'), fmt: (v: number) => v + '%' },
+                        ...DIMS.map((d, i) => ({ key: `dim_${d}`, label: dimLabelI(i), fmt: (v: number) => v + '/10' })),
+                        { key: 'reviewCount', label: t('Nº Reviews', 'No. of Reviews'), fmt: (v: number) => String(v) },
                       ].map((row, ri) => {
                         const vals = compareIds.map((id) => {
                           const l = locations.find((x) => x.id === id)!;
@@ -2364,10 +2415,10 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 </div>
 
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                  <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>Comparação Visual - Dimensões</div>
+                  <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>{t('Comparação Visual - Dimensões', 'Visual Comparison - Dimensions')}</div>
                   {DIMS.map((d, di) => (
                     <div key={di} style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6 }}>{DIM_LABELS[di]}</div>
+                      <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6 }}>{dimLabelI(di)}</div>
                       <div style={{ display: 'flex', gap: 4 }}>
                         {compareIds.map((id, ci) => {
                           const loc = locations.find((l) => l.id === id)!;
@@ -2430,13 +2481,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           return (
             <div style={{ padding: '28px 30px' }}>
               <div style={{ marginBottom: 18 }}>
-                <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>Problemas da Cidade</h1>
-                <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Classificação automática das críticas em categorias fixas, agregada ao nível da cidade. Permite ver padrões transversais a vários locais.</p>
+                <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>{t('Problemas da Cidade', 'City Issues')}</h1>
+                <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{t('Classificação automática das críticas em categorias fixas, agregada ao nível da cidade. Permite ver padrões transversais a vários locais.', 'Automatic classification of reviews into fixed categories, aggregated at city level. Reveals patterns shared across several places.')}</p>
               </div>
 
               {rows.length === 0 ? (
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: 'center' }}>
-                  <p style={{ color: C.textMuted, fontSize: 14, margin: 0 }}>Ainda não há problemas classificáveis. Analisa locais com reviews para que as críticas sejam categorizadas automaticamente.</p>
+                  <p style={{ color: C.textMuted, fontSize: 14, margin: 0 }}>{t('Ainda não há problemas classificáveis. Analisa locais com reviews para que as críticas sejam categorizadas automaticamente.', 'No classifiable issues yet. Analyse places with reviews so the criticism is categorised automatically.')}</p>
                 </div>
               ) : (
                 <>
@@ -2444,12 +2495,12 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                     {agg.slice(0, 3).map((p, i) => (
                       <div key={p.id} style={{ background: C.card, border: `1px solid ${i === 0 ? C.negative + '40' : C.border}`, borderRadius: 12, padding: '16px 18px' }}>
-                        <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{i === 0 ? 'Problema nº1' : `Problema nº${i + 1}`}</div>
+                        <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{t('Problema nº', 'Issue No. ')}{i + 1}</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontSize: 22 }}>{p.icon}</span>
                           <div>
-                            <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{p.label}</div>
-                            <div style={{ fontSize: 11, color: C.negative }}>afeta {p.affected} {p.affected === 1 ? 'local' : 'locais'}</div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{probLabel(p)}</div>
+                            <div style={{ fontSize: 11, color: C.negative }}>{t('afeta', 'affects')} {p.affected} {t(p.affected === 1 ? 'local' : 'locais', p.affected === 1 ? 'place' : 'places')}</div>
                           </div>
                         </div>
                       </div>
@@ -2458,19 +2509,19 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
                   {/* Ranking de problemas */}
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Ranking - nº de locais afetados por cada problema</div>
+                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('Ranking - nº de locais afetados por cada problema', 'Ranking - number of places affected by each issue')}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
                       {agg.map((p) => (
                         <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '190px 1fr 130px', gap: 12, alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                             <span style={{ fontSize: 15 }}>{p.icon}</span>
-                            <span style={{ fontSize: 13, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.label}</span>
+                            <span style={{ fontSize: 13, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{probLabel(p)}</span>
                           </div>
                           <div style={{ height: 18, borderRadius: 5, background: C.bg, overflow: 'hidden', position: 'relative' }}>
                             <div style={{ width: `${(p.affected / maxAff) * 100}%`, height: '100%', background: C.negative, opacity: 0.55, borderRadius: 5 }} />
                           </div>
                           <div style={{ fontSize: 11, color: C.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.locs.join(', ')}>
-                            <strong style={{ color: C.text }}>{p.affected}</strong> {p.affected === 1 ? 'local' : 'locais'}
+                            <strong style={{ color: C.text }}>{p.affected}</strong> {t(p.affected === 1 ? 'local' : 'locais', p.affected === 1 ? 'place' : 'places')}
                           </div>
                         </div>
                       ))}
@@ -2480,13 +2531,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   {/* Mapa de calor problema × local */}
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Mapa de Calor - problema × local</div>
-                      <div style={{ fontSize: 10, color: C.textDim }}>intensidade = nº de termos que correspondem ao problema</div>
+                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('Mapa de Calor - problema × local', 'Heat Map - issue × place')}</div>
+                      <div style={{ fontSize: 10, color: C.textDim }}>{t('intensidade = nº de termos que correspondem ao problema', 'intensity = number of terms matching the issue')}</div>
                     </div>
                     {/* Legenda dos ícones */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
                       {cols.map((p) => (
-                        <span key={p.id} style={{ fontSize: 10, color: C.textMuted, display: 'flex', alignItems: 'center', gap: 4 }}>{p.icon} {p.short}</span>
+                        <span key={p.id} style={{ fontSize: 10, color: C.textMuted, display: 'flex', alignItems: 'center', gap: 4 }}>{p.icon} {probShort(p)}</span>
                       ))}
                     </div>
                     <div style={{ overflowX: 'auto', paddingBottom: 6 }}>
@@ -2494,7 +2545,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                         {/* Cabeçalho */}
                         <div style={{ position: 'sticky', left: 0, background: C.card, zIndex: 1 }} />
                         {cols.map((p) => (
-                          <div key={p.id} title={p.label} style={{ fontSize: 16, textAlign: 'center', paddingBottom: 6, cursor: 'default' }}>{p.icon}</div>
+                          <div key={p.id} title={probLabel(p)} style={{ fontSize: 16, textAlign: 'center', paddingBottom: 6, cursor: 'default' }}>{p.icon}</div>
                         ))}
                         {/* Linhas */}
                         {rows.map(({ loc, probs }) => (
@@ -2507,7 +2558,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                             {cols.map((p) => {
                               const n = probs[p.id] || 0;
                               return (
-                                <div key={p.id} title={n > 0 ? `${loc.name} - ${p.label}: ${n}` : ''}
+                                <div key={p.id} title={n > 0 ? `${loc.name} - ${probLabel(p)}: ${n}` : ''}
                                   style={{ height: 34, borderRadius: 6, background: problemCellBg(n), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: n > 0 ? '#fff' : 'transparent', border: `1px solid ${n > 0 ? 'transparent' : C.border}` }}>
                                   {n > 0 ? n : ''}
                                 </div>
@@ -2518,7 +2569,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                       </div>
                     </div>
                     <p style={{ fontSize: 11, color: C.textDim, margin: '14px 0 0', lineHeight: 1.5 }}>
-                      A classificação é automática, a partir dos problemas e temas negativos detetados pela IA em cada local. Clica num local para ver a análise completa. É uma leitura de padrões, não um diagnóstico fechado.
+                      {t('A classificação é automática, a partir dos problemas e temas negativos detetados pela IA em cada local. Clica num local para ver a análise completa. É uma leitura de padrões, não um diagnóstico fechado.', 'Classification is automatic, based on the issues and negative themes detected by the AI in each place. Click a place to see the full analysis. It is a reading of patterns, not a closed diagnosis.')}
                     </p>
                   </div>
                 </>
@@ -2531,13 +2582,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         {view === 'relatorio' && (
           <div style={{ padding: '28px 30px' }}>
             <div style={{ marginBottom: 22 }}>
-              <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>Relatórios e Partilha</h1>
-              <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Gera relatórios completos ou links públicos partilháveis por POI</p>
+              <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>{t('Relatórios e Partilha', 'Reports & Sharing')}</h1>
+              <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{t('Gera relatórios completos ou links públicos partilháveis por POI', 'Generate full reports or shareable public links per POI')}</p>
             </div>
 
             {analyzed.length === 0 ? (
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 60, textAlign: 'center' }}>
-                <p style={{ color: C.textMuted, fontSize: 14 }}>Analisa locais para gerar relatórios.</p>
+                <p style={{ color: C.textMuted, fontSize: 14 }}>{t('Analisa locais para gerar relatórios.', 'Analyse places to generate reports.')}</p>
               </div>
             ) : (
               <>
@@ -2545,19 +2596,19 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 <div style={{ background: C.card, border: `1px solid ${C.accent}40`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 240 }}>
-                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>✨ Relatório Mensal Executivo (IA)</div>
-                      <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>Texto escrito pela IA a partir dos dados de reputação ({analyzed.length} locais, score médio e problemas transversais), pronto a exportar com a marca Visit Braga.</div>
+                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>{t('✨ Relatório Mensal Executivo (IA)', '✨ Monthly Executive Report (AI)')}</div>
+                      <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{t('Texto escrito pela IA a partir dos dados de reputação (', 'AI-written text based on reputation data (')}{analyzed.length} {t('locais, score médio e problemas transversais), pronto a exportar com a marca Visit Braga.', 'places, average score and cross-cutting issues), ready to export with the Visit Braga brand.')}</div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                       {aiReport && (
                         <button onClick={exportReportPDF}
                           style={{ padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: C.accentBg, color: C.accentLight, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                          ⬇ Exportar PDF
+                          {t('⬇ Exportar PDF', '⬇ Export PDF')}
                         </button>
                       )}
                       <button onClick={generateAIReport} disabled={genReport}
                         style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: genReport ? C.border : C.accent, color: genReport ? C.textDim : C.bg, cursor: genReport ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        {genReport ? '⏳ A gerar…' : aiReport ? '↻ Regenerar' : '✨ Gerar relatório'}
+                        {genReport ? t('⏳ A gerar…', '⏳ Generating…') : aiReport ? t('↻ Regenerar', '↻ Regenerate') : t('✨ Gerar relatório', '✨ Generate report')}
                       </button>
                     </div>
                   </div>
@@ -2568,7 +2619,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     </div>
                   ) : (
                     <div style={{ marginTop: 16, background: C.bg, border: `1px dashed ${C.border}`, borderRadius: 10, padding: '20px 22px', fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>
-                      Clica em <strong style={{ color: C.accentLight }}>Gerar relatório</strong> para a IA redigir um sumário executivo do mês - destaques, locais a acompanhar, problemas transversais e recomendações de monitorização. Demora alguns segundos (uma chamada à IA).
+                      {t('Clica em', 'Click')} <strong style={{ color: C.accentLight }}>{t('Gerar relatório', 'Generate report')}</strong> {t('para a IA redigir um sumário executivo do mês - destaques, locais a acompanhar, problemas transversais e recomendações de monitorização. Demora alguns segundos (uma chamada à IA).', 'for the AI to write an executive monthly summary - highlights, places to watch, cross-cutting issues and monitoring recommendations. It takes a few seconds (one AI call).')}
                     </div>
                   )}
                 </div>
@@ -2577,8 +2628,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
                     <div>
-                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>🔗 Links Partilháveis por POI</div>
-                      <div style={{ fontSize: 11, color: C.textDim }}>Cada link mostra um relatório institucional público com a marca Visit Braga</div>
+                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>{t('🔗 Links Partilháveis por POI', '🔗 Shareable Links per POI')}</div>
+                      <div style={{ fontSize: 11, color: C.textDim }}>{t('Cada link mostra um relatório institucional público com a marca Visit Braga', 'Each link shows a public institutional report with the Visit Braga brand')}</div>
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 8 }}>
@@ -2620,7 +2671,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                               border: `1px solid ${C.accent}`, background: C.accentBg,
                               color: C.accent, cursor: 'pointer', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
                             }}>
-                            ↗ Abrir página
+                            {t('↗ Abrir página', '↗ Open page')}
                           </button>
                         </div>
                       </div>
@@ -2632,15 +2683,15 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
                     <div>
-                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>📄 Relatório Consolidado</div>
+                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>{t('📄 Relatório Consolidado', '📄 Consolidated Report')}</div>
                       <div style={{ fontSize: 11, color: C.textDim }}>
-                        Relatório completo {reportLocId ? `de "${reportLoc?.name}"` : `com todos os ${analyzed.length} locais analisados`}
+                        {t('Relatório completo', 'Full report')} {reportLocId ? `${t('de', 'for')} "${reportLoc?.name}"` : `${t('com todos os', 'with all')} ${analyzed.length} ${t('locais analisados', 'analysed places')}`}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       <select value={reportLocId || ''} onChange={(e) => setReportLocId(e.target.value || null)}
                         style={{ ...IS, width: 'auto', minWidth: 200 }}>
-                        <option value="">- Todos os locais -</option>
+                        <option value="">{t('- Todos os locais -', '- All places -')}</option>
                         {sortedAnalyzed.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>
                       <button onClick={() => {
@@ -2655,7 +2706,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                           color: copiedReport ? '#000' : C.bg,
                           cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.3s',
                         }}>
-                        {copiedReport ? '✓ Copiado!' : '📋 Copiar Relatório'}
+                        {copiedReport ? t('✓ Copiado!', '✓ Copied!') : t('📋 Copiar Relatório', '📋 Copy Report')}
                       </button>
                     </div>
                   </div>
@@ -2677,62 +2728,60 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           onClick={() => setShowAdd(false)}>
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 28, width: 440, maxWidth: '90vw' }}
             onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 20px' }}>Novo Local</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 20px' }}>{t('Novo Local', 'New Place')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Nome do Local</label>
+                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>{t('Nome do Local', 'Place Name')}</label>
                 <input value={newLoc.name} list="braga-pois-list" onChange={(e) => setNewLoc({ ...newLoc, name: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && addLocation()}
-                  placeholder="Começa a escrever - sugestões aparecem" style={IS} autoFocus />
+                  placeholder={t('Começa a escrever - sugestões aparecem', 'Start typing - suggestions appear')} style={IS} autoFocus />
                 <datalist id="braga-pois-list">
                   {KNOWN_POI_NAMES.map((name) => <option key={name} value={name} />)}
                 </datalist>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Categoria</label>
+                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>{t('Categoria', 'Category')}</label>
                   <select value={newLoc.category} onChange={(e) => setNewLoc({ ...newLoc, category: e.target.value })} style={IS}>
-                    {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{catLabel(c)}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Plataforma</label>
+                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>{t('Plataforma', 'Platform')}</label>
                   <select value={newLoc.platform} onChange={(e) => setNewLoc({ ...newLoc, platform: e.target.value })} style={IS}>
-                    {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
+                    {PLATFORMS.map((p) => <option key={p} value={p}>{catLabel(p)}</option>)}
                   </select>
                 </div>
               </div>
               <div>
                 <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>
-                  Coordenadas (opcional)
+                  {t('Coordenadas (opcional)', 'Coordinates (optional)')}
                   {getKnownCoords(newLoc.name) && !newLoc.lat && (
                     <span style={{ marginLeft: 8, color: C.positive, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>
-                      ✓ auto-detetadas: {getKnownCoords(newLoc.name)![0].toFixed(4)}, {getKnownCoords(newLoc.name)![1].toFixed(4)}
+                      {t('✓ auto-detetadas:', '✓ auto-detected:')} {getKnownCoords(newLoc.name)![0].toFixed(4)}, {getKnownCoords(newLoc.name)![1].toFixed(4)}
                     </span>
                   )}
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <input value={newLoc.lat} onChange={(e) => setNewLoc({ ...newLoc, lat: e.target.value })} placeholder="Latitude (ex: 41.5503)" style={IS} type="number" step="0.0001" />
-                  <input value={newLoc.lng} onChange={(e) => setNewLoc({ ...newLoc, lng: e.target.value })} placeholder="Longitude (ex: -8.4275)" style={IS} type="number" step="0.0001" />
+                  <input value={newLoc.lat} onChange={(e) => setNewLoc({ ...newLoc, lat: e.target.value })} placeholder={t('Latitude (ex: 41.5503)', 'Latitude (e.g. 41.5503)')} style={IS} type="number" step="0.0001" />
+                  <input value={newLoc.lng} onChange={(e) => setNewLoc({ ...newLoc, lng: e.target.value })} placeholder={t('Longitude (ex: -8.4275)', 'Longitude (e.g. -8.4275)')} style={IS} type="number" step="0.0001" />
                 </div>
                 <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>
-                  Deixa em branco para usar coords automáticas (se POI conhecido). Podes sempre arrastar no mapa para ajustar.
+                  {t('Deixa em branco para usar coords automáticas (se POI conhecido). Podes sempre arrastar no mapa para ajustar.', 'Leave blank to use automatic coordinates (if a known POI). You can always drag on the map to adjust.')}
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Google (opcional)</label>
+                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>{t('Google (opcional)', 'Google (optional)')}</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <input value={newLoc.googleRating} onChange={(e) => setNewLoc({ ...newLoc, googleRating: e.target.value })} placeholder="Nota (ex: 4.7)" style={IS} type="number" step="0.1" min="0" max="5" />
+                  <input value={newLoc.googleRating} onChange={(e) => setNewLoc({ ...newLoc, googleRating: e.target.value })} placeholder={t('Nota (ex: 4.7)', 'Rating (e.g. 4.7)')} style={IS} type="number" step="0.1" min="0" max="5" />
                   <input value={newLoc.googleReviewCount} onChange={(e) => setNewLoc({ ...newLoc, googleReviewCount: e.target.value })} placeholder="Nº reviews (ex: 37000)" style={IS} type="number" min="0" />
                 </div>
-                <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>Nota (0–5) e nº de avaliações no Google Maps. Mostra-se ao lado do score da IA, com indicador de divergência.</div>
+                <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>{t('Nota (0–5) e nº de avaliações no Google Maps. Mostra-se ao lado do score da IA, com indicador de divergência.', 'Rating (0–5) and number of Google Maps reviews. Shown next to the AI score, with a divergence indicator.')}</div>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
               <button onClick={() => setShowAdd(false)}
-                style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 13 }}>
-                Cancelar
-              </button>
+                style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 13 }}>{t('Cancelar', 'Cancel')}</button>
               <button onClick={addLocation} disabled={!newLoc.name.trim()}
                 style={{
                   padding: '9px 20px', borderRadius: 8, border: 'none',
@@ -2740,9 +2789,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   color: newLoc.name.trim() ? C.bg : C.textDim,
                   cursor: newLoc.name.trim() ? 'pointer' : 'not-allowed',
                   fontSize: 13, fontWeight: 600,
-                }}>
-                Adicionar
-              </button>
+                }}>{t('Adicionar', 'Add')}</button>
             </div>
           </div>
         </div>
@@ -2754,10 +2801,10 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           onClick={() => { setShowEdit(false); setEditId(null); }}>
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 28, width: 440, maxWidth: '90vw' }}
             onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 20px' }}>Editar Local</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 20px' }}>{t('Editar Local', 'Edit Place')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Nome</label>
+                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>{t('Nome', 'Name')}</label>
                 <input value={newLoc.name} list="braga-pois-list-edit" onChange={(e) => setNewLoc({ ...newLoc, name: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && updateLocation()}
                   style={IS} />
@@ -2767,38 +2814,36 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Categoria</label>
+                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>{t('Categoria', 'Category')}</label>
                   <select value={newLoc.category} onChange={(e) => setNewLoc({ ...newLoc, category: e.target.value })} style={IS}>
-                    {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{catLabel(c)}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Plataforma</label>
+                  <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>{t('Plataforma', 'Platform')}</label>
                   <select value={newLoc.platform} onChange={(e) => setNewLoc({ ...newLoc, platform: e.target.value })} style={IS}>
-                    {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
+                    {PLATFORMS.map((p) => <option key={p} value={p}>{catLabel(p)}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Coordenadas</label>
+                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>{t('Coordenadas', 'Coordinates')}</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <input value={newLoc.lat} onChange={(e) => setNewLoc({ ...newLoc, lat: e.target.value })} placeholder="Latitude" style={IS} type="number" step="0.0001" />
                   <input value={newLoc.lng} onChange={(e) => setNewLoc({ ...newLoc, lng: e.target.value })} placeholder="Longitude" style={IS} type="number" step="0.0001" />
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Google (opcional)</label>
+                <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>{t('Google (opcional)', 'Google (optional)')}</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <input value={newLoc.googleRating} onChange={(e) => setNewLoc({ ...newLoc, googleRating: e.target.value })} placeholder="Nota (ex: 4.7)" style={IS} type="number" step="0.1" min="0" max="5" />
-                  <input value={newLoc.googleReviewCount} onChange={(e) => setNewLoc({ ...newLoc, googleReviewCount: e.target.value })} placeholder="Nº reviews" style={IS} type="number" min="0" />
+                  <input value={newLoc.googleRating} onChange={(e) => setNewLoc({ ...newLoc, googleRating: e.target.value })} placeholder={t('Nota (ex: 4.7)', 'Rating (e.g. 4.7)')} style={IS} type="number" step="0.1" min="0" max="5" />
+                  <input value={newLoc.googleReviewCount} onChange={(e) => setNewLoc({ ...newLoc, googleReviewCount: e.target.value })} placeholder={t('Nº reviews', 'No. reviews')} style={IS} type="number" min="0" />
                 </div>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
               <button onClick={() => { setShowEdit(false); setEditId(null); }}
-                style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 13 }}>
-                Cancelar
-              </button>
+                style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 13 }}>{t('Cancelar', 'Cancel')}</button>
               <button onClick={updateLocation} disabled={!newLoc.name.trim()}
                 style={{
                   padding: '9px 20px', borderRadius: 8, border: 'none',
@@ -2806,9 +2851,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   color: newLoc.name.trim() ? C.bg : C.textDim,
                   cursor: newLoc.name.trim() ? 'pointer' : 'not-allowed',
                   fontSize: 13, fontWeight: 600,
-                }}>
-                Guardar Alterações
-              </button>
+                }}>{t('Guardar Alterações', 'Save Changes')}</button>
             </div>
           </div>
         </div>
@@ -2836,42 +2879,42 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           onClick={() => setShowReview(false)}>
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 28, width: 600, maxWidth: '92vw' }}
             onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px' }}>Importar Reviews</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px' }}>{t('Importar Reviews', 'Import Reviews')}</h3>
             <p style={{ fontSize: 12, color: C.textMuted, margin: '0 0 16px', lineHeight: 1.5 }}>
-              <strong style={{ color: C.accent }}>{selLoc.name}</strong> - importação em massa por texto ou ficheiro CSV.
+              <strong style={{ color: C.accent }}>{selLoc.name}</strong> - {t('importação em massa por texto ou ficheiro CSV.', 'bulk import by text or CSV file.')}
             </p>
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-              {modeBtn('texto', 'Colar texto')}
-              {modeBtn('csv', 'Importar CSV')}
+              {modeBtn('texto', t('Colar texto', 'Paste text'))}
+              {modeBtn('csv', t('Importar CSV', 'Import CSV'))}
             </div>
 
             {importMode === 'texto' ? (
               <>
                 <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={12}
-                  placeholder={'Cola aqui todas as reviews.\n\nPodes separar por uma linha em branco entre cada uma,\nou por --- numa linha própria. Deteção automática.'}
+                  placeholder={t('Cola aqui todas as reviews.\n\nPodes separar por uma linha em branco entre cada uma,\nou por --- numa linha própria. Deteção automática.', 'Paste all reviews here.\n\nYou can separate them with a blank line between each one,\nor with --- on its own line. Automatic detection.')}
                   style={{ ...IS, resize: 'vertical', lineHeight: 1.6, fontFamily: 'inherit' }} />
                 <p style={{ fontSize: 11, color: C.textDim, margin: '6px 0 0' }}>
-                  Separadores aceites: linha em branco entre reviews, ou <code style={{ background: C.border, padding: '1px 5px', borderRadius: 4 }}>---</code>. Se nada disso existir, cada linha é uma review.
+                  {t('Separadores aceites: linha em branco entre reviews, ou', 'Accepted separators: blank line between reviews, or')} <code style={{ background: C.border, padding: '1px 5px', borderRadius: 4 }}>---</code>{t('. Se nada disso existir, cada linha é uma review.', '. If none of these exist, each line is one review.')}
                 </p>
               </>
             ) : (
               <>
                 <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={10}
-                  placeholder={'autor,nota,comentário,data\nJoão,5,"Lugar incrível, vale a pena",2025-03-01\nMaria,4,"Muito bonito mas cheio de gente",2025-03-02'}
+                  placeholder={t('autor,nota,comentário,data\nJoão,5,"Lugar incrível, vale a pena",2025-03-01\nMaria,4,"Muito bonito mas cheio de gente",2025-03-02', 'author,rating,comment,date\nJohn,5,"Amazing place, worth it",2025-03-01\nMary,4,"Very nice but crowded",2025-03-02')}
                   style={{ ...IS, resize: 'vertical', lineHeight: 1.5, fontFamily: 'monospace', fontSize: 12 }} />
                 {csvRows.length > 0 && (
                   <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: C.textMuted, cursor: 'pointer' }}>
                       <input type="checkbox" checked={csvHasHeader} onChange={(e) => { setCsvHasHeader(e.target.checked); setCsvCol(null); }} />
-                      1ª linha é cabeçalho
+                      {t('1ª linha é cabeçalho', '1st row is header')}
                     </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12, color: C.textMuted }}>Coluna do texto:</span>
+                      <span style={{ fontSize: 12, color: C.textMuted }}>{t('Coluna do texto:', 'Text column:')}</span>
                       <select value={effCol} onChange={(e) => setCsvCol(parseInt(e.target.value, 10))}
                         style={{ ...IS, width: 'auto', padding: '6px 10px', fontSize: 12 }}>
                         {(csvRows[0] || []).map((_, idx) => (
-                          <option key={idx} value={idx}>{csvHasHeader ? (csvHeaderRow[idx] || `Coluna ${idx + 1}`) : `Coluna ${idx + 1}`}</option>
+                          <option key={idx} value={idx}>{csvHasHeader ? (csvHeaderRow[idx] || `${t('Coluna', 'Column')} ${idx + 1}`) : `${t('Coluna', 'Column')} ${idx + 1}`}</option>
                         ))}
                       </select>
                     </div>
@@ -2879,9 +2922,9 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 )}
                 {csvBody.length > 0 && (
                   <div style={{ marginTop: 12, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px', maxHeight: 90, overflowY: 'auto' }}>
-                    <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Pré-visualização</div>
+                    <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{t('Pré-visualização', 'Preview')}</div>
                     {csvBody.slice(0, 3).map((r, i) => (
-                      <div key={i} style={{ fontSize: 12, color: C.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 3 }}>• {(r[effCol] || '').trim() || <em style={{ color: C.textDim }}>(vazio)</em>}</div>
+                      <div key={i} style={{ fontSize: 12, color: C.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 3 }}>• {(r[effCol] || '').trim() || <em style={{ color: C.textDim }}>{t('(vazio)', '(empty)')}</em>}</div>
                     ))}
                   </div>
                 )}
@@ -2890,14 +2933,12 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 10 }}>
               <span style={{ fontSize: 11, color: C.textDim }}>
-                {selLoc.reviews.length} já guardada{selLoc.reviews.length !== 1 ? 's' : ''}
-                {previewCount > 0 && <span style={{ color: C.accent }}> · {previewCount} detetada{previewCount !== 1 ? 's' : ''} para importar</span>}
+                {selLoc.reviews.length} {t(selLoc.reviews.length !== 1 ? 'já guardadas' : 'já guardada', 'already saved')}
+                {previewCount > 0 && <span style={{ color: C.accent }}> · {previewCount} {t(previewCount !== 1 ? 'detetadas' : 'detetada', 'detected')} {t('para importar', 'to import')}</span>}
               </span>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setShowReview(false)}
-                  style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 13 }}>
-                  Cancelar
-                </button>
+                  style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 13 }}>{t('Cancelar', 'Cancel')}</button>
                 <button onClick={addReviews} disabled={previewCount === 0}
                   style={{
                     padding: '9px 20px', borderRadius: 8, border: 'none',
@@ -2906,7 +2947,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     cursor: previewCount > 0 ? 'pointer' : 'not-allowed',
                     fontSize: 13, fontWeight: 600,
                   }}>
-                  Importar {previewCount > 0 ? previewCount : ''} review{previewCount !== 1 ? 's' : ''}
+                  {t('Importar', 'Import')} {previewCount > 0 ? previewCount : ''} review{previewCount !== 1 ? 's' : ''}
                 </button>
               </div>
             </div>
