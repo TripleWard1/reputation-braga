@@ -494,6 +494,7 @@ export default function Home() {
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [publicMode, setPublicMode] = useState(false);
+  const [cameFromApp, setCameFromApp] = useState(false);
   const [reportLocId, setReportLocId] = useState<string | null>(null);
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [genReport, setGenReport] = useState(false);
@@ -598,16 +599,22 @@ export default function Home() {
     if (typeof window !== 'undefined') localStorage.setItem('rb-lang', l);
   };
 
-  // ── Check URL for public report mode ──
+  // ── Check URL for public report mode (+ reage ao botão voltar do browser/telemóvel) ──
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const reportId = params.get('r');
-    if (reportId) {
-      setPublicMode(true);
-      setDetailId(reportId);
-      setView('detalhe');
-    }
+    const applyFromUrl = () => {
+      const reportId = new URLSearchParams(window.location.search).get('r');
+      if (reportId) {
+        setPublicMode(true);
+        setDetailId(reportId);
+        setView('detalhe');
+      } else {
+        setPublicMode(false);
+      }
+    };
+    applyFromUrl();
+    window.addEventListener('popstate', applyFromUrl);
+    return () => window.removeEventListener('popstate', applyFromUrl);
   }, []);
 
   // ── Save ──
@@ -1011,7 +1018,21 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
   const shareUrl = (locId: string) => `${window.location.origin}${window.location.pathname}?r=${locId}`;
   const openShareLink = (locId: string) => {
     if (typeof window === 'undefined') return;
-    window.open(shareUrl(locId), '_blank', 'noopener');
+    // Navega na MESMA aba (sem abrir separador novo) e regista que viemos de dentro da app
+    window.history.pushState({ r: locId }, '', shareUrl(locId));
+    setDetailId(locId);
+    setView('detalhe');
+    setPublicMode(true);
+    setCameFromApp(true);
+    window.scrollTo(0, 0);
+  };
+  const goHome = () => {
+    if (typeof window === 'undefined') return;
+    window.history.pushState({}, '', window.location.pathname); // remove ?r= do URL
+    setPublicMode(false);
+    setDetailId(null);
+    setView('overview');
+    window.scrollTo(0, 0);
   };
   const copyShareLink = (locId: string) => {
     if (typeof window === 'undefined') return;
@@ -1274,6 +1295,22 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
     return (
       <div style={{ background: C.appGrad, minHeight: '100vh', color: C.text }}>
+        {/* Navegação voltar/início - apenas para quem navegou a partir da app (não para quem recebe o link) */}
+        {cameFromApp && (
+          <div className="no-print" style={{ position: 'fixed', top: 20, left: 20, zIndex: 50, display: 'flex', gap: 8 }}>
+            <button onClick={() => window.history.back()} title={t('Voltar', 'Back')} style={{
+              minWidth: 40, height: 40, padding: '0 12px', borderRadius: 10, border: `1px solid ${C.border}`,
+              background: C.cardGrad, color: C.text, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+              boxShadow: C.shadowSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>← {t('Voltar', 'Back')}</button>
+            <button onClick={goHome} title={t('Início', 'Home')} style={{
+              width: 40, height: 40, borderRadius: 10, border: `1px solid ${C.border}`,
+              background: C.cardGrad, color: C.text, cursor: 'pointer', fontSize: 16,
+              boxShadow: C.shadowSoft, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>🏠</button>
+          </div>
+        )}
+
         {/* Botão exportar PDF (escondido na impressão) */}
         <button onClick={() => window.print()} className="no-print" style={{
           position: 'fixed', top: 20, right: 20, zIndex: 50,
@@ -2703,7 +2740,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                               border: `1px solid ${C.accent}`, background: C.accentBg,
                               color: C.accent, cursor: 'pointer', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
                             }}>
-                            {t('↗ Abrir página', '↗ Open page')}
+                            {t('Abrir página', 'Open page')}
                           </button>
                         </div>
                       </div>
