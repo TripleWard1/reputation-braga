@@ -84,7 +84,7 @@ export default function LoginPage() {
           boxShadow: '0 30px 80px rgba(0,0,0,0.45)',
         }}
       >
-        <img src={LOGO_URL} alt="Visit Braga" style={{ height: 70, width: 'auto', marginBottom: 18 }} />
+        <img src={LOGO_URL} alt="Visit Braga" style={{ height: 48, width: 'auto', marginBottom: 16 }} />
 
         <div style={{ fontSize: 12, color: C.accentLight, letterSpacing: '0.04em', marginBottom: 4 }}>
           {t('Observatório de Reputação', 'Reputation Observatory')}
@@ -116,7 +116,13 @@ export default function LoginPage() {
                 color: lang === l ? C.accentLight : C.textMuted,
               }}
             >
-              <span style={{ fontSize: 14, lineHeight: 1 }}>{l === 'pt' ? '🇵🇹' : '🇬🇧'}</span>
+              <img
+                src={`https://flagcdn.com/${l === 'pt' ? 'pt' : 'gb'}.svg`}
+                alt=""
+                width={20}
+                height={14}
+                style={{ borderRadius: 2, objectFit: 'cover', display: 'block' }}
+              />
               {l.toUpperCase()}
             </button>
           ))}

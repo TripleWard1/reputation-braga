@@ -1572,7 +1572,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 color: lang === l ? C.accentLight : C.textMuted, letterSpacing: '0.06em',
                 transition: 'all 0.2s',
               }}>
-                <span style={{ fontSize: 14, lineHeight: 1 }}>{l === 'pt' ? '🇵🇹' : '🇬🇧'}</span>
+                <img
+                  src={`https://flagcdn.com/${l === 'pt' ? 'pt' : 'gb'}.svg`}
+                  alt=""
+                  width={20}
+                  height={14}
+                  style={{ borderRadius: 2, objectFit: 'cover', display: 'block' }}
+                />
                 {l.toUpperCase()}
               </button>
             ))}
