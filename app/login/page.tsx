@@ -169,7 +169,7 @@ export default function LoginPage() {
             {t('Palavra-passe incorreta. Tenta novamente.', 'Incorrect password. Please try again.')}
           </div>
         )}
-
+ 
         <button
           type="button"
           onClick={submit}

@@ -1575,9 +1575,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 <img
                   src={`https://flagcdn.com/${l === 'pt' ? 'pt' : 'gb'}.svg`}
                   alt=""
-                  width={20}
-                  height={14}
-                  style={{ borderRadius: 2, objectFit: 'cover', display: 'block' }}
+                  style={{ width: 20, minWidth: 20, maxWidth: 20, aspectRatio: '10 / 7', flexShrink: 0, borderRadius: 2, objectFit: 'cover', display: 'block' }}
                 />
                 {l.toUpperCase()}
               </button>
