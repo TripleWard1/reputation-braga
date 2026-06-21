@@ -10,6 +10,7 @@ import { db } from './firebase';
 import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import ObservatorioView from '@/app/components/ObservatorioView';
 import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
+import { dispAnalysis, setTransNotify, invalidateTrans } from '@/app/lib/ai-translate';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -275,7 +276,7 @@ function GoogleCompare({ loc }: { loc: Location }) {
         <div>
           <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Sentimento IA</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-            <span style={{ fontSize: 26, fontWeight: 700, color: ai != null ? scoreColor(ai) : C.textDim }}>{ai != null ? ai : '-'}</span>
+            <span style={{ fontSize: 26, fontWeight: 700, color: ai != null ? scoreColor(ai) : C.textDim }}>{ai != null ? ai : '—'}</span>
             <span style={{ fontSize: 13, color: C.textDim }}>/10</span>
           </div>
         </div>
@@ -496,12 +497,16 @@ export default function Home() {
   const [reportLocId, setReportLocId] = useState<string | null>(null);
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [genReport, setGenReport] = useState(false);
+  const [, setTransVer] = useState(0);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const locationsRef = useRef<Location[]>([]);
 
   // Keep ref in sync with locations for use in stale closures
   useEffect(() => { locationsRef.current = locations; }, [locations]);
+
+  // Re-render quando uma tradução on-the-fly do conteúdo IA fica pronta
+  useEffect(() => { setTransNotify(() => setTransVer((v) => v + 1)); }, []);
 
   // Premium typography + global polish (injected once, no dependency)
   useEffect(() => {
@@ -732,9 +737,9 @@ export default function Home() {
       const problemas = probAgg.map((p) => `${p.label}: ${p.affected} ${t(p.affected === 1 ? 'local' : 'locais', p.affected === 1 ? 'place' : 'places')}`);
       const div = analyzed.filter((l) => l.googleRating != null && l.analysis)
         .map((l) => `${l.name}: IA ${l.analysis!.sentimentScore}/10 vs Google ${l.googleRating} (${l.googleReviewCount || '?'} reviews)`).slice(0, 8);
-      const mesAno = new Date().toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+      const mesAno = new Date().toLocaleDateString(t('pt-PT', 'en-GB'), { month: 'long', year: 'numeric' });
 
-      const prompt = `És analista de turismo do Município de Braga. Escreve o RELATÓRIO MENSAL DE REPUTAÇÃO TURÍSTICA referente a ${mesAno}, em português de Portugal (pt-PT), com tom institucional mas claro e útil.
+      const prompt = t(`És analista de turismo do Município de Braga. Escreve o RELATÓRIO MENSAL DE REPUTAÇÃO TURÍSTICA referente a ${mesAno}, em português de Portugal (pt-PT), com tom institucional mas claro e útil.
 
 DADOS REAIS (${analyzed.length} locais monitorizados; score médio de sentimento ${avg}/10):
 - Melhor reputação: ${top.join('; ')}
@@ -742,7 +747,7 @@ DADOS REAIS (${analyzed.length} locais monitorizados; score médio de sentimento
 - Problemas transversais mais frequentes nas críticas: ${problemas.join('; ') || 'nenhum relevante este período'}
 - Reputação IA vs nota Google: ${div.join('; ') || 'sem dados de Google introduzidos'}
 
-ESTRUTURA OBRIGATÓRIA - usa exatamente estes títulos, cada um numa linha começada por "## ":
+ESTRUTURA OBRIGATÓRIA — usa exatamente estes títulos, cada um numa linha começada por "## ":
 ## Sumário Executivo
 ## Destaques do Período
 ## Locais a Acompanhar
@@ -755,32 +760,53 @@ REGRAS:
 - A equipa MONITORIZA a reputação; as recomendações são de acompanhamento e sinalização, não de execução de obras.
 - NÃO inventes números nem locais para além dos fornecidos.
 - Na Nota Metodológica explica que a análise assenta em reviews públicas processadas por IA e em classificação automática de problemas.
-- Máximo ~600 palavras. Sem tabelas, sem backticks, sem markdown além de ## e bullets "- ".`;
+- Máximo ~600 palavras. Sem tabelas, sem backticks, sem markdown além de ## e bullets "- ".`, `You are a tourism analyst for the Municipality of Braga. Write the MONTHLY TOURISM REPUTATION REPORT for ${mesAno}, in international English, with an institutional but clear and useful tone.
+
+REAL DATA (${analyzed.length} monitored places; average sentiment score ${avg}/10):
+- Best reputation: ${top.join('; ')}
+- To monitor (lowest reputation): ${bottom.join('; ')}
+- Most frequent cross-cutting issues in reviews: ${problemas.join('; ') || 'none relevant this period'}
+- AI reputation vs Google rating: ${div.join('; ') || 'no Google data entered'}
+
+MANDATORY STRUCTURE — use exactly these titles, each on a line starting with "## ":
+## Executive Summary
+## Highlights of the Period
+## Places to Monitor
+## Cross-cutting Issues
+## Monitoring Recommendations
+## Methodological Note
+
+RULES:
+- Flowing text in paragraphs; use bullets "- " only when it helps readability.
+- The team MONITORS reputation; recommendations are about follow-up and flagging, not about carrying out works.
+- Do NOT invent numbers or places beyond those provided.
+- In the Methodological Note, explain that the analysis is based on public reviews processed by AI and automatic problem classification.
+- Maximum ~600 words. No tables, no backticks, no markdown beyond ## and bullets "- ".`);
 
       const res = await fetch('/api/groq', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }] }),
       });
-      if (!res.ok) { const e = await res.text(); throw new Error(`HTTP ${res.status} - ${e.slice(0, 200)}`); }
+      if (!res.ok) { const e = await res.text(); throw new Error(`HTTP ${res.status} — ${e.slice(0, 200)}`); }
       const data = await res.json();
       const txt = data.choices?.[0]?.message?.content?.trim() || '';
-      if (!txt) throw new Error('Resposta vazia da IA.');
+      if (!txt) throw new Error(t('Resposta vazia da IA.', 'Empty response from AI.'));
       setAiReport(txt);
-      showToast('✓ Relatório mensal gerado');
+      showToast(t('✓ Relatório mensal gerado', '✓ Monthly report generated'));
     } catch (e: any) {
-      setError(`Erro ao gerar relatório: ${e?.message || 'desconhecido'}`);
+      setError(t(`Erro ao gerar relatório: ${e?.message || 'desconhecido'}`, `Error generating report: ${e?.message || 'unknown'}`));
     } finally {
       setGenReport(false);
     }
   };
 
   const exportReportPDF = () => {
-    if (!aiReport) { alert('Gera primeiro o relatório.'); return; }
+    if (!aiReport) { alert(t('Gera primeiro o relatório.', 'Generate the report first.')); return; }
     const win = window.open('', '_blank', 'width=1100,height=860');
-    if (!win) { alert('Permita pop-ups para exportar o PDF.'); return; }
-    const hoje = new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' });
-    const mesAno = new Date().toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+    if (!win) { alert(t('Permita pop-ups para exportar o PDF.', 'Allow pop-ups to export the PDF.')); return; }
+    const hoje = new Date().toLocaleDateString(t('pt-PT', 'en-GB'), { day: '2-digit', month: 'long', year: 'numeric' });
+    const mesAno = new Date().toLocaleDateString(t('pt-PT', 'en-GB'), { month: 'long', year: 'numeric' });
     const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     // Parse do texto da IA (## títulos, - bullets, parágrafos)
     let bodyHtml = ''; let inList = false;
@@ -800,15 +826,15 @@ REGRAS:
     });
     if (inList) bodyHtml += '</ul>';
     const kpis: [string, string][] = [
-      ['Score Global', (avgScore ?? 0).toFixed(1) + ' / 10'],
-      ['Locais analisados', String(analyzed.length)],
-      ['Reviews processadas', totalReviews.toLocaleString('pt-PT')],
-      ['Problemas detetados', String(allIssues.length)],
-      ['Mercados emissores', String(Array.from(new Set(allMarkets)).length)],
+      [t('Score Global', 'Overall Score'), (avgScore ?? 0).toFixed(1) + ' / 10'],
+      [t('Locais analisados', 'Places analysed'), String(analyzed.length)],
+      [t('Reviews processadas', 'Reviews processed'), totalReviews.toLocaleString(t('pt-PT', 'en-GB'))],
+      [t('Problemas detetados', 'Issues detected'), String(allIssues.length)],
+      [t('Mercados emissores', 'Source markets'), String(Array.from(new Set(allMarkets)).length)],
     ];
     const kpiHtml = kpis.map(([l, v]) => `<div class="kpi"><div class="kv">${v}</div><div class="kl">${l}</div></div>`).join('');
-    const html = `<!DOCTYPE html><html lang="pt"><head><meta charset="utf-8">
-<title>Relatório de Reputação Turística - ${mesAno}</title>
+    const html = `<!DOCTYPE html><html lang="${t('pt', 'en')}"><head><meta charset="utf-8">
+<title>${t('Relatório de Reputação Turística', 'Tourism Reputation Report')} — ${mesAno}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -842,11 +868,11 @@ REGRAS:
 <div class="sheet">
   <div class="band">
     <img src="${LOGO_URL}" alt="Visit Braga">
-    <div class="t"><div class="eyebrow">Município de Braga · Observatório</div><h1>Relatório de Reputação Turística</h1><div class="sub">${mesAno} · gerado em ${hoje}</div></div>
+    <div class="t"><div class="eyebrow">${t('Município de Braga · Observatório', 'Municipality of Braga · Observatory')}</div><h1>${t('Relatório de Reputação Turística', 'Tourism Reputation Report')}</h1><div class="sub">${mesAno} · ${t('gerado em', 'generated on')} ${hoje}</div></div>
   </div>
   <div class="kpis">${kpiHtml}</div>
   <div class="content">${bodyHtml}</div>
-  <div class="foot"><span>Município de Braga · Divisão de Atividades Económicas e Turismo</span><span>Análise assistida por IA · dados de reputação pública</span></div>
+  <div class="foot"><span>${t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}</span><span>${t('Análise assistida por IA · dados de reputação pública', 'AI-assisted analysis · public reputation data')}</span></div>
 </div>
 <script>setTimeout(function(){window.focus();window.print();},800);</script>
 </body></html>`;
@@ -894,7 +920,7 @@ ${chunkText}`,
         });
         if (!partialRes.ok) {
           const errBody = await partialRes.text();
-          throw new Error(`Bloco ${i + 1}/${chunks.length}: HTTP ${partialRes.status} - ${errBody.slice(0, 200)}`);
+          throw new Error(`Bloco ${i + 1}/${chunks.length}: HTTP ${partialRes.status} — ${errBody.slice(0, 200)}`);
         }
         const partialData = await partialRes.json();
         partials.push(partialData.choices?.[0]?.message?.content || '');
@@ -952,7 +978,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       });
       if (!res.ok) {
         const errBody = await res.text();
-        throw new Error(`Síntese final: HTTP ${res.status} - ${errBody.slice(0, 200)}`);
+        throw new Error(`Síntese final: HTTP ${res.status} — ${errBody.slice(0, 200)}`);
       }
       const data = await res.json();
       const analysis: Analysis = JSON.parse(data.choices?.[0]?.message?.content || '{}');
@@ -971,6 +997,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           ? { ...l, analysis, lastAnalyzed: nowIso, analysisHistory: [...(l.analysisHistory || []), snapshot] }
           : l
       ));
+      invalidateTrans(id);
       showToast('✓ Análise concluída');
     } catch (e: any) {
       console.error('Erro análise:', e);
@@ -1029,8 +1056,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         const pop = `<div style="min-width:220px">
           <div style="font-size:15px;font-weight:700;color:#e2e0db;margin-bottom:4px">${loc.name}</div>
           <div style="font-size:11px;color:#8b8a8f;margin-bottom:10px">${loc.category} · ${loc.platform}</div>
-          ${score != null ? `<div style="margin-bottom:8px"><span style="background:${color};color:#000;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:700">${score}/10 - ${scoreLabel(score)}</span></div>` : '<div style="font-size:11px;color:#8b8a8f">Sem análise ainda</div>'}
-          ${loc.analysis?.summaryPT ? `<div style="font-size:12px;color:#8b8a8f;line-height:1.5;margin-top:6px">${loc.analysis.summaryPT.slice(0, 180)}…</div>` : ''}
+          ${score != null ? `<div style="margin-bottom:8px"><span style="background:${color};color:#000;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:700">${score}/10 — ${scoreLabel(score)}</span></div>` : '<div style="font-size:11px;color:#8b8a8f">Sem análise ainda</div>'}
+          ${dispAnalysis(loc)?.summaryPT ? `<div style="font-size:12px;color:#8b8a8f;line-height:1.5;margin-top:6px">${dispAnalysis(loc).summaryPT.slice(0, 180)}…</div>` : ''}
           <div style="font-size:10px;color:#4a4960;margin-top:10px;border-top:1px solid #252836;padding-top:8px">📍 Arrasta para reposicionar</div>
         </div>`;
         marker.bindPopup(pop, { maxWidth: 280 });
@@ -1082,10 +1109,10 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     ? analyzed.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / analyzed.length
     : null;
 
-  const allPos = analyzed.flatMap((l) => l.analysis?.topThemesPositive || []);
-  const allNeg = analyzed.flatMap((l) => l.analysis?.topThemesNegative || []);
-  const allIssues = analyzed.flatMap((l) => l.analysis?.keyIssues || []);
-  const allInsights = analyzed.flatMap((l) => l.analysis?.actionableInsights || []);
+  const allPos = analyzed.flatMap((l) => dispAnalysis(l)?.topThemesPositive || []);
+  const allNeg = analyzed.flatMap((l) => dispAnalysis(l)?.topThemesNegative || []);
+  const allIssues = analyzed.flatMap((l) => dispAnalysis(l)?.keyIssues || []);
+  const allInsights = analyzed.flatMap((l) => dispAnalysis(l)?.actionableInsights || []);
   const allMarkets = analyzed.flatMap((l) => l.analysis?.marketSources || []);
 
   const topPraises = countTop(allPos, 8);
@@ -1145,75 +1172,75 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
   // ── Report generator ──
   const generateReport = (locFilter?: Location[]) => {
     const targets = locFilter || sortedAnalyzed;
-    const date = new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' });
+    const date = new Date().toLocaleDateString(t('pt-PT', 'en-GB'), { day: '2-digit', month: 'long', year: 'numeric' });
     const reportTotalReviews = targets.reduce((s, l) => s + (l.analysis?.reviewCount || l.reviews.length), 0);
     const reportAvgScore = targets.length > 0
       ? targets.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / targets.length
       : null;
     const reportMarkets = Array.from(new Set(targets.flatMap((l) => l.analysis?.marketSources || [])));
-    const reportProblems = countTop(targets.flatMap((l) => l.analysis?.topThemesNegative || []), 8);
-    const reportPraises = countTop(targets.flatMap((l) => l.analysis?.topThemesPositive || []), 8);
-    const reportInsights = Array.from(new Set(targets.flatMap((l) => l.analysis?.actionableInsights || []))).slice(0, 9);
+    const reportProblems = countTop(targets.flatMap((l) => dispAnalysis(l)?.topThemesNegative || []), 8);
+    const reportPraises = countTop(targets.flatMap((l) => dispAnalysis(l)?.topThemesPositive || []), 8);
+    const reportInsights = Array.from(new Set(targets.flatMap((l) => dispAnalysis(l)?.actionableInsights || []))).slice(0, 9);
 
     return [
-      `RELATÓRIO DE REPUTAÇÃO TURÍSTICA - BRAGA`,
+      t(`RELATÓRIO DE REPUTAÇÃO TURÍSTICA — BRAGA`, `TOURISM REPUTATION REPORT — BRAGA`),
       `${'═'.repeat(50)}`,
-      `Data: ${date}  |  Município de Braga`,
+      t(`Data: ${date}  |  Município de Braga`, `Date: ${date}  |  Municipality of Braga`),
       `${'═'.repeat(50)}`,
       ``,
-      `RESUMO EXECUTIVO`,
+      t(`RESUMO EXECUTIVO`, `EXECUTIVE SUMMARY`),
       `${'─'.repeat(40)}`,
-      `• Locais analisados:        ${targets.length}`,
-      `• Reviews processadas:      ${reportTotalReviews}`,
-      `• Score global:             ${reportAvgScore?.toFixed(1) || 'N/D'}/10  (${reportAvgScore ? scoreLabel(reportAvgScore) : '-'})`,
-      `• Mercados emissores:       ${reportMarkets.join(', ') || 'N/D'}`,
+      t(`• Locais analisados:        ${targets.length}`, `• Places analysed:          ${targets.length}`),
+      t(`• Reviews processadas:      ${reportTotalReviews}`, `• Reviews processed:        ${reportTotalReviews}`),
+      t(`• Score global:             ${reportAvgScore?.toFixed(1) || 'N/D'}/10  (${reportAvgScore ? scoreLabel(reportAvgScore) : '—'})`, `• Overall score:            ${reportAvgScore?.toFixed(1) || 'N/A'}/10  (${reportAvgScore ? scoreLabel(reportAvgScore) : '—'})`),
+      t(`• Mercados emissores:       ${reportMarkets.join(', ') || 'N/D'}`, `• Source markets:           ${reportMarkets.join(', ') || 'N/A'}`),
       ``,
-      `RANKING POR LOCAL`,
+      t(`RANKING POR LOCAL`, `RANKING BY PLACE`),
       `${'─'.repeat(40)}`,
       ...targets.map((l, i) =>
         `${String(i + 1).padStart(2)}. ${l.name.padEnd(38)} ${l.analysis!.sentimentScore}/10  (${l.analysis!.reviewCount || l.reviews.length} reviews)`
       ),
       ``,
-      `ANÁLISE DETALHADA`,
+      t(`ANÁLISE DETALHADA`, `DETAILED ANALYSIS`),
       `${'─'.repeat(40)}`,
       ...targets.flatMap((l) => [
         ``,
         `▶ ${l.name.toUpperCase()}`,
-        `   Categoria: ${l.category}  ·  Plataforma: ${l.platform}`,
-        `   Score: ${l.analysis!.sentimentScore}/10  -  ${scoreLabel(l.analysis!.sentimentScore)}`,
-        `   Sentimento: ${l.analysis!.sentimentBreakdown.positive}% positivo · ${l.analysis!.sentimentBreakdown.neutral}% neutro · ${l.analysis!.sentimentBreakdown.negative}% negativo`,
-        `   Reviews analisadas: ${l.analysis!.reviewCount || l.reviews.length}`,
-        `   Mercados: ${l.analysis!.marketSources?.join(', ') || 'N/D'}`,
+        t(`   Categoria: ${l.category}  ·  Plataforma: ${l.platform}`, `   Category: ${catLabel(l.category)}  ·  Platform: ${l.platform}`),
+        `   Score: ${l.analysis!.sentimentScore}/10  —  ${scoreLabel(l.analysis!.sentimentScore)}`,
+        t(`   Sentimento: ${l.analysis!.sentimentBreakdown.positive}% positivo · ${l.analysis!.sentimentBreakdown.neutral}% neutro · ${l.analysis!.sentimentBreakdown.negative}% negativo`, `   Sentiment: ${l.analysis!.sentimentBreakdown.positive}% positive · ${l.analysis!.sentimentBreakdown.neutral}% neutral · ${l.analysis!.sentimentBreakdown.negative}% negative`),
+        t(`   Reviews analisadas: ${l.analysis!.reviewCount || l.reviews.length}`, `   Reviews analysed: ${l.analysis!.reviewCount || l.reviews.length}`),
+        t(`   Mercados: ${l.analysis!.marketSources?.join(', ') || 'N/D'}`, `   Markets: ${l.analysis!.marketSources?.join(', ') || 'N/A'}`),
         ``,
-        `   Resumo:`,
-        `   ${l.analysis!.summaryPT}`,
+        t(`   Resumo:`, `   Summary:`),
+        `   ${dispAnalysis(l).summaryPT}`,
         ``,
-        `   Pontos Fortes:`,
-        ...(l.analysis!.keyPraises || []).map((p) => `   + ${p}`),
+        t(`   Pontos Fortes:`, `   Strengths:`),
+        ...(dispAnalysis(l).keyPraises || []).map((p) => `   + ${p}`),
         ``,
-        `   Problemas:`,
-        ...(l.analysis!.keyIssues || []).map((p) => `   − ${p}`),
+        t(`   Problemas:`, `   Issues:`),
+        ...(dispAnalysis(l).keyIssues || []).map((p) => `   − ${p}`),
         ``,
-        `   Ações Recomendadas:`,
-        ...(l.analysis!.actionableInsights || []).map((p, i) => `   ${i + 1}. ${p}`),
+        t(`   Ações Recomendadas:`, `   Recommended Actions:`),
+        ...(dispAnalysis(l).actionableInsights || []).map((p, i) => `   ${i + 1}. ${p}`),
         ``,
         `   ${'─'.repeat(46)}`,
       ]),
       ``,
-      `PROBLEMAS SISTÉMICOS`,
+      t(`PROBLEMAS SISTÉMICOS`, `SYSTEMIC ISSUES`),
       `${'─'.repeat(40)}`,
-      ...reportProblems.map(([p, c]) => `• ${p}${c > 1 ? `  [${c} locais]` : ''}`),
+      ...reportProblems.map(([p, c]) => `• ${p}${c > 1 ? `  [${c} ${t('locais', 'places')}]` : ''}`),
       ``,
-      `ELOGIOS MAIS FREQUENTES`,
+      t(`ELOGIOS MAIS FREQUENTES`, `MOST FREQUENT PRAISES`),
       `${'─'.repeat(40)}`,
-      ...reportPraises.map(([p, c]) => `• ${p}${c > 1 ? `  [${c} locais]` : ''}`),
+      ...reportPraises.map(([p, c]) => `• ${p}${c > 1 ? `  [${c} ${t('locais', 'places')}]` : ''}`),
       ``,
-      `AÇÕES PRIORITÁRIAS PARA O MUNICÍPIO`,
+      t(`AÇÕES PRIORITÁRIAS PARA O MUNICÍPIO`, `PRIORITY ACTIONS FOR THE MUNICIPALITY`),
       `${'─'.repeat(40)}`,
       ...reportInsights.map((ins, i) => `${i + 1}. ${ins}`),
       ``,
       `${'═'.repeat(50)}`,
-      `Relatório gerado automaticamente - Município de Braga`,
+      t(`Relatório gerado automaticamente — Município de Braga`, `Report generated automatically — Municipality of Braga`),
     ].join('\n');
   };
 
@@ -1357,7 +1384,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           {/* Summary */}
           <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{t('Resumo Analítico', 'Analytical Summary')}</div>
-            <p style={{ fontSize: 15, color: C.text, lineHeight: 1.8, margin: 0 }}>{detailLoc.analysis.summaryPT}</p>
+            <p style={{ fontSize: 15, color: C.text, lineHeight: 1.8, margin: 0 }}>{dispAnalysis(detailLoc).summaryPT}</p>
             {detailLoc.analysis.marketSources && detailLoc.analysis.marketSources.length > 0 && (
               <div style={{ marginTop: 16, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: C.textDim }}>{t('Mercados emissores:', 'Source markets:')}</span>
@@ -1419,8 +1446,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           {/* Praises + Issues */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
             {[
-              { title: t('✦ Pontos Fortes', '✦ Strengths'), items: detailLoc.analysis.keyPraises || [], color: C.positive, sign: '+' },
-              { title: t('⚠ Problemas Identificados', '⚠ Issues Identified'), items: detailLoc.analysis.keyIssues || [], color: C.negative, sign: '−' },
+              { title: t('✦ Pontos Fortes', '✦ Strengths'), items: dispAnalysis(detailLoc).keyPraises || [], color: C.positive, sign: '+' },
+              { title: t('⚠ Problemas Identificados', '⚠ Issues Identified'), items: dispAnalysis(detailLoc).keyIssues || [], color: C.negative, sign: '−' },
             ].map((col, ci) => (
               <div key={ci} style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '22px 26px' }}>
                 <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{col.title}</div>
@@ -1438,7 +1465,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('💡 Sugestões Acionáveis para a Gestão', '💡 Actionable Suggestions for Management')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-              {(detailLoc.analysis.actionableInsights || []).map((ins, i) => (
+              {(dispAnalysis(detailLoc).actionableInsights || []).map((ins, i) => (
                 <div key={i} style={{ display: 'flex', gap: 10, padding: '12px 16px', background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, alignItems: 'flex-start' }}>
                   <span style={{ fontSize: 12, color: C.accent, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>{i + 1}.</span>
                   <span style={{ fontSize: 13, lineHeight: 1.6 }}>{ins}</span>
@@ -1450,8 +1477,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           {/* Themes */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
             {[
-              { title: t('Temas Positivos', 'Positive Themes'), items: detailLoc.analysis.topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
-              { title: t('Temas Negativos', 'Negative Themes'), items: detailLoc.analysis.topThemesNegative || [], color: C.negative, bg: C.negativeBg, prefix: '−' },
+              { title: t('Temas Positivos', 'Positive Themes'), items: dispAnalysis(detailLoc).topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
+              { title: t('Temas Negativos', 'Negative Themes'), items: dispAnalysis(detailLoc).topThemesNegative || [], color: C.negative, bg: C.negativeBg, prefix: '−' },
             ].map((col, ci) => (
               <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 26px' }}>
                 <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{col.title}</div>
@@ -1496,7 +1523,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 20,
       }}>
         <div style={{ padding: '28px 20px 22px', borderBottom: `1px solid ${C.sidebarBorder}`, textAlign: 'center' }}>
-          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 32, width: 'auto', marginBottom: 12 }} />
+          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 64, width: 'auto', marginBottom: 12 }} />
           <div className="rb-display" style={{ fontSize: 11.5, color: C.accentLight, letterSpacing: '0.03em' }}>{t('Observatório de Reputação', 'Reputation Observatory')}</div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginTop: 13 }}>
             {(['pt', 'en'] as Lang[]).map((l) => (
@@ -1602,12 +1629,12 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 {priorityLocs.length > 0 && (
                   <div style={{ background: C.card, border: `1px solid ${C.negative}30`, borderRadius: 12, padding: '18px 22px', marginBottom: 14 }}>
                     <div style={{ fontSize: 11, color: C.negative, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {t('⚠ Locais a Acompanhar - menor reputação', '⚠ Places to Watch - lower reputation')}
+                      {t('⚠ Locais a Acompanhar — menor reputação', '⚠ Places to Watch — lower reputation')}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                       {priorityLocs.map((l) => {
                         const sc = l.analysis!.sentimentScore;
-                        const issue = l.analysis!.keyIssues?.[0];
+                        const issue = dispAnalysis(l).keyIssues?.[0];
                         return (
                           <div key={l.id} onClick={() => { setDetailId(l.id); setView('detalhe'); }}
                             style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: C.bg, cursor: 'pointer', border: `1px solid ${C.border}` }}>
@@ -1754,7 +1781,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 </div>
 
                 {/* Location cards */}
-                <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{t('Detalhe por Local - clica para análise completa', 'Detail by Place - click for full analysis')}</div>
+                <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{t('Detalhe por Local — clica para análise completa', 'Detail by Place — click for full analysis')}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
                   {sortedAnalyzed.map((loc) => (
                     <div key={loc.id} onClick={() => { setDetailId(loc.id); setView('detalhe'); }}
@@ -1780,13 +1807,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                         <div style={{ width: `${loc.analysis!.sentimentBreakdown.negative}%`, background: C.negative }} />
                       </div>
                       <p style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.55, margin: '0 0 12px' }}>
-                        {loc.analysis!.summaryPT}
+                        {dispAnalysis(loc).summaryPT}
                       </p>
                       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                        {loc.analysis!.topThemesPositive?.slice(0, 2).map((t, i) => (
+                        {dispAnalysis(loc).topThemesPositive?.slice(0, 2).map((t, i) => (
                           <span key={i} style={{ fontSize: 10, background: C.positiveBg, color: C.positive, padding: '3px 8px', borderRadius: 10 }}>+ {t}</span>
                         ))}
-                        {loc.analysis!.topThemesNegative?.slice(0, 2).map((t, i) => (
+                        {dispAnalysis(loc).topThemesNegative?.slice(0, 2).map((t, i) => (
                           <span key={i} style={{ fontSize: 10, background: C.negativeBg, color: C.negative, padding: '3px 8px', borderRadius: 10 }}>− {t}</span>
                         ))}
                       </div>
@@ -1936,15 +1963,15 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                               <span style={{ color: C.negative }}>▮ {loc.analysis.sentimentBreakdown.negative}% neg</span>
                               <span style={{ marginLeft: 'auto' }}>{t('Analisado em', 'Analysed on')} {new Date(loc.lastAnalyzed!).toLocaleDateString(t('pt-PT', 'en-GB'))}</span>
                             </div>
-                            <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, margin: '0 0 14px' }}>{loc.analysis.summaryPT}</p>
+                            <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, margin: '0 0 14px' }}>{dispAnalysis(loc).summaryPT}</p>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                               <div>
                                 <div style={{ fontSize: 10, color: C.positive, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{t('Pontos Fortes', 'Strengths')}</div>
-                                {loc.analysis.keyPraises?.map((p, i) => <div key={i} style={{ fontSize: 12, padding: '3px 0', color: C.text, lineHeight: 1.4 }}>+ {p}</div>)}
+                                {dispAnalysis(loc).keyPraises?.map((p, i) => <div key={i} style={{ fontSize: 12, padding: '3px 0', color: C.text, lineHeight: 1.4 }}>+ {p}</div>)}
                               </div>
                               <div>
                                 <div style={{ fontSize: 10, color: C.negative, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{t('Problemas', 'Issues')}</div>
-                                {loc.analysis.keyIssues?.map((p, i) => <div key={i} style={{ fontSize: 12, padding: '3px 0', color: C.text, lineHeight: 1.4 }}>− {p}</div>)}
+                                {dispAnalysis(loc).keyIssues?.map((p, i) => <div key={i} style={{ fontSize: 12, padding: '3px 0', color: C.text, lineHeight: 1.4 }}>− {p}</div>)}
                               </div>
                             </div>
                           </div>
@@ -2048,7 +2075,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                         </button>
                         <div style={{ background: scoreBg(detailLoc.analysis.sentimentScore), border: `1px solid ${scoreColor(detailLoc.analysis.sentimentScore)}40`, borderRadius: 10, padding: '10px 18px', textAlign: 'center' }}>
                           <div style={{ fontSize: 36, fontWeight: 700, color: scoreColor(detailLoc.analysis.sentimentScore), lineHeight: 1 }}>{detailLoc.analysis.sentimentScore}</div>
-                          <div style={{ fontSize: 11, color: scoreColor(detailLoc.analysis.sentimentScore), marginTop: 2 }}>/10 - {scoreLabel(detailLoc.analysis.sentimentScore)}</div>
+                          <div style={{ fontSize: 11, color: scoreColor(detailLoc.analysis.sentimentScore), marginTop: 2 }}>/10 — {scoreLabel(detailLoc.analysis.sentimentScore)}</div>
                           <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>{detailLoc.analysis.reviewCount || detailLoc.reviews.length} reviews</div>
                         </div>
                       </>
@@ -2141,7 +2168,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     })()}
                     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
                       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{t('Resumo Analítico', 'Analytical Summary')}</div>
-                      <p style={{ fontSize: 14, color: C.text, lineHeight: 1.75, margin: 0 }}>{detailLoc.analysis.summaryPT}</p>
+                      <p style={{ fontSize: 14, color: C.text, lineHeight: 1.75, margin: 0 }}>{dispAnalysis(detailLoc).summaryPT}</p>
                       {detailLoc.analysis.marketSources && detailLoc.analysis.marketSources.length > 0 && (
                         <div style={{ marginTop: 14, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                           <span style={{ fontSize: 11, color: C.textDim }}>{t('Mercados emissores:', 'Source markets:')}</span>
@@ -2150,11 +2177,11 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                           ))}
                         </div>
                       )}
-                      {detailLoc.analysis.marketSentiment && detailLoc.analysis.marketSentiment.length > 0 && (
+                      {dispAnalysis(detailLoc).marketSentiment && dispAnalysis(detailLoc).marketSentiment.length > 0 && (
                         <div style={{ marginTop: 16 }}>
                           <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Sentimento por Mercado</div>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
-                            {[...detailLoc.analysis.marketSentiment].sort((a, b) => b.score - a.score).map((m, i) => (
+                            {[...dispAnalysis(detailLoc).marketSentiment].sort((a, b) => b.score - a.score).map((m, i) => (
                               <div key={i} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{m.market}</span>
@@ -2262,8 +2289,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                       {[
-                        { title: t('✦ Pontos Fortes', '✦ Strengths'), items: detailLoc.analysis.keyPraises || [], color: C.positive, sign: '+' },
-                        { title: t('⚠ Problemas Identificados', '⚠ Issues Identified'), items: detailLoc.analysis.keyIssues || [], color: C.negative, sign: '−' },
+                        { title: t('✦ Pontos Fortes', '✦ Strengths'), items: dispAnalysis(detailLoc).keyPraises || [], color: C.positive, sign: '+' },
+                        { title: t('⚠ Problemas Identificados', '⚠ Issues Identified'), items: dispAnalysis(detailLoc).keyIssues || [], color: C.negative, sign: '−' },
                       ].map((col, ci) => (
                         <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
                           <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{col.title}</div>
@@ -2280,7 +2307,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
                       <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('💡 Sugestões Acionáveis para a Gestão', '💡 Actionable Suggestions for Management')}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
-                        {(detailLoc.analysis.actionableInsights || []).map((ins, i) => (
+                        {(dispAnalysis(detailLoc).actionableInsights || []).map((ins, i) => (
                           <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 14px', background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, alignItems: 'flex-start' }}>
                             <span style={{ fontSize: 12, color: C.accent, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>{i + 1}.</span>
                             <span style={{ fontSize: 13, lineHeight: 1.55 }}>{ins}</span>
@@ -2291,8 +2318,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                       {[
-                        { title: t('Temas Positivos', 'Positive Themes'), items: detailLoc.analysis.topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
-                        { title: t('Temas Negativos', 'Negative Themes'), items: detailLoc.analysis.topThemesNegative || [], color: C.negative, bg: C.negativeBg, prefix: '−' },
+                        { title: t('Temas Positivos', 'Positive Themes'), items: dispAnalysis(detailLoc).topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
+                        { title: t('Temas Negativos', 'Negative Themes'), items: dispAnalysis(detailLoc).topThemesNegative || [], color: C.negative, bg: C.negativeBg, prefix: '−' },
                       ].map((col, ci) => (
                         <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 22px' }}>
                           <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{col.title}</div>
@@ -2346,7 +2373,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                       color: isSel ? scoreColor(loc.analysis!.sentimentScore) : C.textMuted,
                       cursor: 'pointer', fontSize: 12, fontWeight: isSel ? 600 : 400,
                     }}>
-                    {categoryIcon(loc.category)} {loc.name} - {loc.analysis!.sentimentScore}/10
+                    {categoryIcon(loc.category)} {loc.name} — {loc.analysis!.sentimentScore}/10
                   </button>
                 );
               })}
@@ -2415,7 +2442,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 </div>
 
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                  <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>{t('Comparação Visual - Dimensões', 'Visual Comparison - Dimensions')}</div>
+                  <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>{t('Comparação Visual — Dimensões', 'Visual Comparison — Dimensions')}</div>
                   {DIMS.map((d, di) => (
                     <div key={di} style={{ marginBottom: 16 }}>
                       <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6 }}>{dimLabelI(di)}</div>
@@ -2509,7 +2536,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
                   {/* Ranking de problemas */}
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('Ranking - nº de locais afetados por cada problema', 'Ranking - number of places affected by each issue')}</div>
+                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('Ranking — nº de locais afetados por cada problema', 'Ranking — number of places affected by each issue')}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
                       {agg.map((p) => (
                         <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '190px 1fr 130px', gap: 12, alignItems: 'center' }}>
@@ -2531,7 +2558,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   {/* Mapa de calor problema × local */}
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('Mapa de Calor - problema × local', 'Heat Map - issue × place')}</div>
+                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('Mapa de Calor — problema × local', 'Heat Map — issue × place')}</div>
                       <div style={{ fontSize: 10, color: C.textDim }}>{t('intensidade = nº de termos que correspondem ao problema', 'intensity = number of terms matching the issue')}</div>
                     </div>
                     {/* Legenda dos ícones */}
@@ -2558,7 +2585,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                             {cols.map((p) => {
                               const n = probs[p.id] || 0;
                               return (
-                                <div key={p.id} title={n > 0 ? `${loc.name} - ${probLabel(p)}: ${n}` : ''}
+                                <div key={p.id} title={n > 0 ? `${loc.name} — ${probLabel(p)}: ${n}` : ''}
                                   style={{ height: 34, borderRadius: 6, background: problemCellBg(n), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: n > 0 ? '#fff' : 'transparent', border: `1px solid ${n > 0 ? 'transparent' : C.border}` }}>
                                   {n > 0 ? n : ''}
                                 </div>
@@ -2619,7 +2646,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     </div>
                   ) : (
                     <div style={{ marginTop: 16, background: C.bg, border: `1px dashed ${C.border}`, borderRadius: 10, padding: '20px 22px', fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>
-                      {t('Clica em', 'Click')} <strong style={{ color: C.accentLight }}>{t('Gerar relatório', 'Generate report')}</strong> {t('para a IA redigir um sumário executivo do mês - destaques, locais a acompanhar, problemas transversais e recomendações de monitorização. Demora alguns segundos (uma chamada à IA).', 'for the AI to write an executive monthly summary - highlights, places to watch, cross-cutting issues and monitoring recommendations. It takes a few seconds (one AI call).')}
+                      {t('Clica em', 'Click')} <strong style={{ color: C.accentLight }}>{t('Gerar relatório', 'Generate report')}</strong> {t('para a IA redigir um sumário executivo do mês — destaques, locais a acompanhar, problemas transversais e recomendações de monitorização. Demora alguns segundos (uma chamada à IA).', 'for the AI to write an executive monthly summary — highlights, places to watch, cross-cutting issues and monitoring recommendations. It takes a few seconds (one AI call).')}
                     </div>
                   )}
                 </div>
@@ -2691,7 +2718,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       <select value={reportLocId || ''} onChange={(e) => setReportLocId(e.target.value || null)}
                         style={{ ...IS, width: 'auto', minWidth: 200 }}>
-                        <option value="">{t('- Todos os locais -', '- All places -')}</option>
+                        <option value="">{t('— Todos os locais —', '— All places —')}</option>
                         {sortedAnalyzed.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>
                       <button onClick={() => {
@@ -2734,7 +2761,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 <label style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>{t('Nome do Local', 'Place Name')}</label>
                 <input value={newLoc.name} list="braga-pois-list" onChange={(e) => setNewLoc({ ...newLoc, name: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && addLocation()}
-                  placeholder={t('Começa a escrever - sugestões aparecem', 'Start typing - suggestions appear')} style={IS} autoFocus />
+                  placeholder={t('Começa a escrever — sugestões aparecem', 'Start typing — suggestions appear')} style={IS} autoFocus />
                 <datalist id="braga-pois-list">
                   {KNOWN_POI_NAMES.map((name) => <option key={name} value={name} />)}
                 </datalist>
@@ -2881,7 +2908,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px' }}>{t('Importar Reviews', 'Import Reviews')}</h3>
             <p style={{ fontSize: 12, color: C.textMuted, margin: '0 0 16px', lineHeight: 1.5 }}>
-              <strong style={{ color: C.accent }}>{selLoc.name}</strong> - {t('importação em massa por texto ou ficheiro CSV.', 'bulk import by text or CSV file.')}
+              <strong style={{ color: C.accent }}>{selLoc.name}</strong> — {t('importação em massa por texto ou ficheiro CSV.', 'bulk import by text or CSV file.')}
             </p>
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
