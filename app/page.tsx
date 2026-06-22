@@ -541,7 +541,7 @@ export default function Home() {
         .rb-app { flex-direction: column !important; }
         .rb-sidebar { position: static !important; width: 100% !important; bottom: auto !important; border-right: none !important; border-bottom: 1px solid #1a1d28 !important; }
         .rb-sidebar > div:first-child { padding: 14px 16px !important; }
-        .rb-sidebar > div:first-child img { height: 44px !important; }
+        .rb-sidebar > div:first-child > img { height: 44px !important; }
         .rb-sidebar nav { display: flex !important; flex-direction: row !important; overflow-x: auto !important; gap: 4px !important; padding: 8px !important; -webkit-overflow-scrolling: touch; }
         .rb-nav { width: auto !important; flex: 0 0 auto !important; white-space: nowrap !important; margin-bottom: 0 !important; }
         .rb-side-score { display: none !important; }
@@ -1572,10 +1572,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 color: lang === l ? C.accentLight : C.textMuted, letterSpacing: '0.06em',
                 transition: 'all 0.2s',
               }}>
-                <img
-                  src={`https://flagcdn.com/${l === 'pt' ? 'pt' : 'gb'}.svg`}
-                  alt=""
-                  style={{ width: 20, minWidth: 20, maxWidth: 20, aspectRatio: '10 / 7', flexShrink: 0, borderRadius: 2, objectFit: 'cover', display: 'block' }}
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 20, height: 14, flexShrink: 0, borderRadius: 2, display: 'block',
+                    backgroundImage: `url(https://flagcdn.com/${l === 'pt' ? 'pt' : 'gb'}.svg)`,
+                    backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
+                  }}
                 />
                 {l.toUpperCase()}
               </button>
