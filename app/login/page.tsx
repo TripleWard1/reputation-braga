@@ -192,7 +192,7 @@ export default function LoginPage() {
         </button>
 
         <div style={{ fontSize: 11, color: C.textMuted, marginTop: 20, lineHeight: 1.5 }}>
-          {t('Município de Braga · Divisão de Turismo', 'Braga City Council · Tourism Division')}
+          {t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}
         </div>
       </div>
     </div>
