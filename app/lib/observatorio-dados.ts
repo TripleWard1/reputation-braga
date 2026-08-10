@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// OBSERVATÓRIO DE TURISMO DE BRAGA - DADOS REAIS
+// OBSERVATÓRIO DE TURISMO DE BRAGA — DADOS REAIS
 // Fontes: INE / TravelBI (Estatística Turismo Braga 2019–2025), relatório interno
 // "Indicadores de Desempenho Turístico 2025", Taxa Municipal Turística (Reg. 927/2025)
 // e Atendimento de Balcão do Posto de Turismo. NENHUM dado é placeholder.
@@ -21,8 +21,8 @@ export const ADR_ANUAL: Record<string, number> = {"2018": 50.1, "2019": 55.3, "2
 export const HEADLINE = {"periodo": "2025 (ano completo) · INE/TravelBI", "dormidas2025": 692238, "dormidasVar": 2.0, "hospedes2025": 383894, "hospedesVar": 3.0, "dormidasNorte": 13.8, "dormidasNorteVar": 4.5, "dormidasPT": 77.8, "dormidasPTVar": 2.2, "hospedesNorte": 7.1, "hospedesNorteVar": 3.6, "hospedesPT": 30.6, "hospedesPTVar": 2.9, "ocupQuarto": {"Braga": 58.1, "Norte": 53.1, "Portugal": 57.8}, "ocupCama": {"Braga": 47.0, "Norte": 44.3, "Portugal": 48.2}, "revpar2024": {"Braga": 42, "Norte": 57, "Portugal": 69}, "adr2024": {"Braga": 72.4, "Norte": 106.5, "Portugal": 120.1}, "proveitos": {"Braga2023": 35.2, "Braga2024": 38.9, "varBraga": 10.5, "varNorte": 11.4, "varPortugal": 11.0}, "sazonalidadeVerao": {"Braga": 32.5, "Norte": 34.5, "Portugal": 34.9}, "estadaMedia": {"Braga": 1.8, "Norte": 1.9, "Portugal": 2.5, "naoResidentes": 2.3}, "mercados2025": ["Espanha", "Brasil", "França", "Reino Unido", "Polónia", "EUA", "Alemanha", "Roménia", "Itália", "Países Baixos"]};
 export const INFRA = {"empreendimentos": 44, "alojamentoLocal": 709};
 
-// ─── Capacidade de alojamento - Quartos e Camas (INE, anual) ───
-// Fonte: INE - Inquérito à Permanência de Hóspedes na Hotelaria e Outros Alojamentos.
+// ─── Capacidade de alojamento — Quartos e Camas (INE, anual) ───
+// Fonte: INE — Inquérito à Permanência de Hóspedes na Hotelaria e Outros Alojamentos.
 // 'total' inclui ainda o Turismo no Espaço Rural e de Habitação (= total − hotelaria − alojamentoLocal).
 // Nota: o alojamento local aqui contabilizado é apenas o abrangido pelo inquérito do INE,
 // não coincidindo com o total de registos de AL do município (ver INFRA.alojamentoLocal).
@@ -41,15 +41,54 @@ export const CAPACIDADE_CAMAS: Record<string, Record<string, CapacidadeAno>> = {
 };
 
 
-// ─── Taxa Municipal Turística - receita mensal (€), 2021–2026 ───
+
+// ─── Oferta de alojamento por freguesia (registos RNAL + RNET) ───
+// Fonte: listagem municipal de Alojamento Local (713 registos, jan/2011 a mar/2026)
+// e de Empreendimentos Turísticos (36 unidades, após remoção de 2 registos repetidos
+// do mesmo n.º RNET 6140 — Hotel Rural Alves, em Escudeiros e Penso).
+// 'curto' é o nome abreviado para caber nos eixos dos gráficos.
+export type FreguesiaOferta = { freguesia: string; curto: string; al: number; et: number };
+
+export const ALOJAMENTO_FREGUESIA: FreguesiaOferta[] = [
+  { freguesia: "Braga (São José de São Lázaro e São João do Souto)", curto: "S. José S. Lázaro / S. João Souto", al: 197, et: 12 },
+  { freguesia: "Braga (Maximinos, Sé e Cividade)", curto: "Maximinos, Sé e Cividade", al: 183, et: 2 },
+  { freguesia: "Braga (São Vicente)", curto: "São Vicente", al: 106, et: 2 },
+  { freguesia: "Braga (São Vítor)", curto: "São Vítor", al: 101, et: 4 },
+  { freguesia: "Nogueiró e Tenões", curto: "Nogueiró e Tenões", al: 18, et: 6 },
+  { freguesia: "Nogueira, Fraião e Lamaçães", curto: "Nogueira, Fraião e Lamaçães", al: 15, et: 1 },
+  { freguesia: "Crespos e Pousada", curto: "Crespos e Pousada", al: 12, et: 3 },
+  { freguesia: "Gualtar", curto: "Gualtar", al: 14, et: 0 },
+  { freguesia: "Este (São Pedro e São Mamede)", curto: "Este (S. Pedro e S. Mamede)", al: 8, et: 2 },
+  { freguesia: "Merelim (São Paio), Panoias e Parada de Tibães", curto: "Merelim (S. Paio), Panoias e Parada", al: 8, et: 0 },
+  { freguesia: "Ferreiros e Gondizalves", curto: "Ferreiros e Gondizalves", al: 5, et: 1 },
+  { freguesia: "Santa Lucrécia de Algeriz e Navarra", curto: "Sta. Lucrécia de Algeriz e Navarra", al: 6, et: 0 },
+  { freguesia: "Adaúfe", curto: "Adaúfe", al: 4, et: 1 },
+  { freguesia: "Lomar e Arcos", curto: "Lomar e Arcos", al: 5, et: 0 },
+  { freguesia: "Palmeira", curto: "Palmeira", al: 4, et: 1 },
+  { freguesia: "Real, Dume e Semelhe", curto: "Real, Dume e Semelhe", al: 5, et: 0 },
+  { freguesia: "Mire de Tibães", curto: "Mire de Tibães", al: 4, et: 0 },
+  { freguesia: "Morreira e Trandeiras", curto: "Morreira e Trandeiras", al: 4, et: 0 },
+  { freguesia: "Sobreposta", curto: "Sobreposta", al: 4, et: 0 },
+  { freguesia: "Arentim e Cunha", curto: "Arentim e Cunha", al: 2, et: 0 },
+  { freguesia: "Cabreiros e Passos (São Julião)", curto: "Cabreiros e Passos", al: 2, et: 0 },
+  { freguesia: "Celeirós, Aveleda e Vimieiro", curto: "Celeirós, Aveleda e Vimieiro", al: 1, et: 0 },
+  { freguesia: "Escudeiros e Penso (Santo Estêvão e São Vicente)", curto: "Escudeiros e Penso", al: 0, et: 1 },
+  { freguesia: "Guisande e Oliveira (São Pedro)", curto: "Guisande e Oliveira", al: 1, et: 0 },
+  { freguesia: "Merelim (São Pedro) e Frossos", curto: "Merelim (S. Pedro) e Frossos", al: 1, et: 0 },
+  { freguesia: "Padim da Graça", curto: "Padim da Graça", al: 1, et: 0 },
+  { freguesia: "Pedralva", curto: "Pedralva", al: 1, et: 0 },
+  { freguesia: "Tadim", curto: "Tadim", al: 1, et: 0 },
+];
+
+// ─── Taxa Municipal Turística — receita mensal (€), 2021–2026 ───
 export const TAXA_TURISTICA: Record<string, Record<string, number>> = {"2021": {"Janeiro": 592.5, "Fevereiro": 58.5, "Março": 0, "Abril": 8337, "Maio": 13503, "Junho": 25561.5, "Julho": 35956.5, "Agosto": 33003, "Setembro": 60334.5, "Outubro": 70957.5, "Novembro": 43299, "Dezembro": 9433.5, "Total": 301036.5}, "2022": {"Janeiro": 1744.5, "Fevereiro": 288, "Março": 310.5, "Abril": 34747.5, "Maio": 58750.5, "Junho": 53136, "Julho": 61803, "Agosto": 50796, "Setembro": 92595, "Outubro": 90024, "Novembro": 45967.5, "Dezembro": 883.5, "Total": 491046}, "2023": {"Janeiro": 1288.5, "Fevereiro": 99, "Março": 45, "Abril": 33274.5, "Maio": 71562, "Junho": 47589, "Julho": 88534.5, "Agosto": 51189, "Setembro": 67173, "Outubro": 80241, "Novembro": 58878, "Dezembro": 733.5, "Total": 500607}, "2024": {"Janeiro": 2067, "Fevereiro": 132, "Março": 216, "Abril": 43429.5, "Maio": 45028.5, "Junho": 56403, "Julho": 114961.5, "Agosto": 69060, "Setembro": 88303.5, "Outubro": 81241.5, "Novembro": 72600, "Dezembro": 1482, "Total": 574924.5}, "2025": {"Janeiro": 3304.5, "Fevereiro": 762, "Março": 366, "Abril": 48606, "Maio": 65524.5, "Junho": 56629.5, "Julho": 96475.5, "Agosto": 80301, "Setembro": 97998, "Outubro": 116245.5, "Novembro": 91531.5, "Dezembro": 49665, "Total": 707409}, "2026": {"Janeiro": 66933, "Fevereiro": 37371, "Março": 39426}};
 
-// ─── Atendimento de Balcão - Posto de Turismo (2025 e 2026) ───
+// ─── Atendimento de Balcão — Posto de Turismo (2025 e 2026) ───
 export const BALCAO: Record<string, any> = {"2025": {"atendimentos": 8077, "pax": 62008, "residentes": 119, "visitantes": 7958, "peregrinos": 2, "necEspeciais": 0, "criancas": 57, "grupos": 0, "estadaMedia": 0.04, "mensal": {"1": [345, 1942], "2": [460, 1816], "3": [491, 2395], "4": [872, 7542], "5": [927, 6358], "6": [726, 5290], "7": [928, 9505], "8": [793, 12829], "9": [689, 5082], "10": [679, 4830], "11": [456, 2486], "12": [711, 1933]}, "nacionalidades": [["Espanha", 1227], ["Portugal", 924], ["França", 882], ["Reino Unido", 614], ["Brasil", 554], ["Alemanha", 553], ["Países Baixos", 502], ["Estados Unidos", 472], ["Itália", 405], ["Bélgica", 320], ["Canadá", 200], ["Polónia", 166], ["Austrália", 131], ["Argentina", 81], ["Suíça", 73]], "interesses": [["Informação Turística de Braga", 333], ["Outros", 100], ["Programação cultural ou publicações", 92], ["Informação Transportes", 26], ["Localização ruas (Mapas)", 25], ["Informação Turística de outros destinos", 22], ["Gastronomia", 18], ["Vendas de Produtos", 18], ["Lazer", 16], ["Animação Nocturna", 9], ["Caminhos de Santiago", 8], ["Compras ou comércio", 7]], "meioChegada": [], "cidades": [["Madrid", 29], ["Lisboa", 20], ["Vigo", 15], ["A Coruña", 14], ["Barcelona", 10], ["Paris", 6], ["Zaragoza", 5], ["Sevilla", 5], ["Coimbra", 5], ["Badajoz", 5], ["Bilbao", 4], ["Porto", 4]], "perfil": [["Visitante Individual / Família", 7958]], "alojamento": [["Hotel", 6], ["Apartamento (AL)", 2], ["Parque de Campismo/Caravanismo", 2]]}, "2026": {"atendimentos": 7777, "pax": 21517, "residentes": 1858, "visitantes": 5919, "peregrinos": 90, "necEspeciais": 16, "criancas": 393, "grupos": 119, "estadaMedia": 0.6, "mensal": {"1": [716, 1421], "2": [580, 1517], "3": [1511, 4022], "4": [2018, 6755], "5": [1779, 4905], "6": [1173, 2897]}, "nacionalidades": [["Espanha", 1751], ["Portugal", 837], ["França", 823], ["Alemanha", 422], ["Reino Unido", 372], ["Estados Unidos", 226], ["Brasil", 215], ["Países Baixos", 209], ["Itália", 172], ["Bélgica", 115], ["Canadá", 94], ["Polónia", 86], ["Argentina", 58], ["Suíça", 46], ["Austrália", 45]], "interesses": [["Informação Turística de Braga", 4861], ["Programação cultural ou publicações", 1251], ["Eventos e Festividades", 565], ["Informação Turística de outros destinos", 361], ["Outros", 289], ["Informação Transportes", 267], ["Loja", 240], ["Restauração/Gastronomia", 186], ["Localização ruas (Mapas)", 150], ["Caminhos de Santiago", 146], ["Vendas de Produtos", 119], ["Património/Museus", 105]], "meioChegada": [["Carro", 411], ["Comboio", 198], ["Autocarro", 91], ["Autocaravana", 88], ["A pé / Bicicleta", 15], ["Avião", 8], ["Motociclo", 7], ["Cruzeiro (Porto de Leixões)", 3]], "cidades": [["Madrid", 279], ["Lisboa", 145], ["Vigo", 92], ["Bilbao", 74], ["A Coruña", 71], ["Barcelona", 63], ["Paris", 62], ["Porto", 53], ["Santiago de Compostela", 53], ["Valencia", 44], ["London", 42], ["São Paulo", 39]], "perfil": [["Visitante Individual / Família", 4588], ["Turista Individual / Família", 1284], ["Guia Turístico", 19], ["Professor / Escola", 9], ["Operador Turístico", 8], ["Outro", 6]], "alojamento": [["Hotel", 196], ["Parque de Campismo/Caravanismo", 96], ["Apartamento (AL)", 31], ["Apartamento Turístico", 14], ["Pousada da Juventude", 9], ["Estabelecimento de Hospedagem (Hostel) (AL)", 5], ["Albergue (Peregrinos)", 4], ["Moradia (AL)", 1]]}};
 
-// ─── SUSTENTABILIDADE - dados reais de relatórios internos ───
+// ─── SUSTENTABILIDADE — dados reais de relatórios internos ───
 // Fontes: Barómetro de Perceção dos Residentes (2026, n=293, amostra não probabilística);
-// App Eco - Posto de Turismo (piloto, 15 submissões); Green Destinations TIA Braga 2025.
+// App Eco — Posto de Turismo (piloto, 15 submissões); Green Destinations TIA Braga 2025.
 export const SUSTENTABILIDADE = {
   percecao: {
     n: 293,
