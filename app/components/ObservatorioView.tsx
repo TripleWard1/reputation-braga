@@ -1156,7 +1156,7 @@ function Sustentabilidade() {
               {t('Braga é a primeira cidade portuguesa a alcançar esta classificação e integra o restrito grupo de apenas 5 cidades em todo o mundo com esta certificação máxima.', 'Braga is the first Portuguese city to achieve this classification and joins the select group of only 5 cities worldwide holding this highest-level certification.')}
             </div>
             <div style={{ fontSize: 11.5, color: C.textMuted, margin: '6px 0 0' }}>
-              {t('Monitorização da sustentabilidade turística, qualidade de vida e governação do destino · reconhecida pelo GSTC', 'Monitoring of tourism sustainability, quality of life and destination governance · GSTC-recognised')}
+              {t('Monitorização da sustentabilidade turística, qualidade de vida e governação do destino · reconhecida pelo Global Sustainable Tourism Council', 'Monitoring of tourism sustainability, quality of life and destination governance · GSTC-recognised')}
             </div>
           </div>
         </div>
