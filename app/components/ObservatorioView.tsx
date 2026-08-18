@@ -263,7 +263,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       logo: LOGO, eyebrow: t('Município de Braga · Green Destinations', 'Municipality of Braga · Green Destinations'),
       title: t('Sustentabilidade do Destino', 'Destination Sustainability'), subtitle: t(`Certificação ${D.certificacao} · perceção e indicadores`, `${D.certificacao} certification · perception and indicators`),
       kpis: [
-        { label: t('Certificação', 'Certification'), value: 'Platinum', sub: 'Green Destinations' },
+        { label: t('Certificação', 'Certification'), value: 'Full', sub: t('Green Destinations · 1.ª cidade portuguesa', 'Green Destinations · 1st Portuguese city') },
         { label: t('Perceção positiva', 'Positive perception'), value: dDec(P.positiva) + '%', sub: t(`residentes · n=${P.n}`, `residents · n=${P.n}`) },
         { label: t('Sazonalidade', 'Seasonality'), value: dDec(D.sazonalidade) + '%', sub: t(`nacional ${dDec(D.sazonalidadeNacional)}%`, `national ${dDec(D.sazonalidadeNacional)}%`) },
         { label: t('Frota TUB verde', 'Green TUB fleet'), value: dDec(D.frotaVerde) + '%', sub: t(`${D.autocarrosEletricos} elétricos`, `${D.autocarrosEletricos} electric`) },
@@ -1138,12 +1138,41 @@ function Sustentabilidade() {
 
   return (
     <>
-      {/* Green Destinations hero */}
-      <div style={{ background: `linear-gradient(135deg, ${C.positiveBg}, ${C.card})`, border: `1px solid ${C.positive}40`, borderRadius: 14, padding: '20px 24px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ width: 54, height: 54, borderRadius: '50%', background: C.positiveBg, border: `2px solid ${C.positive}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🌿</div>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: C.positive }}>{t('Green Destinations — Certificação', 'Green Destinations — Certification')} {D.certificacao}</div>
-          <div style={{ fontSize: 12, color: C.textMuted }}>{t('Monitorização da sustentabilidade turística, qualidade de vida e governação do destino · em progresso para a certificação Full', 'Monitoring of tourism sustainability, quality of life and destination governance · in progress towards Full certification')}</div>
+      {/* Green Destinations hero — Full Certification */}
+      <div style={{ background: `linear-gradient(135deg, ${C.positiveBg}, ${C.card})`, border: `1px solid ${C.positive}66`, borderRadius: 14, padding: '22px 24px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+            <img src="https://i.imgur.com/RdXH9Nc.png" alt="Green Destinations Certified" style={{ height: 62, width: 'auto', display: 'block' }} />
+            <img src="https://i.imgur.com/dP5ptj7.png" alt="GSTC Certified" style={{ height: 62, width: 'auto', display: 'block' }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.positive, background: C.positiveBg, border: `1px solid ${C.positive}66`, borderRadius: 5, padding: '3px 9px', marginBottom: 7 }}>
+              {t('Grau máximo Green Destinations', 'Highest Green Destinations level')}
+            </div>
+            <div style={{ fontSize: 19, fontWeight: 700, color: C.positive, lineHeight: 1.25 }}>
+              {t('Green Destinations — Full Certification', 'Green Destinations — Full Certification')}
+            </div>
+            <div style={{ fontSize: 12.5, color: C.text, margin: '7px 0 0', lineHeight: 1.55 }}>
+              {t('Braga é a primeira cidade portuguesa a alcançar esta classificação e integra o restrito grupo de apenas 5 cidades em todo o mundo com esta certificação máxima.', 'Braga is the first Portuguese city to achieve this classification and joins the select group of only 5 cities worldwide holding this highest-level certification.')}
+            </div>
+            <div style={{ fontSize: 11.5, color: C.textMuted, margin: '6px 0 0' }}>
+              {t('Monitorização da sustentabilidade turística, qualidade de vida e governação do destino · reconhecida pelo GSTC', 'Monitoring of tourism sustainability, quality of life and destination governance · GSTC-recognised')}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap', marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.positive}26` }}>
+          <div>
+            <div style={{ fontSize: 21, fontWeight: 700, color: C.positive }}>1.ª</div>
+            <div style={{ fontSize: 11, color: C.textMuted }}>{t('cidade portuguesa', 'Portuguese city')}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 21, fontWeight: 700, color: C.positive }}>5</div>
+            <div style={{ fontSize: 11, color: C.textMuted }}>{t('cidades a nível mundial', 'cities worldwide')}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 21, fontWeight: 700, color: C.positive }}>{t('Full', 'Full')}</div>
+            <div style={{ fontSize: 11, color: C.textMuted }}>{t('grau máximo atribuído', 'highest level awarded')}</div>
+          </div>
         </div>
       </div>
 

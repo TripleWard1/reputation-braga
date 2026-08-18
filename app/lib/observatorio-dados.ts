@@ -142,6 +142,6 @@ export const SUSTENTABILIDADE = {
     biorresiduosVar: 149,
     economiaLocal: 75, dependenciaTurismo: '10–15%',
     recolhaSeletiva: 57.6, redePedestre: 280, redeCiclavel: 37,
-    certificacao: 'Platinum',
+    certificacao: 'Full',
   },
 };
