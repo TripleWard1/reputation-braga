@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// OBSERVATÓRIO DE TURISMO DE BRAGA — DADOS REAIS
+// OBSERVATÓRIO DE TURISMO DE BRAGA - DADOS REAIS
 // Fontes: INE / TravelBI (Estatística Turismo Braga 2019–2025), relatório interno
 // "Indicadores de Desempenho Turístico 2025", Taxa Municipal Turística (Reg. 927/2025)
 // e Atendimento de Balcão do Posto de Turismo. NENHUM dado é placeholder.
@@ -21,8 +21,8 @@ export const ADR_ANUAL: Record<string, number> = {"2018": 50.1, "2019": 55.3, "2
 export const HEADLINE = {"periodo": "2025 (ano completo) · INE/TravelBI", "dormidas2025": 692238, "dormidasVar": 2.0, "hospedes2025": 383894, "hospedesVar": 3.0, "dormidasNorte": 13.8, "dormidasNorteVar": 4.5, "dormidasPT": 77.8, "dormidasPTVar": 2.2, "hospedesNorte": 7.1, "hospedesNorteVar": 3.6, "hospedesPT": 30.6, "hospedesPTVar": 2.9, "ocupQuarto": {"Braga": 58.1, "Norte": 53.1, "Portugal": 57.8}, "ocupCama": {"Braga": 47.0, "Norte": 44.3, "Portugal": 48.2}, "revpar2024": {"Braga": 42, "Norte": 57, "Portugal": 69}, "adr2024": {"Braga": 72.4, "Norte": 106.5, "Portugal": 120.1}, "proveitos": {"Braga2023": 35.2, "Braga2024": 38.9, "varBraga": 10.5, "varNorte": 11.4, "varPortugal": 11.0, "Braga2025": 44.5, "varBraga2025": 14.2, "varNorte2025": 8.9, "varPortugal2025": 7.2}, "sazonalidadeVerao": {"Braga": 32.5, "Norte": 34.5, "Portugal": 34.9}, "estadaMedia": {"Braga": 1.8, "Norte": 1.9, "Portugal": 2.5, "naoResidentes": 2.3}, "mercados2025": ["Espanha", "Brasil", "França", "Reino Unido", "Polónia", "EUA", "Alemanha", "Roménia", "Itália", "Países Baixos"], "revpar2025": {"Braga": 45.8, "Norte": 58.2, "Portugal": 72.4}, "adr2025": {"Braga": 78.8, "Norte": 109.1, "Portugal": 124.9}, "ocupQuarto2025": {"Braga": 57.9, "Portugal": 57.2}, "ocupCama2025": {"Braga": 47.4, "Portugal": 48.0}};
 export const INFRA = {"empreendimentos": 44, "alojamentoLocal": 709};
 
-// ─── Capacidade de alojamento — Quartos e Camas (INE, anual) ───
-// Fonte: INE — Inquérito à Permanência de Hóspedes na Hotelaria e Outros Alojamentos.
+// ─── Capacidade de alojamento - Quartos e Camas (INE, anual) ───
+// Fonte: INE - Inquérito à Permanência de Hóspedes na Hotelaria e Outros Alojamentos.
 // 'total' inclui ainda o Turismo no Espaço Rural e de Habitação (= total − hotelaria − alojamentoLocal).
 // Nota: o alojamento local aqui contabilizado é apenas o abrangido pelo inquérito do INE,
 // não coincidindo com o total de registos de AL do município (ver INFRA.alojamentoLocal).
@@ -45,7 +45,7 @@ export const CAPACIDADE_CAMAS: Record<string, Record<string, CapacidadeAno>> = {
 // ─── Oferta de alojamento por freguesia (registos RNAL + RNET) ───
 // Fonte: listagem municipal de Alojamento Local (713 registos, jan/2011 a mar/2026)
 // e de Empreendimentos Turísticos (36 unidades, após remoção de 2 registos repetidos
-// do mesmo n.º RNET 6140 — Hotel Rural Alves, em Escudeiros e Penso).
+// do mesmo n.º RNET 6140 - Hotel Rural Alves, em Escudeiros e Penso).
 // 'curto' é o nome abreviado para caber nos eixos dos gráficos.
 export type FreguesiaOferta = { freguesia: string; curto: string; al: number; et: number };
 
@@ -81,7 +81,7 @@ export const ALOJAMENTO_FREGUESIA: FreguesiaOferta[] = [
 ];
 
 
-// ─── Residentes vs Não Residentes — Braga (INE), 2018–2025 ───
+// ─── Residentes vs Não Residentes - Braga (INE), 2018–2025 ───
 // Fonte: INE/TravelBI. Estada média 2025: 2,27 noites (não residentes) / 1,48 (residentes).
 export const RESIDENTES: Record<string, { dormidasRes: number; dormidasNaoRes: number; hospedesRes: number; hospedesNaoRes: number }> = {
   '2018': { dormidasRes: 300426, dormidasNaoRes: 281988, hospedesRes: 204168, hospedesNaoRes: 125935 },
@@ -94,7 +94,7 @@ export const RESIDENTES: Record<string, { dormidasRes: number; dormidasNaoRes: n
   '2025': { dormidasRes: 338165, dormidasNaoRes: 354073, hospedesRes: 227883, hospedesNaoRes: 156011 },
 };
 
-// ─── Taxa Municipal Turística — receita mensal (€), 2021–2026 ───
+// ─── Taxa Municipal Turística - receita mensal (€), 2021–2026 ───
 // Valor imputado ao mês do documento (mês de referência da fatura), não ao mês de pagamento.
 // 2021–2025 e jan–mar/2026: série de faturação emitida (valores múltiplos de 1,50 €/dormida).
 // abr–jun/2026: apurado a partir dos mapas SGF "Documentos Cobrados" do 1.º e 2.º trimestres
@@ -103,12 +103,12 @@ export const RESIDENTES: Record<string, { dormidasRes: number; dormidasNaoRes: n
 // (em jan–mar/2026 a cobrança em falta à mesma data era de 3,3 a 5 %; junho é o mês mais incompleto).
 export const TAXA_TURISTICA: Record<string, Record<string, number>> = {"2021": {"Janeiro": 592.5, "Fevereiro": 58.5, "Março": 0, "Abril": 8337, "Maio": 13503, "Junho": 25561.5, "Julho": 35956.5, "Agosto": 33003, "Setembro": 60334.5, "Outubro": 70957.5, "Novembro": 43299, "Dezembro": 9433.5, "Total": 301036.5}, "2022": {"Janeiro": 1744.5, "Fevereiro": 288, "Março": 310.5, "Abril": 34747.5, "Maio": 58750.5, "Junho": 53136, "Julho": 61803, "Agosto": 50796, "Setembro": 92595, "Outubro": 90024, "Novembro": 45967.5, "Dezembro": 883.5, "Total": 491046}, "2023": {"Janeiro": 1288.5, "Fevereiro": 99, "Março": 45, "Abril": 33274.5, "Maio": 71562, "Junho": 47589, "Julho": 88534.5, "Agosto": 51189, "Setembro": 67173, "Outubro": 80241, "Novembro": 58878, "Dezembro": 733.5, "Total": 500607}, "2024": {"Janeiro": 2067, "Fevereiro": 132, "Março": 216, "Abril": 43429.5, "Maio": 45028.5, "Junho": 56403, "Julho": 114961.5, "Agosto": 69060, "Setembro": 88303.5, "Outubro": 81241.5, "Novembro": 72600, "Dezembro": 1482, "Total": 574924.5}, "2025": {"Janeiro": 3304.5, "Fevereiro": 762, "Março": 366, "Abril": 48606, "Maio": 65524.5, "Junho": 56629.5, "Julho": 96475.5, "Agosto": 80301, "Setembro": 97998, "Outubro": 116245.5, "Novembro": 91531.5, "Dezembro": 49665, "Total": 707409}, "2026": {"Janeiro": 66933, "Fevereiro": 37371, "Março": 39426, "Abril": 62673.42, "Maio": 64098, "Junho": 51409.5}};
 
-// ─── Atendimento de Balcão — Posto de Turismo (2025 e 2026) ───
+// ─── Atendimento de Balcão - Posto de Turismo (2025 e 2026) ───
 export const BALCAO: Record<string, any> = {"2025": {"atendimentos": 8077, "pax": 62008, "residentes": 119, "visitantes": 7958, "peregrinos": 2, "necEspeciais": 0, "criancas": 57, "grupos": 0, "estadaMedia": 0.04, "mensal": {"1": [345, 1942], "2": [460, 1816], "3": [491, 2395], "4": [872, 7542], "5": [927, 6358], "6": [726, 5290], "7": [928, 9505], "8": [793, 12829], "9": [689, 5082], "10": [679, 4830], "11": [456, 2486], "12": [711, 1933]}, "nacionalidades": [["Espanha", 1227], ["Portugal", 924], ["França", 882], ["Reino Unido", 614], ["Brasil", 554], ["Alemanha", 553], ["Países Baixos", 502], ["Estados Unidos", 472], ["Itália", 405], ["Bélgica", 320], ["Canadá", 200], ["Polónia", 166], ["Austrália", 131], ["Argentina", 81], ["Suíça", 73]], "interesses": [["Informação Turística de Braga", 333], ["Outros", 100], ["Programação cultural ou publicações", 92], ["Informação Transportes", 26], ["Localização ruas (Mapas)", 25], ["Informação Turística de outros destinos", 22], ["Gastronomia", 18], ["Vendas de Produtos", 18], ["Lazer", 16], ["Animação Nocturna", 9], ["Caminhos de Santiago", 8], ["Compras ou comércio", 7]], "meioChegada": [], "cidades": [["Madrid", 29], ["Lisboa", 20], ["Vigo", 15], ["A Coruña", 14], ["Barcelona", 10], ["Paris", 6], ["Zaragoza", 5], ["Sevilla", 5], ["Coimbra", 5], ["Badajoz", 5], ["Bilbao", 4], ["Porto", 4]], "perfil": [["Visitante Individual / Família", 7958]], "alojamento": [["Hotel", 6], ["Apartamento (AL)", 2], ["Parque de Campismo/Caravanismo", 2]]}, "2026": {"atendimentos": 10656, "pax": 29804, "residentes": 2880, "visitantes": 26924, "peregrinos": 157, "necEspeciais": 104, "criancas": 3237, "grupos": 141, "estadaMedia": 0.52, "mensal": {"1": [716, 1421], "2": [580, 1517], "3": [1511, 4022], "4": [2018, 6755], "5": [1779, 4905], "6": [2121, 5102], "7": [2131, 6012], "8": [1096, 3008]}, "nacionalidades": [["Espanha", 11369], ["França", 3575], ["Portugal", 2747], ["Reino Unido", 1696], ["Alemanha", 1457], ["Países Baixos", 786], ["Estados Unidos", 653], ["Bélgica", 615], ["Itália", 611], ["Polónia", 528], ["Brasil", 516], ["Canadá", 316], ["Áustria", 211], ["Bulgária", 193], ["Argentina", 161]], "interesses": [["Informação Turística de Braga", 23319], ["Informação Turística de outros destinos", 1511], ["Desporto e Bem-estar", 1143], ["Eventos e Festividades", 1048], ["Restauração/Gastronomia", 785], ["Programação cultural ou publicações", 623], ["Informação Transportes", 618], ["Localização ruas (Mapas)", 527], ["Património/Museus", 436], ["Comboio Turístico", 355], ["Outros", 322], ["Loja", 258]], "meioChegada": [["Carro", 2886], ["Autocarro", 2477], ["Comboio", 828], ["Autocaravana", 312], ["Cruzeiro (Porto de Leixões)", 190], ["Avião", 50], ["A pé / Bicicleta", 24], ["Motociclo", 20], ["Transfer", 19], ["Avião (Aeroporto Porto)", 17], ["Bicicleta", 14], ["Outro", 10], ["A pé", 3]], "cidades": [["Madrid", 1977], ["Sevilha", 1247], ["Vigo", 551], ["Paris", 476], ["Bilbau", 428], ["Barcelona", 424], ["Lisboa", 415], ["Valência", 352], ["A Coruña", 243], ["Pontevedra", 215], ["Saragoça", 205], ["Nantes", 200]], "perfil": [["Visitante Individual / Família", 22367], ["Turista Individual / Família", 3526], ["Operador Turístico", 346], ["Professor / Escola", 296], ["Outro", 207], ["Guia Turístico", 164], ["Estudante Erasmus / Intercâmbio", 11], ["Jornalista / Blogger", 6], ["MICE - Corporate / Negócios", 1]], "alojamento": [["Hotel", 644], ["Parque de Campismo/Caravanismo", 288], ["Pousada da Juventude", 141], ["Apartamento (AL)", 97], ["Apartamento Turístico", 46], ["Moradia (AL)", 11], ["Albergue (Peregrinos)", 9], ["Estabelecimento de Hospedagem (Hostel) (AL)", 7], ["Turismo de Habitação", 5], ["Resort", 2], ["Residência Universitária / Quartos estudantes", 1], ["Aldeamento Turístico", 1]]}};
 
-// ─── SUSTENTABILIDADE — dados reais de relatórios internos ───
+// ─── SUSTENTABILIDADE - dados reais de relatórios internos ───
 // Fontes: Barómetro de Perceção dos Residentes (2026, n=293, amostra não probabilística);
-// App Eco — Posto de Turismo (piloto, 15 submissões); Green Destinations TIA Braga 2025.
+// App Eco - Posto de Turismo (piloto, 15 submissões); Green Destinations TIA Braga 2025.
 export const SUSTENTABILIDADE = {
   percecao: {
     n: 293,
