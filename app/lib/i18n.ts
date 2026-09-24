@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// i18n — motor de tradução PT/EN do Observatório Visit Braga
+// i18n - motor de tradução PT/EN do Observatório Visit Braga
 // Usa uma variável de módulo (singleton) para que o mesmo t() funcione tanto
 // em componentes React como em funções de módulo (geradores de PDF, helpers).
 // O toggle atualiza esta variável E o estado React (para forçar re-render).
@@ -23,7 +23,7 @@ export function t(pt: string, en: string): string {
 }
 
 // Dicionário de rótulos vindos dos ficheiros de dados (categorias de gráficos).
-// Nomes próprios (cidades, URLs, rotas) não constam — passam intactos.
+// Nomes próprios (cidades, URLs, rotas) não constam - passam intactos.
 const DL_EN: Record<string, string> = {
   // Canais de aquisição
   // Digital (retoma pós-ataque) e mercados INE 1.º semestre 2026
@@ -48,7 +48,7 @@ const DL_EN: Record<string, string> = {
   'Muito positiva': 'Very positive', 'Moderadamente positiva': 'Moderately positive', 'Moderadamente reduzida': 'Moderately low',
   // Tipos de necessidade (acessibilidade)
   'Motora': 'Motor', 'Cognitiva': 'Cognitive', 'Auditiva': 'Hearing', 'Visual': 'Visual', 'Outra': 'Other',
-  // Caminhos — modo
+  // Caminhos - modo
   'A pé': 'On foot', 'Bicicleta': 'Bicycle', 'Central Português': 'Portuguese Central',
   // Países
   'Portugal': 'Portugal', 'França': 'France', 'Espanha': 'Spain', 'Chéquia': 'Czechia', 'Alemanha': 'Germany',
@@ -69,7 +69,7 @@ const DL_EN: Record<string, string> = {
   'Lisboa': 'Lisbon', 'Norte': 'North',
   // Genéricos
   'Outros': 'Others', 'Outro': 'Other',
-  // Balcão — interesses
+  // Balcão - interesses
   'Informação Turística de Braga': 'Braga tourist information',
   'Programação cultural ou publicações': 'Cultural programming or publications',
   'Informação Transportes': 'Transport information',
@@ -79,18 +79,18 @@ const DL_EN: Record<string, string> = {
   'Animação Nocturna': 'Nightlife', 'Caminhos de Santiago': 'Camino de Santiago',
   'Compras ou comércio': 'Shopping or retail', 'Eventos e Festividades': 'Events and Festivities',
   'Loja': 'Shop', 'Restauração/Gastronomia': 'Dining/Gastronomy', 'Património/Museus': 'Heritage/Museums',
-  // Balcão — meio de chegada
+  // Balcão - meio de chegada
   'Autocarro': 'Bus', 'Autocaravana': 'Motorhome', 'A pé / Bicicleta': 'On foot / Bicycle',
   'Motociclo': 'Motorcycle', 'Cruzeiro (Porto de Leixões)': 'Cruise (Port of Leixões)',
-  // Balcão — alojamento
+  // Balcão - alojamento
   'Apartamento (AL)': 'Apartment (AL)', 'Parque de Campismo/Caravanismo': 'Camping/Caravan park',
   'Apartamento Turístico': 'Tourist apartment', 'Pousada da Juventude': 'Youth Hostel',
   'Estabelecimento de Hospedagem (Hostel) (AL)': 'Hostel (AL)', 'Albergue (Peregrinos)': 'Pilgrim hostel',
   'Moradia (AL)': 'House (AL)',
-  // Balcão — perfil
+  // Balcão - perfil
   'Visitante Individual / Família': 'Individual visitor / Family', 'Turista Individual / Família': 'Individual tourist / Family',
   'Guia Turístico': 'Tour guide', 'Professor / Escola': 'Teacher / School', 'Operador Turístico': 'Tour operator',
-  // Audiência digital — páginas
+  // Audiência digital - páginas
   'Página inicial': 'Homepage', 'Passagem de Ano': 'New Year', 'Luzes de Natal (inauguração)': 'Christmas Lights (opening)',
   'Comércio Local': 'Local Commerce', 'Feira Semanal de Braga': 'Braga Weekly Market', 'Monumentos': 'Monuments',
   'Página inicial (EN)': 'Homepage (EN)', 'Parada de Natal': 'Christmas Parade', 'Comboio Turístico': 'Tourist Train',
