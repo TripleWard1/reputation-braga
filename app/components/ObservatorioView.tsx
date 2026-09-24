@@ -11,8 +11,9 @@ import {
   DORMIDAS_BRAGA, HOSPEDES_BRAGA, DORMIDAS_ANUAL, HOSPEDES_ANUAL,
   REVPAR_MENSAL, ADR_ANUAL, HEADLINE, INFRA, TAXA_TURISTICA, BALCAO, SUSTENTABILIDADE,
   QUARTOS, CAPACIDADE_CAMAS, ALOJAMENTO_FREGUESIA,
+  SEMESTRE_2026, DORMIDAS_PORTUGAL,
 } from '@/app/lib/observatorio-dados';
-import { DIGITAL } from '@/app/lib/audiencia-digital-dados';
+import { DIGITAL, DIGITAL_POS, DIGITAL_TOTAL, SEARCH_CONSOLE } from '@/app/lib/audiencia-digital-dados';
 import {
   ACESSIBILIDADE, BALCAO_DIARIO, BALCAO_LAT, BALCAO_LON,
   BALCAO_DIARIO_INICIO, BALCAO_DIARIO_FIM,
@@ -50,9 +51,9 @@ type Tab = 'geral' | 'procura' | 'economia' | 'mercados' | 'balcao' | 'taxa' | '
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; }
 
 const fmt = (n: number | null | undefined, c = 0) =>
-  n == null || isNaN(n as number) ? '-' : (n as number).toLocaleString('pt-PT', { minimumFractionDigits: c, maximumFractionDigits: c });
+  n == null || isNaN(n as number) ? '—' : (n as number).toLocaleString('pt-PT', { minimumFractionDigits: c, maximumFractionDigits: c });
 const fmtE = (n: number | null | undefined) => {
-  if (n == null) return '-';
+  if (n == null) return '—';
   if (n >= 1e6) return `${(n / 1e6).toLocaleString('pt-PT', { maximumFractionDigits: 2 })} M€`;
   if (n >= 1e3) return `${(n / 1e3).toLocaleString('pt-PT', { maximumFractionDigits: 0 })} k€`;
   return `${fmt(n)} €`;
@@ -151,7 +152,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         { label: t('Proveitos 2024', 'Revenue 2024'), value: dDec(H.proveitos.Braga2024) + ' M€', sub: dPct(H.proveitos.varBraga) + t(' face a 2023', ' vs 2023') },
       ],
       sections: [
-        { kind: 'table', title: t('Desempenho hoteleiro 2024 - Braga vs Norte vs Portugal', 'Hotel performance 2024 - Braga vs North vs Portugal'),
+        { kind: 'table', title: t('Desempenho hoteleiro 2024 — Braga vs Norte vs Portugal', 'Hotel performance 2024 — Braga vs North vs Portugal'),
           head: [t('Indicador', 'Indicator'), 'Braga', t('Norte', 'North'), 'Portugal'],
           rows: [
             [t('RevPAR (rendimento por quarto disponível)', 'RevPAR (revenue per available room)'), dEur(H.revpar2024.Braga), dEur(H.revpar2024.Norte), dEur(H.revpar2024.Portugal)],
@@ -168,7 +169,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
           ],
           note: t(`Proveitos de alojamento em Braga: ${dDec(H.proveitos.Braga2023)} M€ (2023) para ${dDec(H.proveitos.Braga2024)} M€ (2024).`, `Accommodation revenue in Braga: ${dDec(H.proveitos.Braga2023)} M€ (2023) to ${dDec(H.proveitos.Braga2024)} M€ (2024).`) },
         { kind: 'prose', title: 'Leitura', paras: [
-          t(`Braga apresenta RevPAR e ADR abaixo das médias regional e nacional - preços médios mais baixos - mas uma ocupação por quarto (${dDec(H.ocupQuarto.Braga)}%) superior à da Região Norte e próxima da nacional.`, `Braga shows RevPAR and ADR below the regional and national averages - lower average prices - but a room occupancy (${dDec(H.ocupQuarto.Braga)}%) higher than the Norte Region and close to the national one.`),
+          t(`Braga apresenta RevPAR e ADR abaixo das médias regional e nacional — preços médios mais baixos — mas uma ocupação por quarto (${dDec(H.ocupQuarto.Braga)}%) superior à da Região Norte e próxima da nacional.`, `Braga shows RevPAR and ADR below the regional and national averages — lower average prices — but a room occupancy (${dDec(H.ocupQuarto.Braga)}%) higher than the Norte Region and close to the national one.`),
           t('A combinação de ocupação elevada com preço médio contido aponta margem para estratégias de valorização do preço médio (qualificação da oferta, eventos âncora, captação de segmentos de maior valor), sem dependência de aumentar volumes.', 'The combination of high occupancy with a contained average price points to room for strategies that raise the average price (upgrading the offer, anchor events, attracting higher-value segments), without relying on increasing volumes.'),
         ] },
       ],
@@ -210,7 +211,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     const pctVisit = Math.round((b.visitantes / b.atendimentos) * 100);
     openPremiumDoc({
       logo: LOGO, eyebrow: t('Município de Braga · Posto de Turismo', 'Municipality of Braga · Tourist Office'),
-      title: t('Atendimento de Balcão', 'Front Desk Service'), subtitle: t('2026 (ano em curso, até junho)', '2026 (ongoing year, to June)'),
+      title: t('Atendimento de Balcão', 'Front Desk Service'), subtitle: t('2026 (ano em curso, até 24 de setembro)', '2026 (ongoing year, to 24 September)'),
       kpis: [
         { label: t('Atendimentos', 'Visits'), value: dNum(b.atendimentos) },
         { label: t('Pessoas (pax)', 'People (pax)'), value: dNum(b.pax) },
@@ -225,7 +226,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         { kind: 'table', title: t('Nacionalidades (top 10)', 'Nationalities (top 10)'),
           head: [t('Nacionalidade', 'Nationality'), t('Atendimentos', 'Visits')], rows: b.nacionalidades.slice(0, 10).map((x: [string, number]) => [dl(x[0]), dNum(x[1])]) },
         { kind: 'prose', title: t('Nota', 'Note'), paras: [
-          t('Cada registo corresponde a um atendimento no Posto de Turismo. Os dados de 2026 são do ano em curso (até junho), pelo que os totais anuais serão superiores.', 'Each record corresponds to one visit at the Tourist Office. The 2026 data is for the ongoing year (to June), so the annual totals will be higher.'),
+          t('Cada registo corresponde a um atendimento no Posto de Turismo. Os dados de 2026 são do ano em curso (até 24 de setembro), pelo que os totais anuais serão superiores.', 'Each record corresponds to one visit at the Tourist Office. The 2026 data is for the ongoing year (to 24 September), so the annual totals will be higher.'),
         ] },
       ],
       footerR: t('Atendimento de Balcão · Posto de Turismo', 'Front Desk Service · Tourist Office'),
@@ -269,7 +270,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         { label: t('Frota TUB verde', 'Green TUB fleet'), value: dDec(D.frotaVerde) + '%', sub: t(`${D.autocarrosEletricos} elétricos`, `${D.autocarrosEletricos} electric`) },
       ],
       sections: [
-        { kind: 'bars', title: t('Perceção dos residentes - sinais positivos', 'Residents perception - positive signals'),
+        { kind: 'bars', title: t('Perceção dos residentes — sinais positivos', 'Residents perception — positive signals'),
           data: [
             { label: t('O turismo beneficia a economia', 'Tourism benefits the economy'), value: P.beneficiaEconomia, display: dDec(P.beneficiaEconomia) + '%' },
             { label: t('Valoriza a cultura local', 'Values local culture'), value: P.valorizaCultura, display: dDec(P.valorizaCultura) + '%' },
@@ -302,34 +303,39 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   };
 
   const exportDigital = () => {
-    const k = DIGITAL.kpis;
-    const totalCanais = DIGITAL.canais.reduce((s, x) => s + x[1], 0);
-    const totalDisp = DIGITAL.dispositivos.reduce((s, x) => s + x[1], 0);
-    const pctOrg = Math.round((DIGITAL.canais[0][1] / totalCanais) * 100);
-    const pctMob = Math.round((DIGITAL.dispositivos[0][1] / totalDisp) * 100);
+    const k = DIGITAL.kpis, kp = DIGITAL_POS.kpis, kt = DIGITAL_TOTAL.kpis;
+    const sh = (arr: [string, number][], name: string) => { const tot = arr.reduce((s, x) => s + x[1], 0); const f = arr.find((x) => x[0] === name); return f && tot ? Math.round((f[1] / tot) * 100) : 0; };
+    const pctOrgA = sh(DIGITAL.canais, 'Pesquisa orgânica'), pctOrgP = sh(DIGITAL_POS.canais, 'Pesquisa orgânica');
+    const pctMob = sh(DIGITAL_TOTAL.dispositivos, 'Telemóvel');
+    const MES_EN: Record<string, string> = { jan: 'Jan', fev: 'Feb', mar: 'Mar', abr: 'Apr', mai: 'May', jun: 'Jun', jul: 'Jul', ago: 'Aug', set: 'Sep', out: 'Oct', nov: 'Nov', dez: 'Dec' };
     openPremiumDoc({
       logo: LOGO, eyebrow: t('Município de Braga · visitbraga.travel', 'Municipality of Braga · visitbraga.travel'),
-      title: t('Audiência Digital', 'Digital Audience'), subtitle: `Google Analytics · ${DIGITAL.periodo}`,
+      title: t('Audiência Digital', 'Digital Audience'), subtitle: `Google Analytics 4 · Google Search Console · ${DIGITAL_TOTAL.periodo}`,
       kpis: [
-        { label: t('Utilizadores', 'Users'), value: dNum(k.utilizadores) },
-        { label: t('Visualizações', 'Views'), value: dNum(k.visualizacoes) },
-        { label: t('Envolvimento', 'Engagement'), value: dDec(k.taxaEnvolvimento) + '%' },
-        { label: t('Páginas / utilizador', 'Pages / user'), value: dDec(k.pagsPorUtilizador) },
+        { label: t('Utilizadores', 'Users'), value: dNum(kt.utilizadores), sub: t('desde o lançamento', 'since launch') },
+        { label: t('Cliques no Google', 'Google clicks'), value: dNum(SEARCH_CONSOLE.cliques) },
+        { label: t('Antes do ataque', 'Before the attack'), value: dNum(k.utilizadores), sub: DIGITAL.periodo },
+        { label: t('Retoma', 'Recovery'), value: dNum(kp.utilizadores), sub: t('desde o final de agosto', 'since late August') },
       ],
       sections: [
-        { kind: 'bars', title: t('Canais de aquisição', 'Acquisition channels'),
+        { kind: 'bars', title: t('Cliques no Google por mês', 'Google clicks by month'),
+          data: SEARCH_CONSOLE.mensal.map(([m, c]) => { const [mm, yy] = m.split('/'); return { label: t(m, `${MES_EN[mm]}/${yy}`), value: c, display: dNum(c) }; }), color: '#c9a84c' },
+        { kind: 'bars', title: t('Canais de aquisição — antes do ataque', 'Acquisition channels — before the attack'),
           data: DIGITAL.canais.map((x) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#34d399' },
-        { kind: 'bars', title: t('Top países (utilizadores)', 'Top countries (users)'),
+        { kind: 'bars', title: t('Canais de aquisição — retoma', 'Acquisition channels — recovery'),
+          data: DIGITAL_POS.canais.map((x) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#fb923c' },
+        { kind: 'bars', title: t('Top países — antes do ataque (utilizadores)', 'Top countries — before the attack (users)'),
           data: DIGITAL.paises.slice(0, 8).map((x) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#60a5fa' },
-        { kind: 'bars', title: t('Páginas mais vistas', 'Most viewed pages'),
+        { kind: 'bars', title: t('Páginas mais vistas — antes do ataque', 'Most viewed pages — before the attack'),
           data: DIGITAL.paginas.slice(0, 8).map((x) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#a78bfa' },
         { kind: 'prose', title: t('Leitura estratégica', 'Strategic reading'), paras: [
-          t(`${pctOrg}% dos utilizadores chegam por pesquisa orgânica - o que reforça a prioridade da estratégia SEO/GEO para o Visit Braga.`, `${pctOrg}% of users arrive via organic search - which reinforces the priority of the SEO/GEO strategy for Visit Braga.`),
-          t(`${pctMob}% acede por telemóvel: a experiência mobile é determinante.`, `${pctMob}% access via mobile: the mobile experience is decisive.`),
-          t('Os picos de tráfego coincidem com eventos sazonais (Luzes de Natal, Passagem de Ano), que dominam as páginas mais vistas. Cidades por deteção aproximada de IP; entradas sem cidade definida excluídas dos tops.', 'Traffic peaks coincide with seasonal events (Christmas Lights, New Year), which dominate the most viewed pages. Cities by approximate IP detection; entries without a defined city excluded from the tops.'),
+          t('Em 2026 o site foi alvo de um ciberataque e esteve fora do ar vários meses: o tráfego vindo do Google manteve-se normal até abril, caiu em maio, foi quase nulo em junho e julho e voltou a crescer no final de agosto.', 'In 2026 the site suffered a cyberattack and was offline for several months: traffic from Google stayed normal until April, dropped in May, was almost nil in June and July and began to recover at the end of August.'),
+          t(`O site perdeu sobretudo o Google: antes do ataque, ${pctOrgA}% dos novos utilizadores chegavam pela pesquisa orgânica; na retoma são ${pctOrgP}%. Recuperar o posicionamento nas pesquisas é a prioridade.`, `The site mainly lost Google: before the attack, ${pctOrgA}% of new users came from organic search; during recovery it is ${pctOrgP}%. Recovering search rankings is the priority.`),
+          t(`Na retoma, quem chega fica mais tempo (${kp.tempoMedioSeg} s contra ${k.tempoMedioSeg} s) e surge um canal novo: ${dNum(kp.sessoesChatGPT)} sessões vieram do ChatGPT. ${pctMob}% dos utilizadores usam telemóvel.`, `During recovery, visitors stay longer (${kp.tempoMedioSeg} s vs ${k.tempoMedioSeg} s) and a new channel appears: ${dNum(kp.sessoesChatGPT)} sessions came from ChatGPT. ${pctMob}% of users are on mobile.`),
+          t('Os períodos antes, retoma e desde o lançamento não são somáveis. Cidades por deteção aproximada de IP; entradas sem cidade definida e tráfego automático excluídos dos tops.', 'The before, recovery and since-launch periods cannot be added up. Cities by approximate IP detection; entries without a defined city and automated traffic excluded from the tops.'),
         ] },
       ],
-      footerR: t('Audiência Digital · GA4 visitbraga.travel', 'Digital Audience · GA4 visitbraga.travel'),
+      footerR: t('Audiência Digital · GA4 + Search Console', 'Digital Audience · GA4 + Search Console'),
     });
   };
 
@@ -344,9 +350,9 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         { label: t('% do total de atendimentos', '% of total visits'), value: dDec(A.pct) + '%' },
       ],
       sections: [
-        { kind: 'prose', title: t('Amostra reduzida - leitura cautelosa', 'Small sample - read with caution'), paras: [
+        { kind: 'prose', title: t('Amostra reduzida — leitura cautelosa', 'Small sample — read with caution'), paras: [
           t(`O registo de necessidades especiais só começou em 2026 e está fortemente subutilizado (${A.total} em ${dNum(A.totalAtendimentos)} atendimentos). Os números abaixo são um ponto de partida e não refletem a procura real.`, `Recording of special needs only began in 2026 and is heavily underused (${A.total} of ${dNum(A.totalAtendimentos)} visits). The numbers below are a starting point and do not reflect real demand.`),
-          t('O valor deste indicador cresce com o registo sistemático no balcão - vale a pena reforçar essa prática junto da equipa de atendimento.', 'The value of this indicator grows with systematic recording at the front desk - it is worth reinforcing this practice with the service team.'),
+          t('O valor deste indicador cresce com o registo sistemático no balcão — vale a pena reforçar essa prática junto da equipa de atendimento.', 'The value of this indicator grows with systematic recording at the front desk — it is worth reinforcing this practice with the service team.'),
         ] },
         { kind: 'bars', title: t('Por tipo de necessidade', 'By type of need'),
           data: A.tipos.map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#60a5fa' },
@@ -394,7 +400,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       logo: LOGO, eyebrow: t('Município de Braga · Observatório', 'Municipality of Braga · Observatory'),
       title: t('Síntese do Destino', 'Destination Overview'), subtitle: t('Indicadores-chave do turismo de Braga', 'Key indicators of Braga tourism'),
       kpis: [
-        { label: t('Reputação média', 'Average reputation'), value: reputacaoMedia != null ? dDec(+reputacaoMedia.toFixed(1)) + '/10' : '-', sub: t(`${reputacaoLocais ?? 0} locais · ${dNum(reputacaoReviews ?? 0)} reviews`, `${reputacaoLocais ?? 0} sites · ${dNum(reputacaoReviews ?? 0)} reviews`) },
+        { label: t('Reputação média', 'Average reputation'), value: reputacaoMedia != null ? dDec(+reputacaoMedia.toFixed(1)) + '/10' : '—', sub: t(`${reputacaoLocais ?? 0} locais · ${dNum(reputacaoReviews ?? 0)} reviews`, `${reputacaoLocais ?? 0} sites · ${dNum(reputacaoReviews ?? 0)} reviews`) },
         { label: t('Dormidas 2025', 'Overnight stays 2025'), value: dNum(H.dormidas2025), sub: dPct(H.dormidasVar) + t(' homólogo', ' YoY') },
         { label: t('Hóspedes 2025', 'Guests 2025'), value: dNum(H.hospedes2025), sub: dPct(H.hospedesVar) + t(' homólogo', ' YoY') },
         { label: t('Receita da taxa 2025', 'Tax revenue 2025'), value: dEur(TAXA_TURISTICA['2025'].Total) },
@@ -432,19 +438,19 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       title: t('Cruzamento de Mercados', 'Market Cross-analysis'), subtitle: t('Presença física (balcão) vs interesse digital (site)', 'Physical presence (front desk) vs digital interest (site)'),
       kpis: [
         { label: t('Principal mercado (INE)', 'Main market (INE)'), value: dl(HEADLINE.mercados2025[0]) },
-        { label: t('Topo no balcão', 'Top at front desk'), value: dl([...rows].sort((a, b) => b.bal - a.bal)[0]?.m || '-'), sub: t('presença física', 'physical presence') },
-        { label: t('Topo no digital', 'Top in digital'), value: dl([...rows].sort((a, b) => b.dig - a.dig)[0]?.m || '-'), sub: t('interesse online', 'online interest') },
+        { label: t('Topo no balcão', 'Top at front desk'), value: dl([...rows].sort((a, b) => b.bal - a.bal)[0]?.m || '—'), sub: t('presença física', 'physical presence') },
+        { label: t('Topo no digital', 'Top in digital'), value: dl([...rows].sort((a, b) => b.dig - a.dig)[0]?.m || '—'), sub: t('interesse online', 'online interest') },
         { label: t('Mercados cruzados', 'Cross-referenced markets'), value: String(rows.length) },
       ],
       sections: [
         { kind: 'table', title: t('Mercados: ranking INE, presença física e interesse digital', 'Markets: INE ranking, physical presence and digital interest'),
           head: [t('Mercado', 'Market'), 'INE', t('Balcão', 'Front desk'), 'Digital'],
-          rows: rows.map((r) => [dl(r.m), r.ine ? ('#' + r.ine) : '-', dDec(+r.bal.toFixed(1)) + '%', dDec(+r.dig.toFixed(1)) + '%']),
+          rows: rows.map((r) => [dl(r.m), r.ine ? ('#' + r.ine) : '—', dDec(+r.bal.toFixed(1)) + '%', dDec(+r.dig.toFixed(1)) + '%']),
           note: t('Quota % excluindo Portugal (mercado doméstico). INE = posição por dormidas.', 'Share % excluding Portugal (domestic market). INE = position by overnight stays.') },
         { kind: 'stats', title: t('Mais interesse online que presença física', 'More online interest than physical presence'),
-          items: digitalOver.length ? digitalOver.map((r) => ({ label: dl(r.m), value: '+' + dDec(+r.gap.toFixed(1)) + ' pp', sub: t('online acima de física', 'online above physical') })) : [{ label: '-', value: t('Sem divergências', 'No divergences'), sub: t('relevantes', 'relevant') }] },
+          items: digitalOver.length ? digitalOver.map((r) => ({ label: dl(r.m), value: '+' + dDec(+r.gap.toFixed(1)) + ' pp', sub: t('online acima de física', 'online above physical') })) : [{ label: '—', value: t('Sem divergências', 'No divergences'), sub: t('relevantes', 'relevant') }] },
         { kind: 'stats', title: t('Mais presença física que pegada online', 'More physical presence than online footprint'),
-          items: fisicoOver.length ? fisicoOver.map((r) => ({ label: dl(r.m), value: dDec(+r.gap.toFixed(1)) + ' pp', sub: t('física acima de online', 'physical above online') })) : [{ label: '-', value: t('Sem divergências', 'No divergences'), sub: t('relevantes', 'relevant') }] },
+          items: fisicoOver.length ? fisicoOver.map((r) => ({ label: dl(r.m), value: dDec(+r.gap.toFixed(1)) + ' pp', sub: t('física acima de online', 'physical above online') })) : [{ label: '—', value: t('Sem divergências', 'No divergences'), sub: t('relevantes', 'relevant') }] },
         { kind: 'prose', title: t('Notas de leitura', 'Reading notes'), paras: [
           t('As três fontes medem coisas diferentes: INE são dormidas reais; o balcão é apenas quem entra no posto de turismo (fatia pequena e auto-selecionada, dados de 2026); o digital é a audiência do site (inclui investigação e possível tráfego automatizado, como nos valores elevados da China).', 'The three sources measure different things: INE are real overnight stays; the front desk is only those who enter the tourist office (a small, self-selected share, 2026 data); digital is the site audience (includes research and possible automated traffic, as in the high figures from China).'),
           t('Portugal foi excluído por ser mercado doméstico. Lê isto como indício para investigar, não como prova.', 'Portugal was excluded as it is the domestic market. Read this as a clue to investigate, not as proof.'),
@@ -462,7 +468,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     const hoje = new Date().toLocaleDateString(t('pt-PT', 'en-GB'), { day: '2-digit', month: 'long', year: 'numeric' });
     const html =
       '<!DOCTYPE html><html lang="' + t('pt', 'en') + '"><head><meta charset="utf-8">' +
-      '<title>' + t('Observatório de Turismo de Braga', 'Braga Tourism Observatory') + ' - ' + tabLabel + '</title>' +
+      '<title>' + t('Observatório de Turismo de Braga', 'Braga Tourism Observatory') + ' — ' + tabLabel + '</title>' +
       '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">' +
       '<style>' +
       '*{box-sizing:border-box;}' +
@@ -493,7 +499,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 14, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em', color: C.text }}>{t('Observatório de Turismo de Braga', 'Braga Tourism Observatory')}</h1>
-          <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{t('Análise integrada de dados reais - INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística', 'Integrated analysis of real data - INE/TravelBI · Front Desk · Municipal Tourist Tax')}</p>
+          <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{t('Análise integrada de dados reais — INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística', 'Integrated analysis of real data — INE/TravelBI · Front Desk · Municipal Tourist Tax')}</p>
         </div>
         {tab !== 'meteo' && (
           <button onClick={() => {
@@ -592,7 +598,7 @@ function pearson(xs: number[], ys: number[]): number {
   return den === 0 ? NaN : sxy / den;
 }
 const corrLabel = (r: number): string => {
-  if (isNaN(r)) return '-';
+  if (isNaN(r)) return '—';
   const a = Math.abs(r);
   const f = a < 0.2 ? t('muito fraca', 'very weak') : a < 0.4 ? t('fraca', 'weak') : a < 0.6 ? t('moderada', 'moderate') : t('forte', 'strong');
   return `${r >= 0 ? '+' : ''}${r.toFixed(2)} (${f})`;
@@ -686,13 +692,13 @@ function Geral({ rep, repL, repR }: { rep?: number | null; repL?: number; repR?:
 
       <Card title={t('◈ Cruzamento Reputação Online × Procura Real', '◈ Online Reputation × Real Demand Cross-analysis')}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-          <Cruz label={t('Reputação média (plataforma)', 'Average reputation (platform)')} value={rep != null ? `${rep.toFixed(1)}/10` : '-'} color={C.accent} nota={`${repL ?? 0} ${t('locais', 'places')} · ${fmt(repR ?? 0)} reviews`} />
+          <Cruz label={t('Reputação média (plataforma)', 'Average reputation (platform)')} value={rep != null ? `${rep.toFixed(1)}/10` : '—'} color={C.accent} nota={`${repL ?? 0} ${t('locais', 'places')} · ${fmt(repR ?? 0)} reviews`} />
           <Cruz label={t('Dormidas 2025 (INE)', 'Overnight stays 2025 (INE)')} value={fmt(HEADLINE.dormidas2025)} color={C.info} nota={`+${HEADLINE.dormidasVar}% ${t('homólogo', 'YoY')}`} />
           <Cruz label={t('Atendimentos balcão 2025', 'Front desk visits 2025')} value={fmt(BALCAO['2025'].atendimentos)} color={C.positive} nota={`${fmt(BALCAO['2025'].pax)} ${t('visitantes', 'visitors')}`} />
           <Cruz label={t('Receita taxa 2025', 'Tax revenue 2025')} value={fmtE(TAXA_TURISTICA['2025'].Total)} color={C.purple} nota={t('dado próprio do Município', 'Municipality\u2019s own data')} />
         </div>
         <p style={{ fontSize: 12, color: C.textMuted, margin: '14px 0 0', lineHeight: 1.6 }}>
-          {t('Três fontes independentes a triangular a mesma realidade: o que as pessoas ', 'Three independent sources triangulating the same reality: what people ')}<strong>{t('dizem', 'say')}</strong>{t(' (reputação), onde ', ' (reputation), where they ')}<strong>{t('dormem', 'sleep')}</strong>{t(' (INE + taxa) e o que ', ' (INE + tax) and what they ')}<strong>{t('procuram', 'seek')}</strong>{t(' ao balcão. Quando a reputação de um POI âncora cai, costuma anteceder quebras na procura - e a receita da taxa permite quantificar o retorno de cada intervenção.', ' at the front desk. When the reputation of an anchor POI falls, it usually precedes drops in demand - and the tax revenue lets you quantify the return of each intervention.')}
+          {t('Três fontes independentes a triangular a mesma realidade: o que as pessoas ', 'Three independent sources triangulating the same reality: what people ')}<strong>{t('dizem', 'say')}</strong>{t(' (reputação), onde ', ' (reputation), where they ')}<strong>{t('dormem', 'sleep')}</strong>{t(' (INE + taxa) e o que ', ' (INE + tax) and what they ')}<strong>{t('procuram', 'seek')}</strong>{t(' ao balcão. Quando a reputação de um POI âncora cai, costuma anteceder quebras na procura — e a receita da taxa permite quantificar o retorno de cada intervenção.', ' at the front desk. When the reputation of an anchor POI falls, it usually precedes drops in demand — and the tax revenue lets you quantify the return of each intervention.')}
         </p>
       </Card>
     </>
@@ -758,7 +764,7 @@ function Procura() {
         </div>
       )}
 
-      <Card title={`${metric === 'dormidas' ? t('Dormidas', 'Overnight stays') : t('Hóspedes', 'Guests')} ${t('mensais em Braga - comparação plurianual', 'monthly in Braga - multi-year comparison')}`}
+      <Card title={`${metric === 'dormidas' ? t('Dormidas', 'Overnight stays') : t('Hóspedes', 'Guests')} ${t('mensais em Braga — comparação plurianual', 'monthly in Braga — multi-year comparison')}`}
         right={<div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
           <Chips options={['dormidas', 'hospedes']} sel={[metric]} toggle={(o) => setMetric(o as any)} single label={(o) => o === 'dormidas' ? t('Dormidas', 'Overnight stays') : t('Hóspedes', 'Guests')} />
           <Chips options={todosAnos} sel={anos} toggle={toggleAno} />
@@ -834,6 +840,39 @@ function Procura() {
           </Card>
         );
       })()}
+
+      {(() => {
+        const top = SEMESTRE_2026.topMunicipios.map(([nome, a, b]) => ({ nome, d2025: a, d2026: b, variacao: Math.round(((b - a) / a) * 1000) / 10 }));
+        const posBraga = top.filter((x) => x.nome !== 'Ourém').findIndex((x) => x.nome === 'Braga') + 1;
+        return (
+          <Card title={t('Destinos regionais com mais dormidas — 1.º semestre de 2026', 'Regional destinations with the most overnight stays — 1st half of 2026')}>
+            <ResponsiveContainer width="100%" height={330}>
+              <BarChart data={top} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+                <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
+                <YAxis type="category" dataKey="nome" width={84} stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
+                <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(v), n]} />
+                <Bar dataKey="d2026" name={t('Dormidas 2026', 'Overnight stays 2026')} radius={[0, 4, 4, 0]}>
+                  {top.map((d) => <Cell key={d.nome} fill={d.nome === 'Braga' ? C.accent : C.textDim} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+              {top.map((m) => (
+                <span key={m.nome} style={{ fontSize: 11.5, padding: '4px 10px', borderRadius: 7, background: m.nome === 'Braga' ? C.accentBg : C.bg, border: `1px solid ${C.border}`, color: m.variacao >= 0 ? C.positive : C.negative }}>
+                  {m.nome} {m.variacao >= 0 ? '+' : ''}{m.variacao.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })}%
+                </span>
+              ))}
+            </div>
+            <p style={{ fontSize: 11.5, color: C.textMuted, lineHeight: 1.6, margin: '12px 0 0' }}>
+              {t(`Excluindo Ourém (procura marcada pelo Santuário de Fátima, não diretamente comparável), Braga é o ${posBraga}.º destino regional em dormidas no 1.º semestre e um dos poucos do grupo a crescer.`, `Excluding Ourém (demand driven by the Fátima Sanctuary, not directly comparable), Braga is the no. ${posBraga} regional destination by overnight stays in the 1st half and one of the few in the group to grow.`)}
+            </p>
+            <p style={{ fontSize: 11, color: C.textDim, margin: '6px 0 0' }}>
+              {t('Municípios excluindo as Áreas Metropolitanas de Lisboa e do Porto, o Algarve e as Regiões Autónomas. Fonte: INE/TravelBI, jan–jun.', 'Municipalities excluding the Lisbon and Porto Metropolitan Areas, the Algarve and the Autonomous Regions. Source: INE/TravelBI, Jan–Jun.')}
+            </p>
+          </Card>
+        );
+      })()}
     </>
   );
 }
@@ -842,10 +881,34 @@ function Procura() {
 function Economia() {
   const revparData = MESES.map((m, i) => {
     const row: any = { mes: dl(MESES_CURTO[i]) };
-    ['2022', '2023', '2024', '2025'].forEach((y) => { row[y] = REVPAR_MENSAL[m]?.[y] ?? null; });
+    ['2022', '2023', '2024', '2025', '2026'].forEach((y) => { row[y] = REVPAR_MENSAL[m]?.[y] ?? null; });
     return row;
   });
   const adrData = Object.entries(ADR_ANUAL).map(([y, v]) => ({ ano: y, adr: v }));
+
+  // ── 1.º semestre de 2026 (INE) — mesmo método nos dois anos ──
+  const S = SEMESTRE_2026;
+  const H1 = MESES.slice(0, 6);
+  const soma = (v: number[]) => v.reduce((a, b) => a + b, 0);
+  const media = (v: number[]) => soma(v) / v.length;
+  const somaH1 = (serie: Record<string, Record<string, number | null>>, y: string) => H1.reduce((acc, m) => acc + (serie[m]?.[y] ?? 0), 0);
+  const varP = (a: number, b: number) => Math.round((b / a - 1) * 1000) / 10;
+  const dormH1 = somaH1(DORMIDAS_BRAGA, '2026');
+  const provH1 = soma(S.proveitos.Braga['2026']);
+  const revparH1 = media(S.revpar.Braga['2026']);
+  const adrH1 = media(S.adr.Braga['2026']);
+  const semComp = [
+    { ind: t('Dormidas', 'Overnight stays'), Braga: varP(somaH1(DORMIDAS_BRAGA, '2025'), dormH1), Portugal: varP(somaH1(DORMIDAS_PORTUGAL, '2025'), somaH1(DORMIDAS_PORTUGAL, '2026')) },
+    { ind: t('Proveitos', 'Revenue'), Braga: varP(soma(S.proveitos.Braga['2025']), provH1), Portugal: varP(S.proveitos.PortugalTotal['2025'], S.proveitos.PortugalTotal['2026']) },
+    { ind: 'RevPAR', Braga: varP(media(S.revpar.Braga['2025']), revparH1), Portugal: varP(media(S.revpar.Portugal['2025']), media(S.revpar.Portugal['2026'])) },
+    { ind: 'ADR', Braga: varP(media(S.adr.Braga['2025']), adrH1), Portugal: varP(media(S.adr.Portugal['2025']), media(S.adr.Portugal['2026'])) },
+  ];
+  const oq = S.ocupQuarto.totalINE, oc = S.ocupCama.totalINE;
+  const pp = (a: number, b: number) => Math.round((b - a) * 10) / 10;
+  const sinal = (n: number) => `${n >= 0 ? '+' : ''}${n.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })}`;
+  const MC = [t('Jan', 'Jan'), t('Fev', 'Feb'), t('Mar', 'Mar'), t('Abr', 'Apr'), t('Mai', 'May'), t('Jun', 'Jun')];
+  const adrMensal = MC.map((mes, i) => ({ mes, '2023': S.adr.Braga['2023'][i], '2024': S.adr.Braga['2024'][i], '2025': S.adr.Braga['2025'][i], '2026': S.adr.Braga['2026'][i] }));
+  const provMensal = MC.map((mes, i) => ({ mes, '2025': S.proveitos.Braga['2025'][i], '2026': S.proveitos.Braga['2026'][i] }));
 
   // ── Oferta / capacidade de alojamento (INE) ──
   const capRow = (o: { total: number; hotelaria: number; alojamentoLocal: number }, ano: string) => ({
@@ -875,16 +938,74 @@ function Economia() {
 
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 14 }}>
-        <CompareBars title={t('RevPAR 2025 - rendimento por quarto disponível (€)', 'RevPAR 2025 - revenue per available room (€)')} vals={HEADLINE.revpar2025} unit="€" />
-        <CompareBars title={t('ADR 2025 - rendimento por quarto ocupado (€)', 'ADR 2025 - revenue per occupied room (€)')} vals={HEADLINE.adr2025} unit="€" />
-        <CompareBars title={t('RevPAR 2024 - para comparação (€)', 'RevPAR 2024 - for comparison (€)')} vals={HEADLINE.revpar2024} unit="€" />
-        <CompareBars title={t('ADR 2024 - para comparação (€)', 'ADR 2024 - for comparison (€)')} vals={HEADLINE.adr2024} unit="€" />
+      {/* ── 1.º semestre de 2026 ── */}
+      <SectionTitle sub={t('INE/TravelBI · janeiro a junho · 2026 face a 2025', 'INE/TravelBI · January to June · 2026 vs 2025')}>{t('1.º semestre de 2026', '1st half of 2026')}</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, margin: '12px 0 14px' }}>
+        <KPI label={t('Dormidas', 'Overnight stays')} value={fmt(dormH1)} sub={`${sinal(semComp[0].Braga)}% ${t('vs 2025', 'vs 2025')}`} color={C.accent} />
+        <KPI label={t('Proveitos', 'Revenue')} value={fmtE(provH1)} sub={`${sinal(semComp[1].Braga)}% ${t('vs 2025', 'vs 2025')}`} color={C.positive} />
+        <KPI label={t('RevPAR médio', 'Average RevPAR')} value={`${revparH1.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} €`} sub={`${sinal(semComp[2].Braga)}% ${t('vs 2025', 'vs 2025')}`} color={C.info} />
+        <KPI label={t('ADR médio', 'Average ADR')} value={`${adrH1.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} €`} sub={`${sinal(semComp[3].Braga)}% ${t('vs 2025', 'vs 2025')}`} color={C.purple} />
+        <KPI label={t('Ocupação-quarto', 'Room occupancy')} value={`${oq.Braga['2026'].toLocaleString(t('pt-PT', 'en-GB'))}%`} sub={`${sinal(pp(oq.Braga['2025'], oq.Braga['2026']))} p.p. · PT ${sinal(pp(oq.Portugal['2025'], oq.Portugal['2026']))}`} color={C.cyan} />
+        <KPI label={t('Ocupação-cama', 'Bed occupancy')} value={`${oc.Braga['2026'].toLocaleString(t('pt-PT', 'en-GB'))}%`} sub={`${sinal(pp(oc.Braga['2025'], oc.Braga['2026']))} p.p. · PT ${sinal(pp(oc.Portugal['2025'], oc.Portugal['2026']))}`} color={C.orange} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14, marginBottom: 14 }}>
+        <Card title={t('Braga cresce mais do que Portugal — variação homóloga (%)', 'Braga grows faster than Portugal — year-on-year change (%)')}>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={semComp} margin={{ top: 6, right: 8, left: -14, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+              <XAxis dataKey="ind" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
+              <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [`${sinal(v)}%`, n]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="Braga" fill={C.accent} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Portugal" fill={C.textDim} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card title={t('ADR mensal em Braga (€) — janeiro a junho', 'Monthly ADR in Braga (€) — January to June')}>
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={adrMensal} margin={{ top: 6, right: 10, left: -14, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
+              <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} domain={['dataMin - 5', 'dataMax + 5']} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [`${v} €`, n]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              {['2023', '2024', '2025', '2026'].map((y) => <Line key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2026' ? 3 : 2} dot={{ r: 2 }} />)}
+            </LineChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+
+      <Card title={t('Proveitos do alojamento por mês — 2025 e 2026', 'Accommodation revenue by month — 2025 and 2026')}>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={provMensal} margin={{ top: 6, right: 8, left: 6, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+            <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
+            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1e6).toFixed(1)}M`} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmtE(v), n]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar dataKey="2025" fill={YEAR_COLORS['2025']} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="2026" fill={YEAR_COLORS['2026']} radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+        <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0', lineHeight: 1.5 }}>
+          {t('RevPAR e ADR: média simples dos seis meses, com o mesmo método em 2025 e 2026 (o INE só publica o valor semestral ponderado de 2026). Ocupação: total semestral publicado pelo INE. p.p. = pontos percentuais.', 'RevPAR and ADR: simple average of the six months, with the same method in 2025 and 2026 (INE only publishes the weighted half-year value for 2026). Occupancy: half-year total published by INE. p.p. = percentage points.')}
+        </p>
+      </Card>
+
+      <div style={{ height: 22 }} />
+      <SectionTitle sub={t('Anos completos', 'Full years')}>{t('Evolução anual', 'Annual trend')}</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 14, marginTop: 12 }}>
+        <CompareBars title={t('RevPAR 2025 — rendimento por quarto disponível (€)', 'RevPAR 2025 — revenue per available room (€)')} vals={HEADLINE.revpar2025} unit="€" />
+        <CompareBars title={t('ADR 2025 — rendimento por quarto ocupado (€)', 'ADR 2025 — revenue per occupied room (€)')} vals={HEADLINE.adr2025} unit="€" />
+        <CompareBars title={t('RevPAR 2024 — para comparação (€)', 'RevPAR 2024 — for comparison (€)')} vals={HEADLINE.revpar2024} unit="€" />
+        <CompareBars title={t('ADR 2024 — para comparação (€)', 'ADR 2024 — for comparison (€)')} vals={HEADLINE.adr2024} unit="€" />
         <CompareBars title={t('Taxa líquida de ocupação-quarto 2024 (%)', 'Net room occupancy rate 2024 (%)')} vals={HEADLINE.ocupQuarto} unit="%" />
         <CompareBars title={t('Taxa líquida de ocupação-cama 2024 (%)', 'Net bed occupancy rate 2024 (%)')} vals={HEADLINE.ocupCama} unit="%" />
       </div>
 
-      <Card title={t('RevPAR mensal em Braga (€) - 2022 a 2025', 'Monthly RevPAR in Braga (€) - 2022 to 2025')}>
+      <Card title={t('RevPAR mensal em Braga (€) — 2022 a 2026', 'Monthly RevPAR in Braga (€) — 2022 to 2026')}>
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={revparData} margin={{ top: 6, right: 10, left: -14, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -892,13 +1013,13 @@ function Economia() {
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [`${v} €`, n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            {['2022', '2023', '2024', '2025'].map((y) => <Line key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2025' ? 3 : 2} dot={{ r: 2 }} connectNulls />)}
+            {['2022', '2023', '2024', '2025', '2026'].map((y) => <Line key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2026' ? 3 : 2} dot={{ r: 2 }} connectNulls />)}
           </LineChart>
         </ResponsiveContainer>
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 14 }}>
-        <Card title={t('ADR anual em Braga (€) - 2018 a 2025', 'Annual ADR in Braga (€) - 2018 to 2025')}>
+        <Card title={t('ADR anual em Braga (€) — 2018 a 2025', 'Annual ADR in Braga (€) — 2018 to 2025')}>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={adrData} margin={{ top: 6, right: 8, left: -16, bottom: 0 }}>
               <defs><linearGradient id="adrg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.accent} stopOpacity={0.5} /><stop offset="100%" stopColor={C.accent} stopOpacity={0} /></linearGradient></defs>
@@ -922,7 +1043,7 @@ function Economia() {
         </Card>
       </div>
 
-      {/* ── Capacidade de alojamento - quartos e camas (INE) ── */}
+      {/* ── Capacidade de alojamento — quartos e camas (INE) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, margin: '14px 0' }}>
         <KPI label={t('Quartos 2025', 'Rooms 2025')} value={fmt(qNow.total)} sub={`${pct(varQuartos)} ${t('vs 2024', 'vs 2024')}`} color={C.accent} />
         <KPI label={t('Camas 2025', 'Beds 2025')} value={fmt(cNow.total)} sub={`${pct(varCamas)} ${t('vs 2024', 'vs 2024')}`} color={C.info} />
@@ -931,7 +1052,7 @@ function Economia() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 14 }}>
-        <Card title={t('Quartos em Braga por tipologia - 2017 a 2025', 'Rooms in Braga by type - 2017 to 2025')}>
+        <Card title={t('Quartos em Braga por tipologia — 2017 a 2025', 'Rooms in Braga by type — 2017 to 2025')}>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={quartosData} margin={{ top: 6, right: 8, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
@@ -945,11 +1066,11 @@ function Economia() {
             </BarChart>
           </ResponsiveContainer>
           <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>
-            {t('Fonte: INE - Inquérito à Permanência de Hóspedes. A quebra de 2020 reflete o encerramento de unidades durante a pandemia.', 'Source: INE - Guest Stays Survey. The 2020 drop reflects units closing during the pandemic.')}
+            {t('Fonte: INE — Inquérito à Permanência de Hóspedes. A quebra de 2020 reflete o encerramento de unidades durante a pandemia.', 'Source: INE — Guest Stays Survey. The 2020 drop reflects units closing during the pandemic.')}
           </p>
         </Card>
 
-        <Card title={t('Camas (capacidade) - 2023 a 2025', 'Beds (capacity) - 2023 to 2025')}>
+        <Card title={t('Camas (capacidade) — 2023 a 2025', 'Beds (capacity) — 2023 to 2025')}>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={camasData} margin={{ top: 6, right: 8, left: -6, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
@@ -976,7 +1097,7 @@ function Economia() {
         <KPI label={t('Concentração urbana', 'Urban concentration')} value={`${concentracao.toFixed(0)}%`} sub={t('nas 4 freguesias da cidade', 'in the 4 city parishes')} color={C.positive} />
       </div>
 
-      <Card title={t('Oferta de alojamento por freguesia - 12 principais', 'Accommodation supply by parish - top 12')}>
+      <Card title={t('Oferta de alojamento por freguesia — 12 principais', 'Accommodation supply by parish — top 12')}>
         <ResponsiveContainer width="100%" height={420}>
           <BarChart data={fregTop} layout="vertical" margin={{ top: 6, right: 16, left: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
@@ -1000,29 +1121,50 @@ function Economia() {
 function Mercados() {
   const [ano, setAno] = useState<'2025' | '2026'>('2026');
   const b = BALCAO[ano];
+  const S = SEMESTRE_2026;
+  const mercDorm = S.mercadosDormidas.map(([p, a, b]) => ({ pais: dl(p), v2025: a, v2026: b, variacao: Math.round(((b - a) / a) * 1000) / 10 }));
+  const pctEstr = Math.round((S.residencia.dormidas.Estrangeiro / (S.residencia.dormidas.Estrangeiro + S.residencia.dormidas.Portugal)) * 100);
+  const ord = [...mercDorm].sort((x, y) => y.variacao - x.variacao);
+  const fmtV = (m: { pais: string; variacao: number }) => `${m.pais} (${m.variacao >= 0 ? '+' : ''}${m.variacao.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })}%)`;
+  const subidas = ord.slice(0, 3).map(fmtV).join(', ');
+  const descidas = ord.filter((m) => m.variacao < 0).map(fmtV).join(', ');
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
         <Chips options={['2025', '2026']} sel={[ano]} toggle={(o) => setAno(o as any)} single />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={`${t('Nacionalidades no balcão -', 'Nationalities at the front desk -')} ${ano}`}>
+        <Card title={`${t('Nacionalidades no balcão —', 'Nationalities at the front desk —')} ${ano}`}>
           <HBars data={b.nacionalidades.slice(0, 12)} />
         </Card>
-        <Card title={`${t('Cidades de origem dos visitantes -', 'Cities of origin of visitors -')} ${ano}`}>
+        <Card title={`${t('Cidades de origem dos visitantes —', 'Cities of origin of visitors —')} ${ano}`}>
           <HBars data={b.cidades.slice(0, 12)} color={C.info} />
         </Card>
       </div>
-      <Card title={t('Principais mercados emissores internacionais (INE 2025, por dormidas)', 'Main international source markets (INE 2025, by overnight stays)')}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {HEADLINE.mercados2025.map((m, i) => (
-            <span key={m} style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8, background: i < 4 ? C.accentBg : C.bg, color: i < 4 ? C.accentLight : C.textMuted, border: `1px solid ${C.border}` }}>
-              {i + 1}. {dl(m)}
+      <Card title={t('Mercados emissores internacionais — dormidas no 1.º semestre (INE)', 'International source markets — overnight stays in the 1st half (INE)')}>
+        <ResponsiveContainer width="100%" height={360}>
+          <BarChart data={mercDorm} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+            <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
+            <YAxis type="category" dataKey="pais" width={104} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(v), n]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar dataKey="v2025" name="2025" fill={C.textDim} radius={[0, 3, 3, 0]} />
+            <Bar dataKey="v2026" name="2026" fill={C.accent} radius={[0, 3, 3, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+          {mercDorm.map((m) => (
+            <span key={m.pais} style={{ fontSize: 11.5, padding: '4px 10px', borderRadius: 7, background: C.bg, border: `1px solid ${C.border}`, color: m.variacao >= 0 ? C.positive : C.negative }}>
+              {m.pais} {m.variacao >= 0 ? '+' : ''}{m.variacao.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })}%
             </span>
           ))}
         </div>
-        <p style={{ fontSize: 11, color: C.textDim, margin: '12px 0 0', lineHeight: 1.5 }}>
-          {t('Espanha é o principal mercado internacional, seguida de Brasil, França e Reino Unido. O balcão confirma o domínio ibérico (Espanha + cidades como Madrid, Vigo, A Coruña, Bilbao no topo).', 'Spain is the main international market, followed by Brazil, France and the United Kingdom. The front desk confirms Iberian dominance (Spain + cities such as Madrid, Vigo, A Coruña and Bilbao at the top).')}
+        <p style={{ fontSize: 11.5, color: C.textMuted, margin: '12px 0 0', lineHeight: 1.6 }}>
+          {t('Os mercados estrangeiros já valem', 'Foreign markets now account for')} <strong style={{ color: C.text }}>{pctEstr}%</strong> {t('das dormidas em Braga no 1.º semestre de 2026. Maiores subidas entre os principais mercados:', 'of overnight stays in Braga in the 1st half of 2026. Largest increases among the main markets:')} {subidas}{t('. Em recuo:', '. Declining:')} {descidas}.
+        </p>
+        <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>
+          {t('Fonte: INE, dormidas por país de residência, jan–jun. Comparação disponível para os 10 principais mercados de cada ano.', 'Source: INE, overnight stays by country of residence, Jan–Jun. Comparison available for the top 10 markets of each year.')}
         </p>
       </Card>
     </>
@@ -1043,7 +1185,7 @@ function Balcao() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
         <p style={{ fontSize: 12, color: C.textMuted, margin: 0, maxWidth: 560, lineHeight: 1.5 }}>
-          {t('Dados do Posto de Turismo - cada registo é um atendimento ao balcão.', 'Tourist Office data - each record is one front desk visit.')} {ano === '2026' ? t('Ano em curso · série mensal até agosto (agosto parcial); detalhe por categoria de março a agosto.', 'Year in progress · monthly series to August (August partial); category detail from March to August.') : t('Ano completo.', 'Complete year.')}
+          {t('Dados do Posto de Turismo — cada registo é um atendimento ao balcão; as listas por categoria contam atendimentos, não pessoas.', 'Tourist Office data — each record is one front desk visit; category lists count visits, not people.')} {ano === '2026' ? t('Ano em curso · de 1 de janeiro a 24 de setembro (setembro parcial).', 'Year in progress · from 1 January to 24 September (September partial).') : t('Ano completo.', 'Complete year.')}
         </p>
         <Chips options={['2025', '2026']} sel={[ano]} toggle={(o) => setAno(o as any)} single />
       </div>
@@ -1051,13 +1193,13 @@ function Balcao() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 16 }}>
         <KPI label={t('Atendimentos', 'Visits')} value={fmt(b.atendimentos)} color={C.accent} />
         <KPI label={t('Pessoas (pax)', 'People (pax)')} value={fmt(b.pax)} color={C.accentLight} />
-        <KPI label={t('Visitantes', 'Visitors')} value={`${pctVisit}%`} sub={`${fmt(b.visitantes)} ${t('de turistas', 'tourists')}`} color={C.info} />
+        <KPI label={t('Visitantes', 'Visitors')} value={`${pctVisit}%`} sub={`${fmt(b.visitantes)} ${t('atendimentos a turistas', 'visits by tourists')}`} color={C.info} />
         <KPI label={t('Peregrinos', 'Pilgrims')} value={fmt(b.peregrinos)} sub="Caminhos de Santiago" color={C.purple} />
         <KPI label={t('Grupos', 'Groups')} value={fmt(b.grupos)} color={C.cyan} />
         <KPI label={t('Com crianças', 'With children')} value={fmt(b.criancas)} color={C.pink} />
       </div>
 
-      <Card title={`${t('Atendimentos e pessoas por mês -', 'Visits and people per month -')} ${ano}`}>
+      <Card title={`${t('Atendimentos e pessoas por mês —', 'Visits and people per month —')} ${ano}`}>
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={mensal} margin={{ top: 6, right: 8, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -1073,10 +1215,10 @@ function Balcao() {
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={`${t('O que procuram (interesses) -', 'What they look for (interests) -')} ${ano}`}><HBars data={b.interesses.slice(0, 10)} color={C.accent} /></Card>
-        <Card title={`${t('Nacionalidades -', 'Nationalities -')} ${ano}`}><HBars data={b.nacionalidades.slice(0, 10)} color={C.info} /></Card>
-        {b.meioChegada.length > 0 && <Card title={`${t('Meio de chegada -', 'Means of arrival -')} ${ano}`}><HBars data={b.meioChegada} color={C.positive} /></Card>}
-        {b.alojamento.length > 0 && <Card title={`${t('Tipo de alojamento -', 'Accommodation type -')} ${ano}`}><HBars data={b.alojamento} color={C.purple} /></Card>}
+        <Card title={`${t('O que procuram (interesses) —', 'What they look for (interests) —')} ${ano}`}><HBars data={b.interesses.slice(0, 10)} color={C.accent} /></Card>
+        <Card title={`${t('Nacionalidades —', 'Nationalities —')} ${ano}`}><HBars data={b.nacionalidades.slice(0, 10)} color={C.info} /></Card>
+        {b.meioChegada.length > 0 && <Card title={`${t('Meio de chegada —', 'Means of arrival —')} ${ano}`}><HBars data={b.meioChegada} color={C.positive} /></Card>}
+        {b.alojamento.length > 0 && <Card title={`${t('Tipo de alojamento —', 'Accommodation type —')} ${ano}`}><HBars data={b.alojamento} color={C.purple} /></Card>}
       </div>
 
       {ano === '2025' && (
@@ -1138,7 +1280,7 @@ function Sustentabilidade() {
 
   return (
     <>
-      {/* Green Destinations hero - Full Certification */}
+      {/* Green Destinations hero — Full Certification */}
       <div style={{ background: `linear-gradient(135deg, ${C.positiveBg}, ${C.card})`, border: `1px solid ${C.positive}66`, borderRadius: 14, padding: '22px 24px', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
@@ -1150,13 +1292,13 @@ function Sustentabilidade() {
               {t('Grau máximo Green Destinations', 'Highest Green Destinations level')}
             </div>
             <div style={{ fontSize: 19, fontWeight: 700, color: C.positive, lineHeight: 1.25 }}>
-              {t('Green Destinations - Full Certification', 'Green Destinations - Full Certification')}
+              {t('Green Destinations — Full Certification', 'Green Destinations — Full Certification')}
             </div>
             <div style={{ fontSize: 12.5, color: C.text, margin: '7px 0 0', lineHeight: 1.55 }}>
               {t('Braga é a primeira cidade portuguesa a alcançar esta classificação e integra o restrito grupo de apenas 5 cidades em todo o mundo com esta certificação máxima.', 'Braga is the first Portuguese city to achieve this classification and joins the select group of only 5 cities worldwide holding this highest-level certification.')}
             </div>
             <div style={{ fontSize: 11.5, color: C.textMuted, margin: '6px 0 0' }}>
-              {t('Monitorização da sustentabilidade turística, qualidade de vida e governação do destino · reconhecida pelo Global Sustainable Tourism Council', 'Monitoring of tourism sustainability, quality of life and destination governance · GSTC-recognised')}
+              {t('Monitorização da sustentabilidade turística, qualidade de vida e governação do destino · reconhecida pelo GSTC', 'Monitoring of tourism sustainability, quality of life and destination governance · GSTC-recognised')}
             </div>
           </div>
         </div>
@@ -1203,12 +1345,12 @@ function Sustentabilidade() {
         </Card>
       </div>
 
-      {/* B) Pegada do visitante - App Eco */}
+      {/* B) Pegada do visitante — App Eco */}
       <SectionTitle sub={`${t('App Eco · Posto de Turismo · piloto com', 'App Eco · Tourist Office · pilot with')} ${A.submissoes} ${t('submissões', 'submissions')}`}>{t('Pegada Ambiental do Visitante', 'Visitor Environmental Footprint')}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 14 }}>
         <Badge icon="🌍" value={`${A.pegadaMedia}`} label={t('kg CO₂e por visitante (pegada média)', 'kg CO₂e per visitor (average footprint)')} color={C.accent} />
         <Badge icon="♻️" value={`${A.taxaReciclagem}%`} label={t('dos visitantes reciclam', 'of visitors recycle')} color={C.positive} />
-        <Badge icon="📝" value={`${A.submissoes}`} label={t('submissões no piloto', 'pilot submissions')} color={C.info} hint={t('amostra reduzida - projeto em arranque', 'small sample - project starting up')} />
+        <Badge icon="📝" value={`${A.submissoes}`} label={t('submissões no piloto', 'pilot submissions')} color={C.info} hint={t('amostra reduzida — projeto em arranque', 'small sample — project starting up')} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
         <Card title={t('Meio de chegada do visitante (App Eco)', 'Visitor means of arrival (App Eco)')}><MiniPie data={A.transporte} /></Card>
@@ -1220,8 +1362,8 @@ function Sustentabilidade() {
         <Card title={t('Uso de climatização', 'Air conditioning use')}><HBars data={A.climatizacao} color={C.info} /></Card>
       </div>
 
-      {/* C) Indicadores do destino - Green Destinations TIA */}
-      <SectionTitle sub="Green Destinations - Tourism Impact Assessment Braga 2025">{t('Indicadores de Sustentabilidade do Destino', 'Destination Sustainability Indicators')}</SectionTitle>
+      {/* C) Indicadores do destino — Green Destinations TIA */}
+      <SectionTitle sub="Green Destinations — Tourism Impact Assessment Braga 2025">{t('Indicadores de Sustentabilidade do Destino', 'Destination Sustainability Indicators')}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
         <Badge icon="📅" value={`${D.sazonalidade}%`} label={`${t('sazonalidade', 'seasonality')} (${t('nacional', 'national')} ${D.sazonalidadeNacional}%)`} color={C.positive} hint={t('abaixo da média nacional = mais equilibrado', 'below national average = more balanced')} />
         <Badge icon="👥" value={`${D.turistasPorHabitante}`} label={t('turistas por habitante (pico)', 'tourists per resident (peak)')} color={C.info} />
@@ -1295,49 +1437,185 @@ function Taxa() {
   );
 }
 
-// ─── Audiência Digital (Google Analytics - visitbraga.travel) ───
+// ─── Audiência Digital (Google Analytics — visitbraga.travel) ───
 function Digital() {
-  const k = DIGITAL.kpis;
+  const [per, setPer] = useState<'antes' | 'retoma'>('antes');
+  const k = DIGITAL.kpis, kp = DIGITAL_POS.kpis, kt = DIGITAL_TOTAL.kpis;
+  const DIAS_ANTES = 226; // 28 jul 2025 – 10 mar 2026
+  const diasPos = DIGITAL_POS.diasEstimados;
+  const share = (arr: [string, number][], name: string) => {
+    const tot = arr.reduce((s, x) => s + x[1], 0);
+    const f = arr.find((x) => x[0] === name);
+    return f && tot ? (f[1] / tot) * 100 : 0;
+  };
+  const pctUsers = (arr: [string, number][], name: string, tot: number) => {
+    const f = arr.find((x) => x[0] === name);
+    return f && tot ? (f[1] / tot) * 100 : 0;
+  };
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  const canaisComp = ['Pesquisa orgânica', 'Direto', 'Assistentes de IA', 'Redes sociais', 'Referência'].map((c) => ({
+    canal: dl(c), antes: r1(share(DIGITAL.canais, c)), retoma: r1(share(DIGITAL_POS.canais, c)),
+  }));
+  const paisComp = ['Portugal', 'Espanha', 'França', 'EUA', 'Alemanha', 'Reino Unido', 'Brasil', 'Países Baixos'].map((c) => ({
+    pais: dl(c), antes: r1(pctUsers(DIGITAL.paises, c, k.utilizadores)), retoma: r1(pctUsers(DIGITAL_POS.paises, c, kp.utilizadores)),
+  }));
+  const MES_EN: Record<string, string> = { jan: 'Jan', fev: 'Feb', mar: 'Mar', abr: 'Apr', mai: 'May', jun: 'Jun', jul: 'Jul', ago: 'Aug', set: 'Sep', out: 'Oct', nov: 'Nov', dez: 'Dec' };
+  const INCIDENTE = ['mai/26', 'jun/26', 'jul/26', 'ago/26'];
+  const gsc = SEARCH_CONSOLE.mensal.map(([m, c, i]) => {
+    const [mm, yy] = m.split('/');
+    return { mes: t(m, `${MES_EN[mm]}/${yy}`), key: m, cliques: c, impressoes: i };
+  });
+  const dez = SEARCH_CONSOLE.mensal.find((x) => x[0] === 'dez/25');
+  const pctDez = dez ? Math.round((dez[1] / SEARCH_CONSOLE.cliques) * 100) : 0;
+  const totDisp = DIGITAL_TOTAL.dispositivos.reduce((s, x) => s + x[1], 0);
+  const pctMobile = Math.round((DIGITAL_TOTAL.dispositivos[0][1] / totDisp) * 100);
+  const pctGoogleAntes = Math.round(share(DIGITAL.canais, 'Pesquisa orgânica'));
+  const pctGooglePos = Math.round(share(DIGITAL_POS.canais, 'Pesquisa orgânica'));
+  const pctPTAntes = Math.round(pctUsers(DIGITAL.paises, 'Portugal', k.utilizadores));
+  const pctPTPos = Math.round(pctUsers(DIGITAL_POS.paises, 'Portugal', kp.utilizadores));
+  const pctESAntes = Math.round(pctUsers(DIGITAL.paises, 'Espanha', k.utilizadores));
+  const pctESPos = Math.round(pctUsers(DIGITAL_POS.paises, 'Espanha', kp.utilizadores));
+  const iaNovos = DIGITAL_POS.canais.find((x) => x[0] === 'Assistentes de IA')?.[1] ?? 0;
+  const src = per === 'antes' ? DIGITAL : DIGITAL_POS;
+  const nf1 = (n: number) => n.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const comp: [string, string, string, string][] = [
+    [t('Utilizadores por dia', 'Users per day'), fmt(Math.round(k.utilizadores / DIAS_ANTES)), `≈ ${fmt(Math.round(kp.utilizadores / diasPos))}`, t('cerca de 8× menos', 'about 8× fewer')],
+    [t('Páginas vistas por dia', 'Page views per day'), fmt(Math.round(k.visualizacoes / DIAS_ANTES)), `≈ ${fmt(Math.round(kp.visualizacoes / diasPos))}`, t('cerca de 7× menos', 'about 7× fewer')],
+    [t('Novos utilizadores via Google', 'New users via Google'), `${pctGoogleAntes}%`, `${pctGooglePos}%`, t('o Google perdeu peso', 'Google lost weight')],
+    [t('Tempo médio de envolvimento', 'Average engagement time'), `${k.tempoMedioSeg} s`, `${kp.tempoMedioSeg} s`, t('quem chega fica mais', 'visitors stay longer')],
+    [t('Páginas por utilizador', 'Pages per user'), nf1(k.pagsPorUtilizador), nf1(kp.pagsPorUtilizador), t('navegação mais longa', 'longer browsing')],
+    [t('Utilizadores de Espanha', 'Users from Spain'), `${pctESAntes}%`, `${pctESPos}%`, t('mercado a ganhar peso', 'market gaining weight')],
+    [t('Novos utilizadores via assistentes de IA', 'New users via AI assistants'), '—', fmt(iaNovos), t('canal novo (ChatGPT)', 'new channel (ChatGPT)')],
+  ];
+  const th = { fontSize: 10.5, color: C.textMuted, textTransform: 'uppercase' as const, letterSpacing: '0.06em', padding: '8px 10px', textAlign: 'left' as const, borderBottom: `1px solid ${C.border}` };
+  const td = { fontSize: 12.5, color: C.text, padding: '8px 10px', borderBottom: `1px solid ${C.border}` };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <SectionTitle sub={`Google Analytics · ${DIGITAL.periodo}`}>{t('Audiência Digital - visitbraga.travel', 'Digital Audience - visitbraga.travel')}</SectionTitle>
+      <SectionTitle sub={`Google Analytics 4 · Google Search Console · ${DIGITAL_TOTAL.periodo}`}>{t('Audiência Digital — visitbraga.travel', 'Digital Audience — visitbraga.travel')}</SectionTitle>
+
+      <div style={{ background: C.negativeBg, border: `1px solid ${C.negative}55`, borderRadius: 12, padding: '14px 18px', fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
+        <strong style={{ color: C.negative }}>{t('Ciberataque em 2026.', 'Cyberattack in 2026.')}</strong>{' '}
+        {t('O site esteve fora do ar vários meses: o tráfego vindo do Google manteve-se normal até abril, caiu em maio, foi quase nulo em junho e julho e voltou a crescer no final de agosto, quando as medições do Analytics foram retomadas. As comparações antes/depois fazem-se por médias diárias e por proporções, porque os períodos têm durações muito diferentes.', 'The site was offline for several months: traffic from Google stayed normal until April, dropped in May, was almost nil in June and July and began to recover at the end of August, when Analytics tracking resumed. Before/after comparisons use daily averages and shares, as the periods differ greatly in length.')}
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
-        <KPI label={t('Utilizadores', 'Users')} value={fmt(k.utilizadores)} color={C.accent} />
-        <KPI label={t('Novos utilizadores', 'New users')} value={fmt(k.novos)} color={C.info} />
-        <KPI label={t('Visualizações', 'Views')} value={fmt(k.visualizacoes)} color={C.positive} />
-        <KPI label={t('Taxa de envolvimento', 'Engagement rate')} value={`${k.taxaEnvolvimento.toLocaleString(t('pt-PT', 'en-GB'))}%`} color={C.purple} />
-        <KPI label={t('Tempo médio', 'Average time')} value={`${k.tempoMedioSeg}s`} sub={t('por utilizador', 'per user')} color={C.cyan} />
-        <KPI label={t('Páginas / utilizador', 'Pages / user')} value={k.pagsPorUtilizador.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} color={C.orange} />
+        <KPI label={t('Utilizadores', 'Users')} value={fmt(kt.utilizadores)} sub={t('desde o lançamento', 'since launch')} color={C.accent} />
+        <KPI label={t('Cliques no Google', 'Google clicks')} value={fmt(SEARCH_CONSOLE.cliques)} sub={t('pesquisa web', 'web search')} color={C.info} />
+        <KPI label={t('Aparições no Google', 'Google impressions')} value={`${(SEARCH_CONSOLE.impressoes / 1e6).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} M`} sub={t('impressões', 'impressions')} color={C.positive} />
+        <KPI label={t('Taxa de envolvimento', 'Engagement rate')} value={`${kt.taxaEnvolvimento.toLocaleString(t('pt-PT', 'en-GB'))}%`} color={C.purple} />
+        <KPI label={t('Telemóvel', 'Mobile')} value={`${pctMobile}%`} sub={t('dos utilizadores', 'of users')} color={C.cyan} />
+      </div>
+
+      <Card title={t('Cliques e aparições no Google, por mês', 'Google clicks and impressions, by month')}>
+        <ResponsiveContainer width="100%" height={280}>
+          <ComposedChart data={gsc} margin={{ top: 6, right: 8, left: -6, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+            <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+            <YAxis yAxisId="l" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
+            <YAxis yAxisId="r" orientation="right" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1e6).toFixed(1)}M`} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(v), n]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar yAxisId="l" dataKey="cliques" name={t('Cliques', 'Clicks')} radius={[4, 4, 0, 0]}>
+              {gsc.map((d) => <Cell key={d.key} fill={INCIDENTE.includes(d.key) ? C.negative : C.accent} />)}
+            </Bar>
+            <Line yAxisId="r" type="monotone" dataKey="impressoes" name={t('Aparições', 'Impressions')} stroke={C.info} strokeWidth={2} dot={{ r: 2 }} />
+          </ComposedChart>
+        </ResponsiveContainer>
+        <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>
+          {t(`Barras a vermelho: meses afetados pelo ataque. Dezembro foi o melhor mês (${pctDez}% de todos os cliques), impulsionado pelo Natal e pela Passagem de Ano. Julho de 2025 começa a 28; setembro de 2026 termina a 23.`, `Red bars: months affected by the attack. December was the best month (${pctDez}% of all clicks), driven by Christmas and New Year. July 2025 starts on the 28th; September 2026 ends on the 23rd.`)}
+        </p>
+      </Card>
+
+      <Card title={t('Antes e depois do ataque', 'Before and after the attack')}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>
+              <th style={th}>{t('Indicador', 'Indicator')}</th>
+              <th style={th}>{t('Antes', 'Before')}</th>
+              <th style={th}>{t('Retoma', 'Recovery')}</th>
+              <th style={th}>{t('Leitura', 'Reading')}</th>
+            </tr></thead>
+            <tbody>
+              {comp.map((r) => (
+                <tr key={r[0]}>
+                  <td style={td}>{r[0]}</td>
+                  <td style={{ ...td, fontWeight: 600 }}>{r[1]}</td>
+                  <td style={{ ...td, fontWeight: 600, color: C.accentLight }}>{r[2]}</td>
+                  <td style={{ ...td, color: C.textMuted }}>{r[3]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: C.textDim, margin: '10px 0 0' }}>
+          {t(`Antes: ${DIGITAL.periodo} (${DIAS_ANTES} dias). Retoma: ${fmt(kp.utilizadores)} utilizadores e ${fmt(kp.visualizacoes)} páginas vistas desde o final de agosto; os valores diários da retoma são estimativas (≈ ${diasPos} dias de medição).`, `Before: ${DIGITAL.periodo} (${DIAS_ANTES} days). Recovery: ${fmt(kp.utilizadores)} users and ${fmt(kp.visualizacoes)} page views since late August; recovery daily values are estimates (≈ ${diasPos} days of tracking).`)}
+        </p>
+      </Card>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+        <Card title={t('Como chegam os novos utilizadores (%)', 'How new users arrive (%)')}>
+          <ResponsiveContainer width="100%" height={230}>
+            <BarChart data={canaisComp} layout="vertical" margin={{ top: 4, right: 14, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+              <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
+              <YAxis type="category" dataKey="canal" width={118} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [`${v}%`, n]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="antes" name={t('Antes', 'Before')} fill={C.textDim} radius={[0, 3, 3, 0]} />
+              <Bar dataKey="retoma" name={t('Retoma', 'Recovery')} fill={C.accent} radius={[0, 3, 3, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card title={t('De onde são os utilizadores (%)', 'Where users are from (%)')}>
+          <ResponsiveContainer width="100%" height={230}>
+            <BarChart data={paisComp} layout="vertical" margin={{ top: 4, right: 14, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+              <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
+              <YAxis type="category" dataKey="pais" width={96} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [`${v}%`, n]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="antes" name={t('Antes', 'Before')} fill={C.textDim} radius={[0, 3, 3, 0]} />
+              <Bar dataKey="retoma" name={t('Retoma', 'Recovery')} fill={C.info} radius={[0, 3, 3, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <p style={{ fontSize: 11, color: C.textDim, margin: '6px 0 0' }}>{t('A China fica de fora: é sobretudo tráfego automático, com envolvimento próximo de 0%.', 'China is excluded: it is mostly automated traffic, with engagement close to 0%.')}</p>
+        </Card>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{t('Detalhe por período', 'Detail by period')} <span style={{ fontWeight: 400, color: C.textMuted, fontSize: 12 }}>· {src.periodo}</span></div>
+        <Chips options={['antes', 'retoma']} sel={[per]} toggle={(o) => setPer(o as 'antes' | 'retoma')} single label={(o) => (o === 'antes' ? t('Antes do ataque', 'Before the attack') : t('Retoma', 'Recovery'))} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-        <Card title={t('Canais de aquisição', 'Acquisition channels')}><MiniPie data={DIGITAL.canais} /></Card>
-        <Card title={t('Dispositivo', 'Device')}><MiniPie data={DIGITAL.dispositivos} /></Card>
+        <Card title={t('Top países', 'Top countries')}><HBars data={src.paises} color={C.info} /></Card>
+        <Card title={t('Top idiomas', 'Top languages')}><HBars data={src.idiomas} color={C.positive} /></Card>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-        <Card title={t('Top países', 'Top countries')}><HBars data={DIGITAL.paises} color={C.info} /></Card>
-        <Card title={t('Top idiomas', 'Top languages')}><HBars data={DIGITAL.idiomas} color={C.positive} /></Card>
+        <Card title={t('Top cidades', 'Top cities')}><HBars data={src.cidades} color={C.accent} /></Card>
+        <Card title={t('Páginas mais vistas', 'Most viewed pages')}><HBars data={src.paginas} color={C.purple} /></Card>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-        <Card title={t('Top cidades', 'Top cities')}><HBars data={DIGITAL.cidades} color={C.accent} /></Card>
-        <Card title={t('Páginas mais vistas', 'Most viewed pages')}><HBars data={DIGITAL.paginas} color={C.purple} /></Card>
+        <Card title={t('O que se pesquisa no Google (cliques)', 'What people search on Google (clicks)')}><HBars data={SEARCH_CONSOLE.consultas} color={C.accent} /></Card>
+        <Card title={t('Canais — desde o lançamento', 'Channels — since launch')}><MiniPie data={DIGITAL_TOTAL.canais} /></Card>
       </div>
 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px' }}>
         <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>{t('Leitura estratégica', 'Strategic reading')}</div>
         <ul style={{ margin: 0, paddingLeft: 18, color: C.text, fontSize: 13, lineHeight: 1.7 }}>
-          <li><strong>63%</strong> {t('dos utilizadores chegam por', 'of users arrive via')} <strong>{t('pesquisa orgânica', 'organic search')}</strong>{t(' - reforça a prioridade da estratégia SEO/GEO para o Visit Braga.', ' - reinforces the priority of the SEO/GEO strategy for Visit Braga.')}</li>
-          <li><strong>74%</strong> {t('acede por', 'access via')} <strong>{t('telemóvel', 'mobile')}</strong>{t(' - a experiência mobile é determinante.', ' - the mobile experience is decisive.')}</li>
-          <li>{t('Mercados internacionais com mais tráfego:', 'International markets with the most traffic:')} <strong>{t('França, Espanha, China, EUA e Brasil', 'France, Spain, China, USA and Brazil')}</strong>{t(' - alinhado com os mercados emissores físicos do balcão.', ' - aligned with the physical source markets at the front desk.')}</li>
-          <li>{t('Os picos de tráfego coincidem com', 'Traffic peaks coincide with')} <strong>{t('eventos sazonais', 'seasonal events')}</strong>{t(' (Luzes de Natal, Passagem de Ano), que dominam as páginas mais vistas.', ' (Christmas Lights, New Year), which dominate the most viewed pages.')}</li>
+          <li>{t('O site perdeu sobretudo o Google: antes do ataque,', 'The site mainly lost Google: before the attack,')} <strong>{pctGoogleAntes}%</strong> {t('dos novos utilizadores chegavam pela pesquisa orgânica; na retoma são', 'of new users came from organic search; during recovery it is')} <strong>{pctGooglePos}%</strong>{t('. Recuperar o posicionamento nas pesquisas é a prioridade.', '. Recovering search rankings is the priority.')}</li>
+          <li>{t('Os eventos são o maior cartaz digital: dezembro valeu', 'Events are the biggest digital draw: December accounted for')} <strong>{pctDez}%</strong> {t('de todos os cliques vindos do Google, com a Passagem de Ano e as Luzes de Natal no topo.', 'of all clicks from Google, led by New Year and the Christmas Lights.')}</li>
+          <li>{t('Na retoma, o público é mais internacional: Portugal passou de', 'During recovery the audience is more international: Portugal went from')} <strong>{pctPTAntes}%</strong> {t('para', 'to')} <strong>{pctPTPos}%</strong> {t('dos utilizadores e Espanha de', 'of users and Spain from')} <strong>{pctESAntes}%</strong> {t('para', 'to')} <strong>{pctESPos}%</strong>.</li>
+          <li><strong>{pctMobile}%</strong> {t('dos utilizadores usam telemóvel — a experiência mobile é determinante.', 'of users are on mobile — the mobile experience is decisive.')}</li>
+          <li>{t('Canal novo: assistentes de inteligência artificial.', 'New channel: AI assistants.')} <strong>{fmt(kp.sessoesChatGPT)}</strong> {t('sessões vieram do ChatGPT — ainda pouco, mas mostra por onde os turistas começam a planear.', 'sessions came from ChatGPT — still small, but it shows where tourists are starting to plan.')}</li>
         </ul>
       </div>
 
       <p style={{ fontSize: 11, color: C.textDim, lineHeight: 1.6 }}>
-        {t('Fonte: Google Analytics 4', 'Source: Google Analytics 4')} ({t('propriedade visitbraga.travel', 'visitbraga.travel property')}){t(', período', ', period')} {DIGITAL.periodo}{t('. As cidades resultam de deteção aproximada por IP; entradas sem cidade definida foram excluídas dos tops.', '. Cities come from approximate IP detection; entries without a defined city were excluded from the tops.')}
+        {t('Fontes: Google Analytics 4 e Google Search Console (propriedade visitbraga.travel), exportações de 24/09/2026. Os três períodos (antes, retoma e desde o lançamento) não são somáveis. As cidades resultam de deteção aproximada por IP — Lisboa e Montijo podem estar inflacionados, porque muitos acessos por rede móvel são localizados no ponto de ligação da operadora; entradas sem cidade definida e tráfego automático foram excluídos dos tops.', 'Sources: Google Analytics 4 and Google Search Console (visitbraga.travel property), exports of 24/09/2026. The three periods (before, recovery and since launch) cannot be added up. Cities come from approximate IP detection — Lisbon and Montijo may be inflated, as many mobile-network visits are located at the carrier’s connection point; entries without a defined city and automated traffic were excluded from the tops.')}
       </p>
     </div>
   );
@@ -1357,9 +1635,9 @@ function Acessibilidade() {
       </div>
 
       <div style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 12, padding: '16px 18px' }}>
-        <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 6 }}>{t('⚠ Amostra reduzida - leitura cautelosa', '⚠ Small sample - read with caution')}</div>
+        <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 6 }}>{t('⚠ Amostra reduzida — leitura cautelosa', '⚠ Small sample — read with caution')}</div>
         <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
-          {t('O registo de necessidades especiais só começou em 2026 e está fortemente subutilizado', 'Recording of special needs only began in 2026 and is heavily underused')} ({A.total} {t('em', 'of')} {fmt(A.totalAtendimentos)} {t('atendimentos', 'visits')}){t('. Os números abaixo são um ponto de partida e não refletem a procura real. O valor deste módulo cresce com o registo sistemático no balcão - vale a pena reforçar essa prática junto da equipa de atendimento.', '. The numbers below are a starting point and do not reflect real demand. The value of this module grows with systematic recording at the front desk - it is worth reinforcing this practice with the service team.')}
+          {t('O registo de necessidades especiais só começou em 2026 e está fortemente subutilizado', 'Recording of special needs only began in 2026 and is heavily underused')} ({A.total} {t('em', 'of')} {fmt(A.totalAtendimentos)} {t('atendimentos', 'visits')}){t('. Os números abaixo são um ponto de partida e não refletem a procura real. O valor deste módulo cresce com o registo sistemático no balcão — vale a pena reforçar essa prática junto da equipa de atendimento.', '. The numbers below are a starting point and do not reflect real demand. The value of this module grows with systematic recording at the front desk — it is worth reinforcing this practice with the service team.')}
         </div>
       </div>
 
@@ -1406,7 +1684,7 @@ function Meteorologia() {
   if (status === 'error' || !wx) {
     return (
       <div style={{ background: C.negativeBg, border: `1px solid ${C.negative}40`, borderRadius: 10, padding: '16px 18px', color: C.negative, fontSize: 13 }}>
-        {t('Não foi possível obter os dados meteorológicos. Detalhe:', 'Could not fetch the weather data. Detail:')} {err}{t('. A API open-meteo é gratuita e sem chave - confirma a ligação e tenta novamente.', '. The open-meteo API is free and key-less - check the connection and try again.')}
+        {t('Não foi possível obter os dados meteorológicos. Detalhe:', 'Could not fetch the weather data. Detail:')} {err}{t('. A API open-meteo é gratuita e sem chave — confirma a ligação e tenta novamente.', '. The open-meteo API is free and key-less — check the connection and try again.')}
       </div>
     );
   }
@@ -1451,7 +1729,7 @@ function Meteorologia() {
       <div style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 12, padding: '16px 18px' }}>
         <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 6 }}>{t('Leitura exploratória', 'Exploratory reading')}</div>
         <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
-          {t('A afluência ao balcão depende sobretudo da época do ano, do dia da semana e de eventos - não só do tempo. Além disso, 2026 tem um nível de registo muito superior a 2025. Por isso a análise é feita', 'Front desk footfall depends mostly on the time of year, the day of the week and events - not just the weather. Moreover, 2026 has a much higher recording level than 2025. The analysis is therefore done')} <strong>{t('separadamente por ano', 'separately by year')}</strong>{t(' e deve ser lida como exploratória, não como prova de causa-efeito.', ' and should be read as exploratory, not as proof of cause and effect.')}
+          {t('A afluência ao balcão depende sobretudo da época do ano, do dia da semana e de eventos — não só do tempo. Além disso, 2026 tem um nível de registo muito superior a 2025. Por isso a análise é feita', 'Front desk footfall depends mostly on the time of year, the day of the week and events — not just the weather. Moreover, 2026 has a much higher recording level than 2025. The analysis is therefore done')} <strong>{t('separadamente por ano', 'separately by year')}</strong>{t(' e deve ser lida como exploratória, não como prova de causa-efeito.', ' and should be read as exploratory, not as proof of cause and effect.')}
         </div>
       </div>
 
@@ -1491,7 +1769,7 @@ function Meteorologia() {
         })}
       </div>
 
-      <Card title={t('Evolução semanal - atendimento médio vs temperatura máxima média', 'Weekly evolution - average visits vs average max temperature')}>
+      <Card title={t('Evolução semanal — atendimento médio vs temperatura máxima média', 'Weekly evolution — average visits vs average max temperature')}>
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={weekly} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid stroke={C.border} strokeDasharray="3 3" vertical={false} />
@@ -1540,8 +1818,8 @@ function Cruzamentos() {
       <SectionTitle sub={t('Os mesmos mercados vistos por três fontes independentes', 'The same markets seen through three independent sources')}>{t('Cruzamentos de Dados', 'Data Cross-analysis')}</SectionTitle>
 
       <div style={{ display: 'flex', gap: 20, fontSize: 12, color: C.textMuted, flexWrap: 'wrap' }}>
-        <span><span style={dot(C.accent)} />{t('Balcão - presença física', 'Front desk - physical presence')}</span>
-        <span><span style={dot(C.info)} />{t('Digital - interesse online', 'Digital - online interest')}</span>
+        <span><span style={dot(C.accent)} />{t('Balcão — presença física', 'Front desk — physical presence')}</span>
+        <span><span style={dot(C.info)} />{t('Digital — interesse online', 'Digital — online interest')}</span>
         <span style={{ color: C.textDim }}>{t('#n = posição no ranking INE (dormidas)', '#n = position in INE ranking (overnight stays)')}</span>
       </div>
 
@@ -1582,7 +1860,7 @@ function Cruzamentos() {
               ))}
             </div>
           ) : <div style={{ fontSize: 12.5, color: C.textDim }}>{t('Sem divergências relevantes.', 'No relevant divergences.')}</div>}
-          <div style={{ fontSize: 11, color: C.textDim, marginTop: 10, lineHeight: 1.5 }}>{t('Mercados com curiosidade online ainda por converter em visita - ou tráfego de pesquisa/bots a validar.', 'Markets with online curiosity not yet converted into a visit - or search/bot traffic to validate.')}</div>
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 10, lineHeight: 1.5 }}>{t('Mercados com curiosidade online ainda por converter em visita — ou tráfego de pesquisa/bots a validar.', 'Markets with online curiosity not yet converted into a visit — or search/bot traffic to validate.')}</div>
         </Card>
         <Card title={t('Mais presença física que pegada online', 'More physical presence than online footprint')}>
           {fisicoOver.length ? (
@@ -1595,7 +1873,7 @@ function Cruzamentos() {
               ))}
             </div>
           ) : <div style={{ fontSize: 12.5, color: C.textDim }}>{t('Sem divergências relevantes.', 'No relevant divergences.')}</div>}
-          <div style={{ fontSize: 11, color: C.textDim, marginTop: 10, lineHeight: 1.5 }}>{t('Chegam sem passar tanto pelo site - há margem para os captar em canais digitais.', 'They arrive without going through the site as much - there is room to capture them on digital channels.')}</div>
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 10, lineHeight: 1.5 }}>{t('Chegam sem passar tanto pelo site — há margem para os captar em canais digitais.', 'They arrive without going through the site as much — there is room to capture them on digital channels.')}</div>
         </Card>
       </div>
 
@@ -1626,7 +1904,7 @@ function Caminhos() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
         <Badge icon="🥾" value={fmt(partFim)} label={`${t('partidas de Braga em 2025', 'departures from Braga in 2025')} (${t('recorde; eram', 'record; were')} ${fmt(partInicio)} ${t('em 2022', 'in 2022')})`} color={C.accent} />
         <Badge icon="🏅" value={`${K.rankingNacional}.ª`} label={`${t('posição nacional como ponto de partida', 'national position as a starting point')} (${t('líder:', 'leader:')} ${K.liderNacional})`} color={C.info} />
-        <Badge icon="🧭" value={fmt(geira2025)} label={t('partidas pelo Caminho da Geira em 2025 - lidera pela 1.ª vez', 'departures via the Geira route in 2025 - leads for the first time')} color={C.positive} />
+        <Badge icon="🧭" value={fmt(geira2025)} label={t('partidas pelo Caminho da Geira em 2025 — lidera pela 1.ª vez', 'departures via the Geira route in 2025 — leads for the first time')} color={C.positive} />
         <Badge icon="📜" value={fmt(K.acumulado.peregrinos)} label={t('peregrinos no Caminho da Geira desde 2017', 'pilgrims on the Geira route since 2017')} color={C.purple} />
       </div>
 
@@ -1662,7 +1940,7 @@ function Caminhos() {
           <MiniPie data={K.cga2025.modo} />
           <p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>{K.cga2025.inicioBraga}{t('% inicia o percurso na própria Sé de Braga.', '% start the route at Braga Cathedral itself.')}</p>
         </Card>
-        <Card title={t('Meses de maior procura - Caminho da Geira (% dos peregrinos)', 'Peak months - Geira route (% of pilgrims)')}>
+        <Card title={t('Meses de maior procura — Caminho da Geira (% dos peregrinos)', 'Peak months — Geira route (% of pilgrims)')}>
           <HBars data={K.cga2025.meses} color={C.purple} />
           <p style={{ fontSize: 11, color: C.textDim, marginTop: 10 }}>{t('Maioria entre os 46 e 65 anos; cerca de', 'Mostly between 46 and 65 years old; about')} {K.cga2025.homens}{t('% são homens.', '% are men.')}</p>
         </Card>
@@ -1699,12 +1977,12 @@ function Caminhos() {
           <Cruz label={t('mais emprego', 'more jobs')} value={`+${K.economia.maisEmprego}%`} color={C.info} nota={t('por cada euro gasto pelo peregrino', 'per euro spent by the pilgrim')} />
         </div>
         <p style={{ fontSize: 11, color: C.textDim, marginTop: 12, lineHeight: 1.6 }}>
-          {t('Estimativas do estudo da Universidade de Santiago de Compostela (USC/IDEGA) sobre o Caminho na Galiza - não específico de Braga. Servem de enquadramento sobre o peso económico do peregrino, não como medição local.', 'Estimates from the University of Santiago de Compostela (USC/IDEGA) study on the Camino in Galicia - not specific to Braga. They serve as context on the economic weight of the pilgrim, not as a local measurement.')}
+          {t('Estimativas do estudo da Universidade de Santiago de Compostela (USC/IDEGA) sobre o Caminho na Galiza — não específico de Braga. Servem de enquadramento sobre o peso económico do peregrino, não como medição local.', 'Estimates from the University of Santiago de Compostela (USC/IDEGA) study on the Camino in Galicia — not specific to Braga. They serve as context on the economic weight of the pilgrim, not as a local measurement.')}
         </p>
       </Card>
 
       <p style={{ fontSize: 11, color: C.textDim, lineHeight: 1.7 }}>
-        {t('Notas de leitura: os valores correspondem a Compostelas emitidas pelo Serviço de Peregrinos da Catedral de Santiago, pelo que subestimam o total real - muitos peregrinos não solicitam o documento (as associações estimam números superiores). O Caminho da Geira e dos Arrieiros tem 239 km, parte da Sé de Braga e atravessa Amares, Terras de Bouro e Melgaço até entrar na Galiza pela Portela do Homem. No acumulado 2017–2025:', 'Reading notes: the figures correspond to Compostelas issued by the Pilgrims Office of the Cathedral of Santiago, so they underestimate the real total - many pilgrims do not request the document (associations estimate higher numbers). The Geira e dos Arrieiros route is 239 km long, starts at Braga Cathedral and crosses Amares, Terras de Bouro and Melgaço before entering Galicia via Portela do Homem. Cumulative 2017–2025:')} {fmt(K.acumulado.peregrinos)} {t('peregrinos e', 'pilgrims and')} {fmt(K.acumulado.compostelas)} {t('Compostelas, dos quais', 'Compostelas, of which')} {K.acumulado.pt}{t('% portugueses,', '% Portuguese,')} {K.acumulado.es}{t('% espanhóis e', '% Spanish and')} {K.acumulado.outros}{t('% de outras nacionalidades.', '% of other nationalities.')}
+        {t('Notas de leitura: os valores correspondem a Compostelas emitidas pelo Serviço de Peregrinos da Catedral de Santiago, pelo que subestimam o total real — muitos peregrinos não solicitam o documento (as associações estimam números superiores). O Caminho da Geira e dos Arrieiros tem 239 km, parte da Sé de Braga e atravessa Amares, Terras de Bouro e Melgaço até entrar na Galiza pela Portela do Homem. No acumulado 2017–2025:', 'Reading notes: the figures correspond to Compostelas issued by the Pilgrims Office of the Cathedral of Santiago, so they underestimate the real total — many pilgrims do not request the document (associations estimate higher numbers). The Geira e dos Arrieiros route is 239 km long, starts at Braga Cathedral and crosses Amares, Terras de Bouro and Melgaço before entering Galicia via Portela do Homem. Cumulative 2017–2025:')} {fmt(K.acumulado.peregrinos)} {t('peregrinos e', 'pilgrims and')} {fmt(K.acumulado.compostelas)} {t('Compostelas, dos quais', 'Compostelas, of which')} {K.acumulado.pt}{t('% portugueses,', '% Portuguese,')} {K.acumulado.es}{t('% espanhóis e', '% Spanish and')} {K.acumulado.outros}{t('% de outras nacionalidades.', '% of other nationalities.')}
       </p>
     </div>
   );
