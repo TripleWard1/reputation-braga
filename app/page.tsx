@@ -1,16 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, ChangeEvent } from 'react';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip,
   LineChart, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import { db } from './firebase';
-import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc } from 'firebase/firestore';
 import ObservatorioView from '@/app/components/ObservatorioView';
 import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
 import { dispAnalysis, setTransNotify, invalidateTrans } from '@/app/lib/ai-translate';
+import {
+  parseReviewFile, groupByPlace, suggestMatch, importIntoLocation, loadWindowReviews, deleteLocationReviews,
+  windowStats, sampleForAI, langName, langNamePT, type ReviewStats, type ImportGroup, type StoredReview,
+} from '@/app/lib/reviews';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -185,6 +189,12 @@ interface Analysis {
   dimensions: Record<string, number>;
   marketSources?: string[];
   marketSentiment?: { market: string; score: number; note?: string }[];
+  // Análise com base nos comentários importados (estrelas reais, janela de 3 anos)
+  basis?: string;
+  windowFrom?: string;
+  windowTo?: string;
+  issuesRecent?: string[];
+  issuesPrevious?: string[];
 }
 
 interface AnalysisSnapshot {
@@ -209,6 +219,7 @@ interface Location {
   analysisHistory?: AnalysisSnapshot[];
   googleRating?: number;        // nota real do Google (0–5)
   googleReviewCount?: number;   // nº total de reviews no Google
+  reviewStats?: ReviewStats;    // comentários importados (estatísticas mensais; textos em reviewMonths)
 }
 
 type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'relatorio' | 'problemas' | 'observatorio' | 'detalhe';
@@ -424,7 +435,7 @@ const dimLabel = (key: string) => { const i = DIMS.indexOf(key); return i >= 0 ?
 
 // Robustez da análise em função do volume de reviews analisadas (e cobertura vs Google)
 function robustness(loc: Location): { level: string; color: string; pct: number; n: number; coverage: number | null } {
-  const n = loc.analysis?.reviewCount || loc.reviews.length;
+  const n = loc.analysis?.reviewCount || revCount(loc);
   const g = loc.googleReviewCount || 0;
   let level = 'Baixa', color = '#f87171', pct = 33;
   if (n >= 50) { level = 'Alta'; color = '#34d399'; pct = 100; }
@@ -467,6 +478,113 @@ function whatChanged(loc: Location): null | {
   return { scoreDelta, negDelta, dimUp, dimDown, newIssues, resolvedIssues, prevDate: prev.date };
 }
 
+// ─── Comentários importados: contagem, IA e evolução ─────────────────────────
+function revCount(loc: Location): number {
+  const ws = loc.reviewStats ? windowStats(loc.reviewStats) : null;
+  return ws ? ws.n : loc.reviews.length;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Pedido ao Groq com novas tentativas automáticas quando o limite gratuito é atingido (429)
+async function groqChat(messages: { role: string; content: string }[], json = false): Promise<string> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await fetch('/api/groq', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(json ? { messages, response_format: { type: 'json_object' } } : { messages }),
+    });
+    if (res.status === 429 && attempt < 4) {
+      const ra = Number(res.headers.get('retry-after'));
+      await sleep(((ra > 0 ? Math.min(ra, 90) : 30) + 2) * 1000);
+      continue;
+    }
+    if (!res.ok) { const e = await res.text(); throw new Error(`HTTP ${res.status} - ${e.slice(0, 220)}`); }
+    const data = await res.json();
+    const txt = (data.choices?.[0]?.message?.content || '').trim();
+    if (!txt) throw new Error(t('Resposta vazia da IA.', 'Empty response from AI.'));
+    return txt;
+  }
+  throw new Error(t('Limite de pedidos do Groq atingido. Tenta de novo daqui a alguns minutos.', 'Groq rate limit reached. Try again in a few minutes.'));
+}
+
+function parseJSONLoose(s: string): any {
+  const c = s.replace(/```json|```/g, '').trim();
+  try { return JSON.parse(c); } catch { /* tenta extrair o objeto */ }
+  const a = c.indexOf('{'), b = c.lastIndexOf('}');
+  if (a >= 0 && b > a) { try { return JSON.parse(c.slice(a, b + 1)); } catch { /* falha abaixo */ } }
+  throw new Error(t('A IA não devolveu JSON válido.', 'The AI did not return valid JSON.'));
+}
+
+function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
+  const ws = windowStats(loc.reviewStats);
+  if (!ws) return null;
+  const qd = ws.quarters.map((q) => ({ q: q.q.replace('-T', t(' T', ' Q')), avg: q.avg, neg: q.negPct }));
+  const fmt2 = (n: number) => n.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const kpis: [string, string, string][] = [
+    [t('Comentários', 'Reviews'), ws.n.toLocaleString('pt-PT'), t('últimos 3 anos', 'last 3 years')],
+    [t('Média', 'Average'), `${fmt2(ws.avg)} ★`, t('estrelas reais', 'real stars')],
+    [t('Positivos', 'Positive'), `${ws.pos}%`, '4–5 ★'],
+    [t('Negativos', 'Negative'), `${ws.neg}%`, '1–2 ★'],
+    [t('Respostas do local', 'Owner replies'), `${ws.respRate}%`, t('dos comentários', 'of reviews')],
+  ];
+  const recent = a?.issuesRecent || [], previous = a?.issuesPrevious || [];
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px', marginBottom: 14 }}>
+      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
+        {t('Evolução da reputação — últimos 3 anos (estrelas reais do Google)', 'Reputation trend — last 3 years (real Google stars)')}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 14 }}>
+        {kpis.map(([l, v, sub]) => (
+          <div key={l} style={{ background: C.bg, borderRadius: 8, padding: '10px 12px' }}>
+            <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{l}</div>
+            <div style={{ fontSize: 19, fontWeight: 700, color: C.text, marginTop: 3 }}>{v}</div>
+            <div style={{ fontSize: 10.5, color: C.textMuted }}>{sub}</div>
+          </div>
+        ))}
+      </div>
+      {qd.length > 1 && (
+        <>
+          <ResponsiveContainer width="100%" height={210}>
+            <LineChart data={qd} margin={{ top: 6, right: 6, left: -14, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis dataKey="q" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <YAxis yAxisId="l" domain={[1, 5]} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <YAxis yAxisId="r" orientation="right" unit="%" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} />
+              <Line yAxisId="l" type="monotone" dataKey="avg" name={t('Média ★', 'Average ★')} stroke={C.accent} strokeWidth={2.5} dot={{ r: 3 }} />
+              <Line yAxisId="r" type="monotone" dataKey="neg" name={t('% negativos', '% negative')} stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 2 }} />
+            </LineChart>
+          </ResponsiveContainer>
+          <div style={{ fontSize: 11, color: C.textDim, margin: '4px 0 12px' }}>
+            <span style={{ color: C.accent }}>━</span> {t('média de estrelas por trimestre (eixo da esquerda)', 'average stars per quarter (left axis)')} · <span style={{ color: C.negative }}>┅</span> {t('% de comentários com 1–2 ★ (eixo da direita)', '% of 1–2 ★ reviews (right axis)')}
+          </div>
+        </>
+      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: recent.length || previous.length ? 14 : 4 }}>
+        {ws.langs.slice(0, 8).map((l) => (
+          <span key={l.code} style={{ fontSize: 11.5, padding: '4px 10px', borderRadius: 7, background: C.bg, border: `1px solid ${C.border}`, color: C.textMuted }}>
+            {langName(l.code)} {Math.round((l.n / ws.n) * 100)}% · ★ {fmt2(l.avg)}
+          </span>
+        ))}
+      </div>
+      {(recent.length > 0 || previous.length > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+          {([[t('Problemas — últimos 12 meses', 'Issues — last 12 months'), recent, C.negative], [t('Problemas — período anterior (12–36 meses)', 'Issues — previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
+            <div key={title} style={{ background: C.bg, borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontSize: 11, color, fontWeight: 600, marginBottom: 6 }}>{title}</div>
+              {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>—</div>}
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 10 }}>
+        {t('Período', 'Period')}: {ws.from} → {ws.to} · {t('importado a', 'imported on')} {new Date(loc.reviewStats!.lastImport).toLocaleDateString('pt-PT')} · {t('a pontuação /10 é a média de estrelas × 2', 'the /10 score is the average stars × 2')}
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -486,6 +604,12 @@ export default function Home() {
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [newLoc, setNewLoc] = useState({ name: '', category: CATEGORIES[0], platform: PLATFORMS[0], lat: '', lng: '', googleRating: '', googleReviewCount: '' });
   const [reviewText, setReviewText] = useState('');
+  // Importação de comentários (ficheiro exportado do Google Maps)
+  const [showImport, setShowImport] = useState(false);
+  const [impGroups, setImpGroups] = useState<(ImportGroup & { target: string })[]>([]);
+  const [impBusy, setImpBusy] = useState(false);
+  const [impMsg, setImpMsg] = useState<string | null>(null);
+  const [batchRun, setBatchRun] = useState<{ i: number; total: number; name: string } | null>(null);
   const [importMode, setImportMode] = useState<'texto' | 'csv'>('texto');
   const [csvHasHeader, setCsvHasHeader] = useState(true);
   const [csvCol, setCsvCol] = useState<number | null>(null);
@@ -689,6 +813,7 @@ export default function Home() {
   };
 
   const deleteLoc = async (id: string) => {
+    try { await deleteLocationReviews(id); } catch {}
     try { await deleteDoc(doc(db, 'locations', id)); } catch {}
     setLocations((prev) => prev.filter((l) => l.id !== id));
     if (selId === id) setSelId(null);
@@ -793,7 +918,7 @@ RULES:
       const res = await fetch('/api/groq', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }] }),
+        body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }),
       });
       if (!res.ok) { const e = await res.text(); throw new Error(`HTTP ${res.status} - ${e.slice(0, 200)}`); }
       const data = await res.json();
@@ -886,8 +1011,189 @@ RULES:
     win.document.open(); win.document.write(html); win.document.close();
   };
 
+  // ── Importação de comentários (JSON/CSV exportado, ex.: Apify) ──
+  const onImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    setImpMsg(null); setImpGroups([]);
+    try {
+      const { reviews, skipped } = parseReviewFile(await f.text());
+      if (!reviews.length) {
+        setImpMsg(t('Não encontrei comentários válidos. Cada linha precisa de data e de estrelas.', 'No valid reviews found. Each row needs a date and a star rating.'));
+        return;
+      }
+      const groups = groupByPlace(reviews).map((g) => ({ ...g, target: suggestMatch(g, locations) }));
+      setImpGroups(groups);
+      setImpMsg(t(
+        `${reviews.length} comentários lidos em ${groups.length} ${groups.length === 1 ? 'local' : 'locais'}${skipped ? ` · ${skipped} linhas ignoradas (sem data ou estrelas)` : ''}. Confirma a correspondência de cada local e clica em Importar.`,
+        `${reviews.length} reviews read across ${groups.length} ${groups.length === 1 ? 'place' : 'places'}${skipped ? ` · ${skipped} rows ignored (no date or stars)` : ''}. Check each place match and click Import.`));
+    } catch (err: any) {
+      setImpMsg(t('Erro ao ler o ficheiro: ', 'Error reading the file: ') + (err?.message || ''));
+    }
+  };
+
+  const confirmImport = async () => {
+    const todo = impGroups.filter((g) => g.target);
+    if (!todo.length) return;
+    setImpBusy(true);
+    const lines: string[] = [];
+    try {
+      for (const g of todo) {
+        let locId = g.target;
+        if (locId === '__new__') {
+          const coords = getKnownCoords(g.title);
+          const nl: Location = {
+            id: `${Date.now()}${Math.floor(Math.random() * 1000)}`, name: g.title, category: 'Monumento', platform: 'Google Maps',
+            reviews: [], analysis: null, lastAnalyzed: null, ...(coords ? { coords } : {}),
+          };
+          await setDoc(doc(db, 'locations', nl.id), nl);
+          setLocations((prev) => [...prev, nl]);
+          locId = nl.id;
+        }
+        setImpMsg(t(`A importar ${g.title}…`, `Importing ${g.title}…`));
+        const res = await importIntoLocation(locId, g);
+        const stats = JSON.parse(JSON.stringify(res.stats));
+        await updateDoc(doc(db, 'locations', locId), { reviewStats: stats, reviews: [] });
+        setLocations((prev) => prev.map((l) => (l.id === locId ? { ...l, reviewStats: stats, reviews: [] } : l)));
+        lines.push(`${g.title}: +${res.added} ${t('novos', 'new')}${res.dup ? `, ${res.dup} ${t('já existiam', 'already existed')}` : ''}${res.removedOld ? `, ${res.removedOld} ${t('removidos (mais de 3 anos)', 'removed (over 3 years)')}` : ''}`);
+      }
+      setImpGroups([]);
+      setImpMsg('✓ ' + lines.join(' · '));
+      showToast(t('✓ Comentários importados — falta analisar com IA', '✓ Reviews imported — now run the AI analysis'));
+    } catch (err: any) {
+      setImpMsg(t('Erro na importação: ', 'Import error: ') + (err?.message || '') + (lines.length ? ` · ${t('já gravado', 'already saved')}: ${lines.join(' · ')}` : ''));
+    } finally {
+      setImpBusy(false);
+    }
+  };
+
+  // ── Análise com comentários importados: pontuação = estrelas reais; IA = temas ──
+  const analyzeImported = async (loc: Location): Promise<boolean> => {
+    setAnalyzing(loc.id);
+    setError(null);
+    try {
+      showToast(t(`A carregar comentários de ${loc.name}…`, `Loading reviews for ${loc.name}…`));
+      const all = await loadWindowReviews(loc.id);
+      const ws = windowStats(loc.reviewStats);
+      if (!all.length || !ws) throw new Error(t('Sem comentários com menos de 3 anos. Importa primeiro os comentários.', 'No reviews under 3 years old. Import the reviews first.'));
+      const { recent, previous } = sampleForAI(all);
+      const line = (r: StoredReview) => `[${r.s}★ · ${r.d.slice(0, 7)} · ${r.l}] ${r.t.replace(/\s+/g, ' ').slice(0, 450)}`;
+      const blocks: { per: 'recente' | 'anterior'; items: StoredReview[] }[] = [];
+      for (let i = 0; i < recent.length; i += 30) blocks.push({ per: 'recente', items: recent.slice(i, i + 30) });
+      for (let i = 0; i < previous.length; i += 30) blocks.push({ per: 'anterior', items: previous.slice(i, i + 30) });
+      const partials: string[] = [];
+      for (let i = 0; i < blocks.length; i++) {
+        const b = blocks[i];
+        showToast(t(`${loc.name}: bloco ${i + 1}/${blocks.length}…`, `${loc.name}: block ${i + 1}/${blocks.length}…`));
+        const txt = await groqChat([{ role: 'user', content:
+`Analisa estes comentários do Google Maps sobre "${loc.name}" (${loc.category}, Braga). Período: ${b.per === 'recente' ? 'últimos 12 meses' : 'entre 12 e 36 meses atrás'}. Cada linha: [estrelas · mês · língua] texto (pode estar noutra língua).
+
+Em português europeu, de forma concisa (máx. 220 palavras, sem markdown), identifica:
+- temas positivos recorrentes
+- problemas e críticas concretas, com frequência aproximada
+- sugestões implícitas para a gestão do local ou para o município
+
+Comentários (${b.items.length}):
+${b.items.map(line).join('\n')}` }]);
+        partials.push(`=== ${b.per === 'recente' ? 'ÚLTIMOS 12 MESES' : 'PERÍODO ANTERIOR (12–36 meses)'} · bloco ${i + 1} (${b.items.length} comentários) ===\n${txt}`);
+        if (i < blocks.length - 1) await sleep(8000);
+      }
+      const statsTxt = `Comentários (últimos 3 anos): ${ws.n} · média ${ws.avg.toFixed(2)}★ · positivos (4–5★) ${ws.pos}% · neutros (3★) ${ws.neu}% · negativos (1–2★) ${ws.neg}% · respostas do proprietário ${ws.respRate}%.
+Por trimestre (média★ / % negativos): ${ws.quarters.map((q) => `${q.q} ${q.avg.toFixed(2)}/${q.negPct}%`).join('; ')}.
+Línguas: ${ws.langs.slice(0, 8).map((l) => `${langNamePT(l.code)} ${l.n} (${l.avg.toFixed(2)}★)`).join('; ')}.`;
+      const raw = await groqChat([{ role: 'user', content:
+`És um analista de reputação turística ao serviço do Município de Braga. Local: "${loc.name}" (${loc.category}).
+
+ESTATÍSTICAS REAIS (calculadas a partir das estrelas — não as alteres nem inventes outros números):
+${statsTxt}
+
+RESUMOS PARCIAIS DE UMA AMOSTRA EQUILIBRADA DE COMENTÁRIOS:
+${partials.join('\n\n')}
+
+INSTRUÇÕES:
+- Distingue elogios genéricos de feedback específico e útil.
+- As sugestões devem ser concretas e dirigidas à gestão do local ou ao município.
+- Compara os problemas dos últimos 12 meses com os do período anterior.
+- Escreve em português europeu.
+
+Responde APENAS com JSON válido, sem markdown:
+{
+  "topThemesPositive": ["máx 6"],
+  "topThemesNegative": ["máx 6"],
+  "keyIssues": ["máx 6 problemas concretos"],
+  "keyPraises": ["máx 6 elogios específicos"],
+  "actionableInsights": ["6 sugestões concretas"],
+  "summaryPT": "4-5 frases que citam a média de estrelas, a tendência e os mercados",
+  "dimensions": {"localizacao": 1-10, "servico": 1-10, "precoQualidade": 1-10, "limpeza": 1-10, "experiencia": 1-10, "acessibilidade": 1-10},
+  "issuesRecent": ["máx 5 problemas mais referidos nos últimos 12 meses"],
+  "issuesPrevious": ["máx 5 problemas mais referidos no período anterior"]
+}` }], true);
+      const ai = parseJSONLoose(raw);
+      const arr = (v: any): string[] => (Array.isArray(v) ? v.filter((x: any) => typeof x === 'string' && x.trim()).slice(0, 8) : []);
+      const dims: Record<string, number> = {};
+      if (ai.dimensions && typeof ai.dimensions === 'object') {
+        for (const [k, v] of Object.entries(ai.dimensions)) { const n = Number(v); if (n >= 1 && n <= 10) dims[k] = n; }
+      }
+      const score = Math.round(ws.avg * 20) / 10;
+      const analysis: Analysis = {
+        sentimentScore: score,
+        sentimentBreakdown: { positive: ws.pos, neutral: ws.neu, negative: ws.neg },
+        topThemesPositive: arr(ai.topThemesPositive),
+        topThemesNegative: arr(ai.topThemesNegative),
+        keyIssues: arr(ai.keyIssues),
+        keyPraises: arr(ai.keyPraises),
+        actionableInsights: arr(ai.actionableInsights),
+        summaryPT: typeof ai.summaryPT === 'string' ? ai.summaryPT : '',
+        reviewCount: ws.n,
+        dimensions: dims,
+        marketSources: ws.langs.map((l) => langNamePT(l.code)),
+        marketSentiment: ws.langs.filter((l) => l.n >= 5).slice(0, 10).map((l) => ({ market: langNamePT(l.code), score: Math.round(l.avg * 20) / 10, note: `${l.n} comentários · média ${l.avg.toFixed(2)}★` })),
+        basis: 'estrelas', windowFrom: ws.from, windowTo: ws.to,
+        issuesRecent: arr(ai.issuesRecent),
+        issuesPrevious: arr(ai.issuesPrevious),
+      };
+      const nowIso = new Date().toISOString();
+      const snapshot: AnalysisSnapshot = {
+        date: nowIso, score, positive: ws.pos, negative: ws.neg, reviewCount: ws.n,
+        dimensions: dims, topNegative: analysis.topThemesNegative,
+      };
+      // As análises antigas (nota estimada pela IA) não são comparáveis com as novas (estrelas reais):
+      // na primeira análise com estrelas, o histórico recomeça.
+      const history = loc.analysis?.basis === 'estrelas' ? [...(loc.analysisHistory || []), snapshot] : [snapshot];
+      const upd = JSON.parse(JSON.stringify({ analysis, lastAnalyzed: nowIso, analysisHistory: history }));
+      await updateDoc(doc(db, 'locations', loc.id), upd);
+      setLocations((prev) => prev.map((l) => (l.id === loc.id ? { ...l, ...upd } : l)));
+      invalidateTrans(loc.id);
+      showToast(t(`✓ ${loc.name} analisado`, `✓ ${loc.name} analysed`));
+      return true;
+    } catch (e: any) {
+      console.error('Erro análise:', e);
+      setError(`${loc.name}: ${e?.message || t('erro desconhecido', 'unknown error')}`);
+      return false;
+    } finally {
+      setAnalyzing(null);
+    }
+  };
+
+  const analyzeAll = async () => {
+    const targets = locations.filter((l) => l.reviewStats && revCount(l) > 0);
+    if (!targets.length || analyzing || batchRun) return;
+    if (!window.confirm(t(
+      `Vão ser analisados ${targets.length} locais com comentários importados. Cada um demora cerca de 1 a 3 minutos — mantém esta página aberta até ao fim. Continuar?`,
+      `${targets.length} places with imported reviews will be analysed. Each takes about 1 to 3 minutes — keep this page open until it finishes. Continue?`))) return;
+    let ok = 0;
+    for (let i = 0; i < targets.length; i++) {
+      setBatchRun({ i: i + 1, total: targets.length, name: targets[i].name });
+      if (await analyzeImported(targets[i])) ok++;
+    }
+    setBatchRun(null);
+    showToast(t(`✓ ${ok}/${targets.length} locais analisados`, `✓ ${ok}/${targets.length} places analysed`));
+  };
+
   const analyze = async (id: string) => {
     const loc = locations.find((l) => l.id === id);
+    if (loc && loc.reviewStats) { await analyzeImported(loc); return; }
     if (!loc || loc.reviews.length === 0) return;
     setAnalyzing(id);
     setError(null);
@@ -908,7 +1214,7 @@ RULES:
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
+            // modelo definido no servidor (app/api/groq)
             messages: [{
               role: 'user',
               content: `Resume estas reviews do local "${loc.name}" em Braga. Identifica:
@@ -942,7 +1248,7 @@ ${chunkText}`,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          // modelo definido no servidor (app/api/groq)
           messages: [{
             role: 'user',
             content: `És um analista de reputação turística especializado. Tens ${allReviews.length} reviews do local "${loc.name}" (${loc.category}) em Braga, Portugal, já pré-analisadas em ${chunks.length} blocos. Faz a síntese final consolidada.
@@ -1883,11 +2189,26 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>{t('Locais Monitorizados', 'Monitored Places')}</h1>
                 <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{locations.length} {t(locations.length !== 1 ? 'locais' : 'local', locations.length !== 1 ? 'places' : 'place')} · {analyzed.length} {t(analyzed.length !== 1 ? 'analisados' : 'analisado', 'analysed')}</p>
               </div>
-              <button onClick={() => setShowAdd(true)}
-                style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: C.accent, color: C.bg, cursor: 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                {t('+ Adicionar Local', '+ Add Place')}
-              </button>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }}
+                  style={{ padding: '10px 18px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, cursor: 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+                  {t('📥 Importar comentários', '📥 Import reviews')}
+                </button>
+                <button onClick={analyzeAll} disabled={!!analyzing || !!batchRun || !locations.some((l) => l.reviewStats)}
+                  style={{ padding: '10px 18px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: !!analyzing || !!batchRun || !locations.some((l) => l.reviewStats) ? C.textDim : C.text, cursor: !!analyzing || !!batchRun || !locations.some((l) => l.reviewStats) ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+                  {t('🤖 Analisar todos', '🤖 Analyse all')}
+                </button>
+                <button onClick={() => setShowAdd(true)}
+                  style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: C.accent, color: C.bg, cursor: 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+                  {t('+ Adicionar Local', '+ Add Place')}
+                </button>
+              </div>
             </div>
+            {batchRun && (
+              <div style={{ background: C.card, border: `1px solid ${C.accent}66`, borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.text }}>
+                🤖 {t('A analisar', 'Analysing')} {batchRun.i}/{batchRun.total}: <strong>{batchRun.name}</strong> — {t('mantém esta página aberta até ao fim.', 'keep this page open until it finishes.')}
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
               <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder={t('🔍  Pesquisar locais…', '🔍  Search places…')}
@@ -1938,7 +2259,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                         <div>
                           <h4 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 3px' }}>{loc.name}</h4>
                           <span style={{ fontSize: 11, color: C.textDim }}>
-                            {catLabel(loc.category)} · {catLabel(loc.platform)} · {loc.reviews.length} review{loc.reviews.length !== 1 ? 's' : ''}
+                            {catLabel(loc.category)} · {catLabel(loc.platform)} · {revCount(loc)} review{revCount(loc) !== 1 ? 's' : ''}{loc.reviewStats ? ` · ★ ${(windowStats(loc.reviewStats)?.avg ?? 0).toFixed(2)} · ${t('3 anos', '3 years')}` : ''}
                             {loc.coords && <span style={{ marginLeft: 6, color: C.info }}>· 📍 geo</span>}
                           </span>
                         </div>
@@ -1971,12 +2292,12 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                             {t('📋 Colar Reviews', '📋 Paste Reviews')}
                           </button>
                           <button onClick={(e) => { e.stopPropagation(); analyze(loc.id); }}
-                            disabled={loc.reviews.length === 0 || !!analyzing}
+                            disabled={revCount(loc) === 0 || !!analyzing}
                             style={{
                               padding: '8px 16px', borderRadius: 8, border: 'none',
-                              background: loc.reviews.length === 0 || !!analyzing ? C.border : C.accent,
-                              color: loc.reviews.length === 0 || !!analyzing ? C.textDim : C.bg,
-                              cursor: loc.reviews.length === 0 || !!analyzing ? 'not-allowed' : 'pointer',
+                              background: revCount(loc) === 0 || !!analyzing ? C.border : C.accent,
+                              color: revCount(loc) === 0 || !!analyzing ? C.textDim : C.bg,
+                              cursor: revCount(loc) === 0 || !!analyzing ? 'not-allowed' : 'pointer',
                               fontSize: 12, fontWeight: 600,
                             }}>
                             {isAnalyzing ? t('⏳ A analisar…', '⏳ Analysing…') : t('🤖 Analisar com IA', '🤖 Analyse with AI')}
@@ -2102,16 +2423,20 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button onClick={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }}
+                      style={{ padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                      {t('📥 Importar comentários', '📥 Import reviews')}
+                    </button>
                     <button onClick={() => { setSelId(detailLoc.id); setShowReview(true); }}
                       style={{ padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
                       {t('📋 Colar Reviews', '📋 Paste Reviews')}
                     </button>
-                    <button onClick={() => analyze(detailLoc.id)} disabled={detailLoc.reviews.length === 0 || !!analyzing}
+                    <button onClick={() => analyze(detailLoc.id)} disabled={revCount(detailLoc) === 0 || !!analyzing}
                       style={{
                         padding: '9px 16px', borderRadius: 8, border: 'none',
-                        background: detailLoc.reviews.length === 0 || !!analyzing ? C.border : C.accent,
-                        color: detailLoc.reviews.length === 0 || !!analyzing ? C.textDim : C.bg,
-                        cursor: detailLoc.reviews.length === 0 || !!analyzing ? 'not-allowed' : 'pointer',
+                        background: revCount(detailLoc) === 0 || !!analyzing ? C.border : C.accent,
+                        color: revCount(detailLoc) === 0 || !!analyzing ? C.textDim : C.bg,
+                        cursor: revCount(detailLoc) === 0 || !!analyzing ? 'not-allowed' : 'pointer',
                         fontSize: 12, fontWeight: 600,
                       }}>
                       {analyzing === detailLoc.id ? '⏳ A analisar…' : '🤖 Reanalisar com IA'}
@@ -2137,12 +2462,14 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 {!detailLoc.analysis ? (
                   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: 'center' }}>
                     <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 16 }}>
-                      {detailLoc.reviews.length === 0 ? 'Cola reviews para este local e depois clica em Analisar.' : `${detailLoc.reviews.length} reviews prontas para analisar. Clica em "Reanalisar com IA".`}
+                      {revCount(detailLoc) === 0 ? t('Importa os comentários do Google Maps (ou cola-os) e depois clica em Analisar.', 'Import the Google Maps reviews (or paste them) and then click Analyse.') : `${revCount(detailLoc)} reviews prontas para analisar. Clica em "Reanalisar com IA".`}
                     </p>
+                    {detailLoc.reviewStats && <div style={{ textAlign: 'left', marginTop: 12 }}><ReviewEvolution loc={detailLoc} a={null} /></div>}
                   </div>
                 ) : (
                   <>
                     <GoogleCompare loc={detailLoc} />
+                    <ReviewEvolution loc={detailLoc} a={dispAnalysis(detailLoc)} />
                     {(() => {
                       const rob = robustness(detailLoc);
                       const ch = whatChanged(detailLoc);
@@ -2381,6 +2708,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                       ))}
                     </div>
 
+                    {detailLoc.reviews.length > 0 && (
                     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
                       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
                         Todas as Reviews ({detailLoc.reviews.length})
@@ -2395,6 +2723,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                         ))}
                       </div>
                     </div>
+                    )}
                   </>
                 )}
               </>
@@ -2799,6 +3128,55 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       </main>
 
       {/* ═══ MODAL: ADD LOCATION ═══ */}
+      {showImport && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
+          onClick={() => { if (!impBusy) setShowImport(false); }}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 28, width: 780, maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>{t('Importar comentários do Google Maps', 'Import Google Maps reviews')}</h3>
+            <p style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.6, margin: '0 0 16px' }}>
+              {t('Ficheiro JSON ou CSV exportado (ex.: Apify — Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.',
+                 'Exported JSON or CSV file (e.g. Apify — Google Maps Reviews Scraper). Only reviews under 3 years old are kept, duplicates are ignored and author names are not stored. A file may contain several places. Manually pasted reviews for those places are replaced.')}
+            </p>
+            <input type="file" accept=".json,.csv,.jsonl,.txt" onChange={onImportFile} disabled={impBusy}
+              style={{ fontSize: 13, color: C.text }} />
+            {impMsg && <p style={{ fontSize: 12.5, color: impMsg.startsWith('✓') ? C.positive : C.textMuted, lineHeight: 1.6, margin: '14px 0 0' }}>{impMsg}</p>}
+            {impGroups.length > 0 && (
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {impGroups.map((g, gi) => (
+                  <div key={g.key} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 320px' }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{g.title}</div>
+                      <div style={{ fontSize: 11.5, color: C.textMuted, marginTop: 4, lineHeight: 1.5 }}>
+                        {g.reviews.length} {t('no ficheiro', 'in the file')} · <strong style={{ color: C.positive }}>{g.inWindow}</strong> {t('com menos de 3 anos', 'under 3 years old')}
+                        {g.outWindow ? ` · ${g.outWindow} ${t('mais antigos (ignorados)', 'older (ignored)')}` : ''} · ★ {g.avg.toFixed(2)} · {g.from.slice(0, 10)} → {g.to.slice(0, 10)}
+                      </div>
+                    </div>
+                    <select value={g.target} disabled={impBusy}
+                      onChange={(e) => { const v = e.target.value; setImpGroups((prev) => prev.map((x, i) => (i === gi ? { ...x, target: v } : x))); }}
+                      style={{ flex: '0 1 260px', padding: '8px 10px', borderRadius: 8, border: `1px solid ${g.target ? C.accent : C.border}`, background: C.card, color: C.text, fontSize: 12.5 }}>
+                      <option value="">{t('— Ignorar —', '— Skip —')}</option>
+                      <option value="__new__">{t('+ Criar novo local', '+ Create new place')}</option>
+                      {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+              <button onClick={() => setShowImport(false)} disabled={impBusy}
+                style={{ padding: '9px 18px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: impBusy ? 'not-allowed' : 'pointer', fontSize: 13 }}>
+                {t('Fechar', 'Close')}
+              </button>
+              <button onClick={confirmImport} disabled={impBusy || !impGroups.some((g) => g.target)}
+                style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: impBusy || !impGroups.some((g) => g.target) ? C.border : C.accent, color: impBusy || !impGroups.some((g) => g.target) ? C.textDim : C.bg, cursor: impBusy || !impGroups.some((g) => g.target) ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600 }}>
+                {impBusy ? t('A importar…', 'Importing…') : t('Importar', 'Import')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
           onClick={() => setShowAdd(false)}>

@@ -28,6 +28,8 @@ function pick(a: AnyAnalysis) {
     themesNeg: a.topThemesNegative ?? [],
     insights: a.actionableInsights ?? [],
     marketNotes: Array.isArray(a.marketSentiment) ? a.marketSentiment.map((m: any) => m?.note ?? '') : [],
+    recent: a.issuesRecent ?? [],
+    previous: a.issuesPrevious ?? [],
   };
 }
 
@@ -36,11 +38,11 @@ async function translateAnalysis(locId: string, a: AnyAnalysis): Promise<void> {
   inflight.add(locId);
   try {
     const src = pick(a);
-    const prompt = `Translate the following Portuguese tourism-analysis content into natural, fluent international English. Return ONLY a JSON object (no markdown, no backticks, no commentary) with EXACTLY these keys: summary (string), praises (string[]), issues (string[]), themesPos (string[]), themesNeg (string[]), insights (string[]), marketNotes (string[]). Keep every array the same length and order as the input. Preserve meaning and an institutional tone. Input:\n${JSON.stringify(src)}`;
+    const prompt = `Translate the following Portuguese tourism-analysis content into natural, fluent international English. Return ONLY a JSON object (no markdown, no backticks, no commentary) with EXACTLY these keys: summary (string), praises (string[]), issues (string[]), themesPos (string[]), themesNeg (string[]), insights (string[]), marketNotes (string[]), recent (string[]), previous (string[]). Keep every array the same length and order as the input. Preserve meaning and an institutional tone. Input:\n${JSON.stringify(src)}`;
     const res = await fetch('/api/groq', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }),
     });
     if (!res.ok) throw new Error('translate http ' + res.status);
     const data = await res.json();
@@ -59,6 +61,8 @@ async function translateAnalysis(locId: string, a: AnyAnalysis): Promise<void> {
       topThemesNegative: arr(j.themesNeg, a.topThemesNegative ?? []),
       actionableInsights: arr(j.insights, a.actionableInsights ?? []),
       marketSentiment: origMS.map((m: any, i: number) => ({ ...m, note: notes[i] ?? m?.note })),
+      issuesRecent: arr(j.recent, a.issuesRecent ?? []),
+      issuesPrevious: arr(j.previous, a.issuesPrevious ?? []),
     };
     cache.set(locId, translated);
   } catch {
