@@ -629,6 +629,10 @@ export default function Home() {
   const [impBusy, setImpBusy] = useState(false);
   const [impMsg, setImpMsg] = useState<string | null>(null);
   const [batchRun, setBatchRun] = useState<{ i: number; total: number; name: string } | null>(null);
+  // Ao abrir um local ou mudar de vista, a página começa sempre no topo
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [view, detailId]);
   const [importMode, setImportMode] = useState<'texto' | 'csv'>('texto');
   const [csvHasHeader, setCsvHasHeader] = useState(true);
   const [csvCol, setCsvCol] = useState<number | null>(null);
