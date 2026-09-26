@@ -486,6 +486,25 @@ function revCount(loc: Location): number {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// O Firestore recusa campos com valor undefined: remove-os antes de gravar.
+const semIndefinidos = <T,>(o: T): T => JSON.parse(JSON.stringify(o));
+
+// Grava alterações num local. Se o documento não existir no Firestore (ex.: local criado
+// antes desta correção e que nunca chegou a ser gravado), grava o local completo.
+async function gravarLocal(loc: Location, changes: Partial<Location>): Promise<void> {
+  const ref = doc(db, 'locations', loc.id);
+  const dados = semIndefinidos(changes) as Record<string, any>;
+  try {
+    await updateDoc(ref, dados);
+  } catch (e: any) {
+    if (e?.code === 'not-found' || /No document to update/i.test(String(e?.message))) {
+      await setDoc(ref, semIndefinidos({ ...loc, ...changes }));
+    } else {
+      throw e;
+    }
+  }
+}
+
 // Pedido ao Groq com novas tentativas automáticas quando o limite gratuito é atingido (429)
 async function groqChat(messages: { role: string; content: string }[], json = false): Promise<string> {
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -745,9 +764,10 @@ export default function Home() {
   const save = useCallback(async (locs: Location[]) => {
     setLocations(locs);
     try {
-      for (const loc of locs) await setDoc(doc(db, 'locations', loc.id), loc);
-    } catch (e) {
+      for (const loc of locs) await setDoc(doc(db, 'locations', loc.id), semIndefinidos(loc));
+    } catch (e: any) {
       console.error('Firestore save error:', e);
+      setError(t('Erro ao gravar na base de dados: ', 'Error saving to the database: ') + (e?.message || ''));
     }
   }, []);
 
@@ -1054,7 +1074,8 @@ RULES:
         setImpMsg(t(`A importar ${g.title}…`, `Importing ${g.title}…`));
         const res = await importIntoLocation(locId, g);
         const stats = JSON.parse(JSON.stringify(res.stats));
-        await updateDoc(doc(db, 'locations', locId), { reviewStats: stats, reviews: [] });
+        const alvo = locations.find((l) => l.id === locId) || ({ id: locId, name: g.title, category: 'Monumento', platform: 'Google Maps', reviews: [], analysis: null, lastAnalyzed: null } as Location);
+        await gravarLocal(alvo, { reviewStats: stats, reviews: [] });
         setLocations((prev) => prev.map((l) => (l.id === locId ? { ...l, reviewStats: stats, reviews: [] } : l)));
         lines.push(`${g.title}: +${res.added} ${t('novos', 'new')}${res.dup ? `, ${res.dup} ${t('já existiam', 'already existed')}` : ''}${res.removedOld ? `, ${res.removedOld} ${t('removidos (mais de 3 anos)', 'removed (over 3 years)')}` : ''}`);
       }
@@ -1162,7 +1183,7 @@ Responde APENAS com JSON válido, sem markdown:
       // na primeira análise com estrelas, o histórico recomeça.
       const history = loc.analysis?.basis === 'estrelas' ? [...(loc.analysisHistory || []), snapshot] : [snapshot];
       const upd = JSON.parse(JSON.stringify({ analysis, lastAnalyzed: nowIso, analysisHistory: history }));
-      await updateDoc(doc(db, 'locations', loc.id), upd);
+      await gravarLocal(loc, upd);
       setLocations((prev) => prev.map((l) => (l.id === loc.id ? { ...l, ...upd } : l)));
       invalidateTrans(loc.id);
       showToast(t(`✓ ${loc.name} analisado`, `✓ ${loc.name} analysed`));
