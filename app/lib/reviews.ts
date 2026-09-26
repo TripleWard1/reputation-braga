@@ -20,7 +20,8 @@ import { t } from './i18n';
 export const WINDOW_YEARS = 3;
 const MAX_TEXT = 1500;
 
-export interface StoredReview { id: string; d: string; s: number; l: string; t: string; r?: number }
+// tg = temas classificados pela IA (ex.: 'acesso-', 'paisagem+'); c = 1 se já foi classificado
+export interface StoredReview { id: string; d: string; s: number; l: string; t: string; r?: number; tg?: string[]; c?: number }
 export interface MonthStat { n: number; sum: number; dist: number[]; langs: Record<string, number[]>; replies: number }
 export interface ReviewStats { byMonth: Record<string, MonthStat>; placeId: string; placeTitle: string; lastImport: string; source: string }
 
@@ -41,13 +42,13 @@ const LANG_PT: Record<string, string> = {
   pt: 'Português', es: 'Espanhol', en: 'Inglês', fr: 'Francês', de: 'Alemão', it: 'Italiano', nl: 'Neerlandês',
   pl: 'Polaco', ru: 'Russo', uk: 'Ucraniano', zh: 'Chinês', ja: 'Japonês', ko: 'Coreano', ca: 'Catalão', gl: 'Galego',
   sv: 'Sueco', da: 'Dinamarquês', no: 'Norueguês', fi: 'Finlandês', cs: 'Checo', ro: 'Romeno', hu: 'Húngaro',
-  tr: 'Turco', ar: 'Árabe', he: 'Hebraico', el: 'Grego', und: 'Indeterminado',
+  tr: 'Turco', ar: 'Árabe', he: 'Hebraico', el: 'Grego', und: 'Idioma não detetado', none: 'Sem texto',
 };
 const LANG_EN: Record<string, string> = {
   pt: 'Portuguese', es: 'Spanish', en: 'English', fr: 'French', de: 'German', it: 'Italian', nl: 'Dutch',
   pl: 'Polish', ru: 'Russian', uk: 'Ukrainian', zh: 'Chinese', ja: 'Japanese', ko: 'Korean', ca: 'Catalan', gl: 'Galician',
   sv: 'Swedish', da: 'Danish', no: 'Norwegian', fi: 'Finnish', cs: 'Czech', ro: 'Romanian', hu: 'Hungarian',
-  tr: 'Turkish', ar: 'Arabic', he: 'Hebrew', el: 'Greek', und: 'Undetermined',
+  tr: 'Turkish', ar: 'Arabic', he: 'Hebrew', el: 'Greek', und: 'Language not detected', none: 'No text',
 };
 export const langName = (code: string) => t(LANG_PT[code] ?? code.toUpperCase(), LANG_EN[code] ?? code.toUpperCase());
 export const langNamePT = (code: string) => LANG_PT[code] ?? code.toUpperCase();
@@ -168,7 +169,7 @@ export function parseReviewFile(text: string): { reviews: ParsedReview[]; skippe
     const placeKey = String(pick(o, K.placeKey) ?? '').trim();
     const placeTitle = String(pick(o, K.placeTitle) ?? '').trim();
     const rawLang = String(pick(o, K.lang) ?? '').trim().toLowerCase().slice(0, 2);
-    const lang = /^[a-z]{2}$/.test(rawLang) ? rawLang : txt ? detectLang(txt) : 'und';
+    const lang = !txt ? 'none' : /^[a-z]{2}$/.test(rawLang) ? rawLang : detectLang(txt);
     const d = date.toISOString();
     const rid = String(pick(o, K.id) ?? '').trim() || hash(`${placeKey || placeTitle}|${d}|${stars}|${txt.slice(0, 80)}`);
     const rev: ParsedReview = { id: rid.slice(0, 180), d, s: Math.round(stars), l: lang, t: txt, placeKey, placeTitle };
@@ -257,7 +258,7 @@ export async function importIntoLocation(locId: string, g: ImportGroup, source =
     if (seen.has(r.id)) { dup++; continue; }
     seen.add(r.id);
     const m = r.d.slice(0, 7);
-    const clean: StoredReview = { id: r.id, d: r.d, s: r.s, l: r.l, t: r.t };
+    const clean: StoredReview = { id: r.id, d: r.d, s: r.s, l: r.t && r.t.trim() ? r.l : 'none', t: r.t };
     if (r.r) clean.r = 1;
     (months[m] = months[m] || []).push(clean);
     changed.add(m);
@@ -281,6 +282,27 @@ export async function loadWindowReviews(locId: string, now = new Date()): Promis
   const cut = cutoffDate(now).toISOString();
   const months = await readMonths(locId);
   return Object.values(months).flat().filter((r) => r.d >= cut).sort((a, b) => (a.d < b.d ? 1 : -1));
+}
+
+
+/** Reconstrói as estatísticas a partir dos comentários guardados (aplica a regra "Sem texto"). */
+export async function rebuildStats(locId: string, meta: { placeId: string; placeTitle: string; source: string }): Promise<ReviewStats> {
+  const months = await readMonths(locId);
+  for (const arr of Object.values(months)) for (const r of arr) if (!r.t || !r.t.trim()) r.l = 'none';
+  return buildStats(months, meta);
+}
+
+/** Guarda os temas classificados pela IA em cada comentário (tg) e marca-os como classificados (c). */
+export async function saveTags(locId: string, tags: Record<string, string[]>): Promise<void> {
+  const months = await readMonths(locId);
+  for (const [m, items] of Object.entries(months)) {
+    let mudou = false;
+    for (const r of items) {
+      const tg = tags[r.id];
+      if (tg) { r.tg = tg; r.c = 1; mudou = true; }
+    }
+    if (mudou) await setDoc(doc(monthsCol(locId), m), { items });
+  }
 }
 
 export async function deleteLocationReviews(locId: string): Promise<void> {

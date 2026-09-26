@@ -30,6 +30,12 @@ function pick(a: AnyAnalysis) {
     marketNotes: Array.isArray(a.marketSentiment) ? a.marketSentiment.map((m: any) => m?.note ?? '') : [],
     recent: a.issuesRecent ?? [],
     previous: a.issuesPrevious ?? [],
+    title: a.v2?.titulo ?? '',
+    themeNotes: Array.isArray(a.v2?.temas) ? a.v2.temas.map((x: any) => x?.nota ?? '') : [],
+    recTitles: Array.isArray(a.v2?.recomendacoes) ? a.v2.recomendacoes.map((x: any) => x?.titulo ?? '') : [],
+    recTexts: Array.isArray(a.v2?.recomendacoes) ? a.v2.recomendacoes.map((x: any) => x?.texto ?? '') : [],
+    recentDetails: Array.isArray(a.v2?.periodos?.recentes) ? a.v2.periodos.recentes.map((x: any) => x?.detalhe ?? '') : [],
+    previousDetails: Array.isArray(a.v2?.periodos?.anteriores) ? a.v2.periodos.anteriores.map((x: any) => x?.detalhe ?? '') : [],
   };
 }
 
@@ -38,7 +44,7 @@ async function translateAnalysis(locId: string, a: AnyAnalysis): Promise<void> {
   inflight.add(locId);
   try {
     const src = pick(a);
-    const prompt = `Translate the following Portuguese tourism-analysis content into natural, fluent international English. Return ONLY a JSON object (no markdown, no backticks, no commentary) with EXACTLY these keys: summary (string), praises (string[]), issues (string[]), themesPos (string[]), themesNeg (string[]), insights (string[]), marketNotes (string[]), recent (string[]), previous (string[]). Keep every array the same length and order as the input. Preserve meaning and an institutional tone. Input:\n${JSON.stringify(src)}`;
+    const prompt = `Translate the following Portuguese tourism-analysis content into natural, fluent international English. Return ONLY a JSON object (no markdown, no backticks, no commentary) with EXACTLY these keys: summary (string), praises (string[]), issues (string[]), themesPos (string[]), themesNeg (string[]), insights (string[]), marketNotes (string[]), recent (string[]), previous (string[]), title (string), themeNotes (string[]), recTitles (string[]), recTexts (string[]), recentDetails (string[]), previousDetails (string[]). Keep every array the same length and order as the input. Preserve meaning and an institutional tone. Input:\n${JSON.stringify(src)}`;
     const res = await fetch('/api/groq', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -63,6 +69,16 @@ async function translateAnalysis(locId: string, a: AnyAnalysis): Promise<void> {
       marketSentiment: origMS.map((m: any, i: number) => ({ ...m, note: notes[i] ?? m?.note })),
       issuesRecent: arr(j.recent, a.issuesRecent ?? []),
       issuesPrevious: arr(j.previous, a.issuesPrevious ?? []),
+      v2: a.v2 ? {
+        ...a.v2,
+        titulo: typeof j.title === 'string' && j.title ? j.title : a.v2.titulo,
+        temas: (a.v2.temas || []).map((x: any, i: number) => ({ ...x, nota: arr(j.themeNotes, [])[i] ?? x.nota })),
+        recomendacoes: (a.v2.recomendacoes || []).map((x: any, i: number) => ({ titulo: arr(j.recTitles, [])[i] ?? x.titulo, texto: arr(j.recTexts, [])[i] ?? x.texto })),
+        periodos: a.v2.periodos ? {
+          recentes: (a.v2.periodos.recentes || []).map((x: any, i: number) => ({ ...x, problema: arr(j.recent, [])[i] ?? x.problema, detalhe: arr(j.recentDetails, [])[i] ?? x.detalhe })),
+          anteriores: (a.v2.periodos.anteriores || []).map((x: any, i: number) => ({ ...x, problema: arr(j.previous, [])[i] ?? x.problema, detalhe: arr(j.previousDetails, [])[i] ?? x.detalhe })),
+        } : a.v2.periodos,
+      } : a.v2,
     };
     cache.set(locId, translated);
   } catch {

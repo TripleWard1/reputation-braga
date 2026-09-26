@@ -13,8 +13,10 @@ import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
 import { dispAnalysis, setTransNotify, invalidateTrans } from '@/app/lib/ai-translate';
 import {
   parseReviewFile, groupByPlace, suggestMatch, importIntoLocation, loadWindowReviews, deleteLocationReviews,
-  windowStats, sampleForAI, langName, langNamePT, type ReviewStats, type ImportGroup, type StoredReview,
+  windowStats, sampleForAI, langName, langNamePT, rebuildStats, saveTags, type ReviewStats, type ImportGroup, type StoredReview,
 } from '@/app/lib/reviews';
+import { TEMAS, temaStats, excertos, numeros, ranking, numerosCoerentes, numerosPermitidos, resumoModelo, tagValida } from '@/app/lib/temas';
+import { VisaoGeral, LocaisLista, FichaLocal, type Intervencao } from '@/app/components/Reputacao';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -195,6 +197,8 @@ interface Analysis {
   windowTo?: string;
   issuesRecent?: string[];
   issuesPrevious?: string[];
+  // Análise por temas (ficha do local): título, estado e nota de cada tema, 3 recomendações
+  v2?: any;
 }
 
 interface AnalysisSnapshot {
@@ -220,6 +224,7 @@ interface Location {
   googleRating?: number;        // nota real do Google (0–5)
   googleReviewCount?: number;   // nº total de reviews no Google
   reviewStats?: ReviewStats;    // comentários importados (estatísticas mensais; textos em reviewMonths)
+  interventions?: Intervencao[]; // intervenções registadas (marcadas no gráfico de evolução)
 }
 
 type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'relatorio' | 'problemas' | 'observatorio' | 'detalhe';
@@ -1098,95 +1103,175 @@ RULES:
     setAnalyzing(loc.id);
     setError(null);
     try {
-      showToast(t(`A carregar comentários de ${loc.name}…`, `Loading reviews for ${loc.name}…`));
-      const all = await loadWindowReviews(loc.id);
-      const ws = windowStats(loc.reviewStats);
-      if (!all.length || !ws) throw new Error(t('Sem comentários com menos de 3 anos. Importa primeiro os comentários.', 'No reviews under 3 years old. Import the reviews first.'));
-      const { recent, previous } = sampleForAI(all);
-      const line = (r: StoredReview) => `[${r.s}★ · ${r.d.slice(0, 7)} · ${r.l}] ${r.t.replace(/\s+/g, ' ').slice(0, 450)}`;
-      const blocks: { per: 'recente' | 'anterior'; items: StoredReview[] }[] = [];
-      for (let i = 0; i < recent.length; i += 30) blocks.push({ per: 'recente', items: recent.slice(i, i + 30) });
-      for (let i = 0; i < previous.length; i += 30) blocks.push({ per: 'anterior', items: previous.slice(i, i + 30) });
-      const partials: string[] = [];
-      for (let i = 0; i < blocks.length; i++) {
-        const b = blocks[i];
-        showToast(t(`${loc.name}: bloco ${i + 1}/${blocks.length}…`, `${loc.name}: block ${i + 1}/${blocks.length}…`));
-        const txt = await groqChat([{ role: 'user', content:
-`Analisa estes comentários do Google Maps sobre "${loc.name}" (${loc.category}, Braga). Período: ${b.per === 'recente' ? 'últimos 12 meses' : 'entre 12 e 36 meses atrás'}. Cada linha: [estrelas · mês · língua] texto (pode estar noutra língua).
+      // 1) Estatísticas reconstruídas (regra "Sem texto") — fonte única de todos os números
+      showToast(t(`A preparar ${loc.name}…`, `Preparing ${loc.name}…`));
+      const st0 = loc.reviewStats!;
+      const stats = semIndefinidos(await rebuildStats(loc.id, { placeId: st0.placeId, placeTitle: st0.placeTitle, source: st0.source })) as ReviewStats;
+      stats.lastImport = st0.lastImport;
+      let all = await loadWindowReviews(loc.id);
+      if (!all.length) throw new Error(t('Sem comentários com menos de 3 anos. Importa primeiro os comentários.', 'No reviews under 3 years old. Import the reviews first.'));
 
-Em português europeu, de forma concisa (máx. 220 palavras, sem markdown), identifica:
-- temas positivos recorrentes
-- problemas e críticas concretas, com frequência aproximada
-- sugestões implícitas para a gestão do local ou para o município
+      // 2) Classificar por temas fixos os comentários com texto ainda não classificados
+      const porClassificar = all.filter((r) => r.t && r.t.trim().length >= 3 && !r.c);
+      const LOTE = 40;
+      const listaTemas = TEMAS.map((x) => `${x.id} = ${x.pt} (${x.desc})`).join('\n');
+      const tags: Record<string, string[]> = {};
+      for (let i = 0; i < porClassificar.length; i += LOTE) {
+        const lote = porClassificar.slice(i, i + LOTE);
+        showToast(t(`${loc.name}: a classificar ${i + 1}–${i + lote.length} de ${porClassificar.length} comentários…`, `${loc.name}: classifying ${i + 1}–${i + lote.length} of ${porClassificar.length} reviews…`));
+        const raw = await groqChat([{ role: 'user', content:
+`Classifica comentários do Google Maps sobre um local turístico de Braga nos temas abaixo.
+Para cada comentário, indica de 0 a 3 temas referidos, cada um seguido de + (elogio) ou - (crítica). Se não refere nenhum tema, devolve lista vazia.
+
+Temas:
+${listaTemas}
+
+Responde APENAS com JSON: {"r":[{"i":0,"t":["paisagem+","acesso-"]}]} — um item por comentário, com o mesmo número "i".
+
+Comentários:
+${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)}`).join('\n')}` }], true);
+        const j = parseJSONLoose(raw);
+        const itens: any[] = Array.isArray(j?.r) ? j.r : [];
+        lote.forEach((r, k) => {
+          const it = itens.find((z: any) => Number(z?.i) === k);
+          tags[r.id] = Array.isArray(it?.t) ? it.t.filter((x: any) => typeof x === 'string' && tagValida(x)).slice(0, 3) : [];
+        });
+        if (i + LOTE < porClassificar.length) await sleep(4000);
+      }
+      if (Object.keys(tags).length) {
+        showToast(t(`${loc.name}: a guardar temas…`, `${loc.name}: saving themes…`));
+        await saveTags(loc.id, tags);
+        all = all.map((r) => (tags[r.id] ? { ...r, tg: tags[r.id], c: 1 } : r));
+      }
+
+      // 3) Estado de cada tema — calculado, não escrito pela IA
+      const { temas, textRec, textPrev } = temaStats(all);
+      const ativos = temas.filter((z) => z.estado);
+
+      // 4) Números calculados (os mesmos que aparecem no topo da ficha)
+      const locAtual = { ...loc, reviewStats: stats };
+      const x = numeros(locAtual)!;
+      const rk = ranking(locations.map((l) => (l.id === loc.id ? locAtual : l)));
+      const pos = rk.findIndex((r) => r.id === loc.id) + 1;
+      const f = (v: number, d: number) => v.toLocaleString('pt-PT', { minimumFractionDigits: d, maximumFractionDigits: d });
+      const numerosTxt = [
+        `avaliações: ${f(x.n, 0)}`, `média: ${f(x.avg, 2)} estrelas`, `índice: ${f(x.idx, 1)}/10`, `positivas: ${f(x.pos, 1)}%`, `negativas: ${f(x.neg, 1)}%`,
+        `avaliações só com estrelas (sem texto): ${f(x.semTexto, 1)}%`,
+      ].filter(Boolean).join('\n');
+      const temasTxt = ativos.map((z) => {
+        const ex = excertos(all, z.id, z.estado === 'forte' ? '+' : '-');
+        return `- ${z.id} (${TEMAS.find((y) => y.id === z.id)!.pt}) — estado: ${z.estado}${ex.length ? `\n  excertos: ${ex.map((e) => `"${e}"`).join(' | ')}` : ''}`;
+      }).join('\n') || '(nenhum tema com expressão suficiente)';
+
+      // Leitura por blocos (como na versão original): ~150 comentários equilibrados, separados por período,
+      // resumidos bloco a bloco com problemas e elogios concretos e a sua frequência aproximada.
+      const { recent, previous } = sampleForAI(all);
+      const blocos: { per: 'recente' | 'anterior'; items: StoredReview[] }[] = [];
+      for (let i = 0; i < recent.length; i += 30) blocos.push({ per: 'recente', items: recent.slice(i, i + 30) });
+      for (let i = 0; i < previous.length; i += 30) blocos.push({ per: 'anterior', items: previous.slice(i, i + 30) });
+      const parciais: string[] = [];
+      for (let i = 0; i < blocos.length; i++) {
+        const b = blocos[i];
+        showToast(t(`${loc.name}: a ler comentários ${i + 1}/${blocos.length}…`, `${loc.name}: reading reviews ${i + 1}/${blocos.length}…`));
+        const txt = await groqChat([{ role: 'user', content:
+`Lê estes comentários do Google Maps sobre "${loc.name}" (${loc.category}, Braga). Período: ${b.per === 'recente' ? 'últimos 12 meses' : 'entre 12 e 36 meses atrás'}. Cada linha: [estrelas · mês] texto (pode estar noutra língua).
+
+Em português europeu, sem markdown, máximo 230 palavras, lista:
+PROBLEMAS: cada problema CONCRETO e específico, tal como os visitantes o descrevem (o quê, onde, quando), com a frequência aproximada entre parênteses (ex.: "WC do parque de estacionamento fechados ao domingo (4 comentários)").
+ELOGIOS: cada elogio CONCRETO e específico, com a frequência aproximada.
+Nada de generalidades como "boa experiência" ou "alguns problemas".
 
 Comentários (${b.items.length}):
-${b.items.map(line).join('\n')}` }]);
-        partials.push(`=== ${b.per === 'recente' ? 'ÚLTIMOS 12 MESES' : 'PERÍODO ANTERIOR (12–36 meses)'} · bloco ${i + 1} (${b.items.length} comentários) ===\n${txt}`);
-        if (i < blocks.length - 1) await sleep(8000);
+${b.items.map((r) => `[${r.s}★ · ${r.d.slice(0, 7)}] ${r.t.replace(/\s+/g, ' ').slice(0, 450)}`).join('\n')}` }]);
+        parciais.push(`=== ${b.per === 'recente' ? 'ÚLTIMOS 12 MESES' : 'PERÍODO ANTERIOR (12–36 meses)'} · bloco ${i + 1} ===\n${txt}`);
+        if (i < blocos.length - 1) await sleep(6000);
       }
-      const statsTxt = `Comentários (últimos 3 anos): ${ws.n} · média ${ws.avg.toFixed(2)}★ · positivos (4–5★) ${ws.pos}% · neutros (3★) ${ws.neu}% · negativos (1–2★) ${ws.neg}% · respostas do proprietário ${ws.respRate}%.
-Por trimestre (média★ / % negativos): ${ws.quarters.map((q) => `${q.q} ${q.avg.toFixed(2)}/${q.negPct}%`).join('; ')}.
-Línguas: ${ws.langs.slice(0, 8).map((l) => `${langNamePT(l.code)} ${l.n} (${l.avg.toFixed(2)}★)`).join('; ')}.`;
-      const raw = await groqChat([{ role: 'user', content:
-`És um analista de reputação turística ao serviço do Município de Braga. Local: "${loc.name}" (${loc.category}).
+      const parciaisTxt = parciais.join('\n\n') || '(sem comentários com texto)';
 
-ESTATÍSTICAS REAIS (calculadas a partir das estrelas — não as alteres nem inventes outros números):
-${statsTxt}
+      // 5) Síntese: a IA escreve à volta dos números, não os calcula
+      showToast(t(`${loc.name}: a escrever a síntese…`, `${loc.name}: writing the summary…`));
+      const raw2 = await groqChat([{ role: 'user', content:
+`És analista de reputação turística do Município de Braga. Local: "${loc.name}" (${loc.category}).
 
-RESUMOS PARCIAIS DE UMA AMOSTRA EQUILIBRADA DE COMENTÁRIOS:
-${partials.join('\n\n')}
+NÚMEROS (já calculados — usa-os exatamente assim; não calcules nem escrevas outros números; não compares com outros locais nem fales de rankings ou de respostas aos comentários):
+${numerosTxt}
 
-INSTRUÇÕES:
-- Distingue elogios genéricos de feedback específico e útil.
-- As sugestões devem ser concretas e dirigidas à gestão do local ou ao município.
-- Compara os problemas dos últimos 12 meses com os do período anterior.
-- Escreve em português europeu.
+TEMAS (estado calculado comparando os últimos 12 meses com os 12–36 meses anteriores: persistente = crítica nos dois períodos; novo = só no recente; deixou = só no anterior; forte = elogio frequente):
+${temasTxt}
 
-Responde APENAS com JSON válido, sem markdown:
+LEITURA DOS COMENTÁRIOS (resumos por bloco, com problemas e elogios concretos e a frequência aproximada):
+${parciaisTxt}
+
+Escreve em português europeu, tom institucional e sóbrio. Responde APENAS com JSON:
 {
-  "topThemesPositive": ["máx 6"],
-  "topThemesNegative": ["máx 6"],
-  "keyIssues": ["máx 6 problemas concretos"],
-  "keyPraises": ["máx 6 elogios específicos"],
-  "actionableInsights": ["6 sugestões concretas"],
-  "summaryPT": "4-5 frases que citam a média de estrelas, a tendência e os mercados",
-  "dimensions": {"localizacao": 1-10, "servico": 1-10, "precoQualidade": 1-10, "limpeza": 1-10, "experiencia": 1-10, "acessibilidade": 1-10},
-  "issuesRecent": ["máx 5 problemas mais referidos nos últimos 12 meses"],
-  "issuesPrevious": ["máx 5 problemas mais referidos no período anterior"]
-}` }], true);
-      const ai = parseJSONLoose(raw);
-      const arr = (v: any): string[] => (Array.isArray(v) ? v.filter((x: any) => typeof x === 'string' && x.trim()).slice(0, 8) : []);
+  "titulo": "frase-conclusão com no máximo 12 palavras e sem números",
+  "resumo": "3 a 4 frases que usam os números acima, com os mais importantes entre **asteriscos duplos**",
+  "temas": { "<id do tema>": "uma frase sobre o que os visitantes dizem desse tema" },
+  "pontosFortes": ["até 6 pontos fortes ESPECÍFICOS, tirados da LEITURA DOS COMENTÁRIOS acima, tal como os visitantes os descrevem (ex.: 'Vista panorâmica sobre Braga ao fim da tarde'), máximo 18 palavras cada, sem percentagens nem contagens"],
+  "problemas": ["até 6 problemas ESPECÍFICOS, tirados da LEITURA DOS COMENTÁRIOS acima (ex.: 'Casas de banho do parque fechadas ao fim de semana'), máximo 18 palavras cada, sem percentagens nem contagens"],
+  "problemasRecentes": [ { "problema": "problema ESPECÍFICO dos ÚLTIMOS 12 MESES, máximo 12 palavras", "detalhe": "1 a 2 frases com o que os visitantes descrevem: o quê, onde, quando, em que situação", "estado": "novo (não aparecia no período anterior) ou persiste (já aparecia antes)" } ],
+  "problemasAnteriores": [ { "problema": "problema ESPECÍFICO do PERÍODO ANTERIOR (12–36 meses), máximo 12 palavras", "detalhe": "1 a 2 frases com o que os visitantes descreviam", "estado": "deixou (já não aparece nos últimos 12 meses) ou persiste (continua a aparecer)" } ],
+  "recomendacoes": [ { "titulo": "possível melhoria, em poucas palavras", "texto": "1 a 2 frases: o que os comentários indicam e que diferença poderia fazer" } ]
+}
+Em problemasRecentes e problemasAnteriores, indica até 6 problemas em cada, do mais para o menos frequente, sem números nem percentagens. Nos pontos fortes e problemas, nada de generalidades (\"boa experiência\", \"alguns problemas\"): cada ponto tem de dizer concretamente o quê e, quando os comentários o indicam, onde ou quando. Ordena do mais referido para o menos referido. As recomendações são exatamente 3 possíveis melhorias que os comentários sugerem. O Município não gere este local: não atribuas responsabilidades nem uses imperativos ou obrigações (nada de "o Município deve", "a entidade gestora tem de", "implementar", "criar"). Escreve de forma neutra e indicativa, por exemplo "Os visitantes valorizariam…", "Poderia ajudar…", "Há margem para…".` }], true);
+      const ai = parseJSONLoose(raw2);
+      const permitidos = numerosPermitidos(x, [pos, rk.length]);
+      const resumo = typeof ai.resumo === 'string' && ai.resumo.trim() && numerosCoerentes(ai.resumo, permitidos)
+        ? ai.resumo.trim() : resumoModelo(loc.name, x);
+      const titulo = typeof ai.titulo === 'string' && !/\d/.test(ai.titulo) ? ai.titulo.trim() : '';
+      const notas: Record<string, any> = ai.temas && typeof ai.temas === 'object' ? ai.temas : {};
+      const temasV2 = ativos.map((z) => ({ id: z.id, estado: z.estado, nota: typeof notas[z.id] === 'string' ? notas[z.id] : '', recPos: z.recPos, recNeg: z.recNeg, prevPos: z.prevPos, prevNeg: z.prevNeg }));
+      const recs: { titulo: string; texto: string }[] = (Array.isArray(ai.recomendacoes) ? ai.recomendacoes : [])
+        .filter((r: any) => r && typeof r.titulo === 'string').slice(0, 3)
+        .map((r: any) => ({ titulo: String(r.titulo), texto: typeof r.texto === 'string' ? r.texto : '' }));
+      const lista = (v: any): string[] => (Array.isArray(v) ? v.filter((z: any) => typeof z === 'string' && z.trim() && !z.includes('%')).map((z: string) => z.trim()).slice(0, 6) : []);
+      const pontosFortes = lista(ai.pontosFortes), problemas = lista(ai.problemas);
+      const periodo = (v: any, estados: string[]) => (Array.isArray(v) ? v : [])
+        .filter((z: any) => z && typeof z.problema === 'string' && z.problema.trim()).slice(0, 6)
+        .map((z: any) => ({ problema: String(z.problema).trim(), detalhe: typeof z.detalhe === 'string' ? z.detalhe.trim() : '', estado: estados.find((e) => String(z.estado || '').toLowerCase().startsWith(e)) || estados[0] }));
+      const perRec = periodo(ai.problemasRecentes, ['novo', 'persiste']);
+      const perAnt = periodo(ai.problemasAnteriores, ['deixou', 'persiste']);
+
+      // 6) Análise — mantém os campos antigos para Comparar, Problemas, Relatório e Mapa
+      const nomeTema = (id: string) => TEMAS.find((y) => y.id === id)!.pt;
+      const comEstado = (e: string[]) => temasV2.filter((z) => e.includes(String(z.estado)));
+      const ws = windowStats(stats)!;
+      // Dimensões 0–10: elogios vs críticas nos temas correspondentes, estabilizadas pela proporção geral
+      // de avaliações positivas (evita 10/10 com duas menções). Experiência = índice global do local.
+      const r0 = ws.pos / Math.max(1, ws.pos + ws.neg);
       const dims: Record<string, number> = {};
-      if (ai.dimensions && typeof ai.dimensions === 'object') {
-        for (const [k, v] of Object.entries(ai.dimensions)) { const n = Number(v); if (n >= 1 && n <= 10) dims[k] = n; }
-      }
-      const score = Math.round(ws.avg * 20) / 10;
+      const dimsN: Record<string, number> = {};
+      ([['localizacao', ['paisagem', 'acesso']], ['servico', ['atendimento', 'servicos']], ['precoQualidade', ['preco']], ['limpeza', ['limpeza']], ['acessibilidade', ['acessibilidade']]] as [string, string[]][])
+        .forEach(([k, ids]) => {
+          let p = 0, n = 0;
+          ids.forEach((id) => { const z = temas.find((y) => y.id === id)!; p += z.recPos + z.prevPos; n += z.recNeg + z.prevNeg; });
+          dimsN[k] = p + n;
+          if (p + n >= 3) dims[k] = Math.round(((10 * (p + 5 * r0)) / (p + n + 5)) * 10) / 10;
+        });
+      dims.experiencia = x.idx; dimsN.experiencia = x.n;
       const analysis: Analysis = {
-        sentimentScore: score,
+        sentimentScore: x.idx,
         sentimentBreakdown: { positive: ws.pos, neutral: ws.neu, negative: ws.neg },
-        topThemesPositive: arr(ai.topThemesPositive),
-        topThemesNegative: arr(ai.topThemesNegative),
-        keyIssues: arr(ai.keyIssues),
-        keyPraises: arr(ai.keyPraises),
-        actionableInsights: arr(ai.actionableInsights),
-        summaryPT: typeof ai.summaryPT === 'string' ? ai.summaryPT : '',
-        reviewCount: ws.n,
+        topThemesPositive: comEstado(['forte']).map((z) => nomeTema(z.id)),
+        topThemesNegative: comEstado(['persistente', 'novo']).map((z) => nomeTema(z.id)),
+        keyIssues: problemas.length ? problemas : comEstado(['persistente', 'novo']).map((z) => z.nota || nomeTema(z.id)),
+        keyPraises: pontosFortes.length ? pontosFortes : comEstado(['forte']).map((z) => z.nota || nomeTema(z.id)),
+        actionableInsights: recs.map((r) => (r.texto ? `${r.titulo}: ${r.texto}` : r.titulo)),
+        summaryPT: resumo,
+        reviewCount: x.n,
         dimensions: dims,
-        marketSources: ws.langs.map((l) => langNamePT(l.code)),
-        marketSentiment: ws.langs.filter((l) => l.n >= 5).slice(0, 10).map((l) => ({ market: langNamePT(l.code), score: Math.round(l.avg * 20) / 10, note: `${l.n} comentários · média ${l.avg.toFixed(2)}★` })),
+        marketSources: ws.langs.filter((l) => l.code !== 'none' && l.code !== 'und').map((l) => langNamePT(l.code)),
+        marketSentiment: ws.langs.filter((l) => l.code !== 'none' && l.code !== 'und' && l.n >= 5).slice(0, 10)
+          .map((l) => ({ market: langNamePT(l.code), score: Math.round(l.avg * 20) / 10, note: `${l.n} comentários · média ${l.avg.toFixed(2)}★` })),
         basis: 'estrelas', windowFrom: ws.from, windowTo: ws.to,
-        issuesRecent: arr(ai.issuesRecent),
-        issuesPrevious: arr(ai.issuesPrevious),
+        issuesRecent: perRec.length ? perRec.map((z) => z.problema) : comEstado(['persistente', 'novo']).map((z) => nomeTema(z.id)),
+        issuesPrevious: perAnt.length ? perAnt.map((z) => z.problema) : comEstado(['persistente', 'deixou']).map((z) => nomeTema(z.id)),
+        v2: { n: x.n, titulo, temas: temasV2, recomendacoes: recs, pontosFortes, problemas, dimsN, periodos: { recentes: perRec, anteriores: perAnt }, textRec, textPrev, temasTodos: temas.map((z) => ({ id: z.id, recPos: z.recPos, recNeg: z.recNeg, prevPos: z.prevPos, prevNeg: z.prevNeg })), geradoEm: new Date().toISOString() },
       };
       const nowIso = new Date().toISOString();
-      const snapshot: AnalysisSnapshot = {
-        date: nowIso, score, positive: ws.pos, negative: ws.neg, reviewCount: ws.n,
-        dimensions: dims, topNegative: analysis.topThemesNegative,
-      };
-      // As análises antigas (nota estimada pela IA) não são comparáveis com as novas (estrelas reais):
-      // na primeira análise com estrelas, o histórico recomeça.
+      const snapshot: AnalysisSnapshot = { date: nowIso, score: x.idx, positive: ws.pos, negative: ws.neg, reviewCount: x.n, dimensions: dims, topNegative: analysis.topThemesNegative };
       const history = loc.analysis?.basis === 'estrelas' ? [...(loc.analysisHistory || []), snapshot] : [snapshot];
-      const upd = JSON.parse(JSON.stringify({ analysis, lastAnalyzed: nowIso, analysisHistory: history }));
+      const upd = semIndefinidos({ analysis, lastAnalyzed: nowIso, analysisHistory: history, reviewStats: stats });
       await gravarLocal(loc, upd);
       setLocations((prev) => prev.map((l) => (l.id === loc.id ? { ...l, ...upd } : l)));
       invalidateTrans(loc.id);
@@ -1198,6 +1283,19 @@ Responde APENAS com JSON válido, sem markdown:
       return false;
     } finally {
       setAnalyzing(null);
+    }
+  };
+
+  // Intervenções registadas na ficha (marcadas no gráfico de evolução)
+  const guardarIntervencoes = async (id: string, list: Intervencao[]) => {
+    const l = locations.find((z) => z.id === id);
+    if (!l) return;
+    try {
+      await gravarLocal(l, { interventions: list });
+      setLocations((prev) => prev.map((z) => (z.id === id ? { ...z, interventions: list } : z)));
+      showToast(t('✓ Intervenção registada', '✓ Intervention recorded'));
+    } catch (e: any) {
+      setError(t('Erro ao guardar a intervenção: ', 'Error saving the intervention: ') + (e?.message || ''));
     }
   };
 
@@ -1613,268 +1711,26 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     );
   }
 
-  // ─── PUBLIC REPORT VIEW ─── (when ?r=<id> in URL)
+  // ─── PUBLIC REPORT VIEW ─── (when ?r=<id> in URL): ficha do local só de leitura
   if (publicMode) {
-    if (!detailLoc || !detailLoc.analysis) {
+    if (!detailLoc || (!detailLoc.analysis && !detailLoc.reviewStats)) {
       return (
-        <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+        <div style={{ background: '#15171B', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: "'Public Sans', system-ui, sans-serif" }}>
           <img src={LOGO_URL} alt="Visit Braga" style={{ width: 150, height: 'auto' }} />
-          <p style={{ color: C.textMuted, fontSize: 14 }}>{t('Relatório não encontrado.', 'Report not found.')}</p>
+          <p style={{ color: '#A3A8B1', fontSize: 14 }}>{t('Relatório não encontrado.', 'Report not found.')}</p>
         </div>
       );
     }
-
+    const navBtn = { height: 36, padding: '0 14px', borderRadius: 4, border: '1px solid #2D3139', background: '#1C1F24', color: '#ECEDEF', cursor: 'pointer', fontSize: 13.5, fontWeight: 500, fontFamily: "'Public Sans', system-ui, sans-serif" } as const;
     return (
-      <div style={{ background: C.appGrad, minHeight: '100vh', color: C.text }}>
-        {/* Navegação voltar/início - apenas para quem navegou a partir da app (não para quem recebe o link) */}
+      <div style={{ background: '#15171B', minHeight: '100vh' }}>
         {cameFromApp && (
-          <div className="no-print" style={{ position: 'fixed', top: 20, left: 20, zIndex: 50, display: 'flex', gap: 8 }}>
-            <button onClick={() => window.history.back()} title={t('Voltar', 'Back')} style={{
-              minWidth: 40, height: 40, padding: '0 12px', borderRadius: 10, border: `1px solid ${C.border}`,
-              background: C.cardGrad, color: C.text, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-              boxShadow: C.shadowSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}>← {t('Voltar', 'Back')}</button>
-            <button onClick={goHome} title={t('Início', 'Home')} style={{
-              width: 40, height: 40, borderRadius: 10, border: `1px solid ${C.border}`,
-              background: C.cardGrad, color: C.text, cursor: 'pointer', fontSize: 16,
-              boxShadow: C.shadowSoft, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>🏠</button>
+          <div className="rb-noprint" style={{ display: 'flex', gap: 8, padding: '16px 48px 0', maxWidth: 1120, margin: '0 auto' }}>
+            <button onClick={() => window.history.back()} style={navBtn}>{t('← Voltar', '← Back')}</button>
+            <button onClick={goHome} style={navBtn}>{t('Início', 'Home')}</button>
           </div>
         )}
-
-        {/* Botão exportar PDF (escondido na impressão) */}
-        <button onClick={() => window.print()} className="no-print" style={{
-          position: 'fixed', top: 20, right: 20, zIndex: 50,
-          padding: '10px 18px', borderRadius: 10, border: `1px solid ${C.accent}`,
-          background: C.cardGrad, color: C.accentLight, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-          boxShadow: C.shadowSoft,
-        }}>{t('⬇ Guardar em PDF', '⬇ Save as PDF')}</button>
-
-        {/* Public Header */}
-        <header style={{
-          background: `linear-gradient(180deg, ${C.card} 0%, ${C.bg} 100%)`,
-          borderBottom: `1px solid ${C.border}`, padding: '32px 40px 28px',
-          textAlign: 'center',
-        }}>
-          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 64, width: 'auto', marginBottom: 18 }} />
-          <div style={{
-            width: 64, height: 64, borderRadius: '50%', margin: '0 auto 14px',
-            background: scoreBg(detailLoc.analysis.sentimentScore),
-            border: `2px solid ${scoreColor(detailLoc.analysis.sentimentScore)}55`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30,
-          }}>{categoryIcon(detailLoc.category)}</div>
-          <div style={{ fontSize: 11, color: C.accent, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>
-            {t('Relatório de Reputação Turística', 'Tourism Reputation Report')}
-          </div>
-          <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>{detailLoc.name}</h1>
-          <div style={{ fontSize: 13, color: C.textMuted, marginTop: 8 }}>
-            {catLabel(detailLoc.category)} · {catLabel(detailLoc.platform)} · {detailLoc.analysis.reviewCount || detailLoc.reviews.length} {t('reviews analisadas', 'reviews analysed')}
-          </div>
-        </header>
-
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 30px' }}>
-
-          {/* Hero score */}
-          <div style={{
-            background: scoreBg(detailLoc.analysis.sentimentScore),
-            border: `1px solid ${scoreColor(detailLoc.analysis.sentimentScore)}40`,
-            borderRadius: 14, padding: '28px 32px', marginBottom: 20, boxShadow: C.shadowSoft,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20,
-          }}>
-            <div>
-              <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{t('Score de Reputação', 'Reputation Score')}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: 56, fontWeight: 700, color: scoreColor(detailLoc.analysis.sentimentScore), lineHeight: 1 }}>
-                  {detailLoc.analysis.sentimentScore}
-                </span>
-                <span style={{ fontSize: 22, color: C.textDim }}>/10</span>
-                <span style={{ fontSize: 16, color: scoreColor(detailLoc.analysis.sentimentScore), marginLeft: 12, fontWeight: 600 }}>
-                  {scoreLabel(detailLoc.analysis.sentimentScore)}
-                </span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 24 }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: C.positive }}>{detailLoc.analysis.sentimentBreakdown.positive}%</div>
-                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('Positivo', 'Positive')}</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: C.neutral }}>{detailLoc.analysis.sentimentBreakdown.neutral}%</div>
-                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('Neutro', 'Neutral')}</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: C.negative }}>{detailLoc.analysis.sentimentBreakdown.negative}%</div>
-                <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('Negativo', 'Negative')}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Benchmark vs cidade */}
-          {(() => {
-            const sc = detailLoc.analysis!.sentimentScore;
-            const city = avgScore ?? sc;
-            const delta = +(sc - city).toFixed(1);
-            const ranked = analyzed
-              .filter((l) => l.analysis)
-              .sort((a, b) => (b.analysis!.sentimentScore || 0) - (a.analysis!.sentimentScore || 0));
-            const rank = ranked.findIndex((l) => l.id === detailLoc.id) + 1;
-            const rob = robustness(detailLoc);
-            const cell = (label: string, value: ReactNode, sub: string) => (
-              <div style={{ flex: 1, minWidth: 150, padding: '18px 22px' }}>
-                <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>{label}</div>
-                <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.05 }}>{value}</div>
-                <div style={{ fontSize: 11, color: C.textDim, marginTop: 5 }}>{sub}</div>
-              </div>
-            );
-            return (
-              <div style={{
-                display: 'flex', flexWrap: 'wrap', background: C.cardGrad, border: `1px solid ${C.border}`,
-                borderRadius: 14, marginBottom: 20, boxShadow: C.shadow, overflow: 'hidden',
-              }}>
-                {cell(t('Média da cidade', 'City average'),
-                  <span style={{ color: delta >= 0 ? C.positive : C.negative }}>{delta >= 0 ? '+' : ''}{delta} <span style={{ fontSize: 13, color: C.textDim, fontWeight: 400 }}>pts</span></span>,
-                  `${delta >= 0 ? t('acima', 'above') : t('abaixo', 'below')} ${t('da média', 'the average')} (${city.toFixed(1)}/10)`)}
-                <div style={{ width: 1, background: C.border }} />
-                {rank > 0 && cell(t('Posição na cidade', 'City ranking'),
-                  <span>{rank}<span style={{ fontSize: 14, color: C.textDim, fontWeight: 400 }}>{t('.º', '')}</span> <span style={{ fontSize: 13, color: C.textDim, fontWeight: 400 }}>{t('de', 'of')} {ranked.length}</span></span>,
-                  t('entre os locais avaliados', 'among evaluated places'))}
-                <div style={{ width: 1, background: C.border }} />
-                {cell(t('Robustez da análise', 'Analysis robustness'),
-                  <span style={{ color: rob.color }}>{robLabel(rob.level)}</span>,
-                  `${rob.n} ${t('reviews analisadas', 'reviews analysed')}${rob.coverage !== null ? ` · ${rob.coverage}% ${t('do Google', 'of Google')}` : ''}`)}
-              </div>
-            );
-          })()}
-
-          {/* Comparação com Google */}
-          <GoogleCompare loc={detailLoc} />
-
-          {/* Summary */}
-          <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{t('Resumo Analítico', 'Analytical Summary')}</div>
-            <p style={{ fontSize: 15, color: C.text, lineHeight: 1.8, margin: 0 }}>{dispAnalysis(detailLoc).summaryPT}</p>
-            {detailLoc.analysis.marketSources && detailLoc.analysis.marketSources.length > 0 && (
-              <div style={{ marginTop: 16, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: C.textDim }}>{t('Mercados emissores:', 'Source markets:')}</span>
-                {detailLoc.analysis.marketSources.map((m, i) => (
-                  <span key={i} style={{ fontSize: 11, background: C.infoBg, color: C.info, padding: '3px 10px', borderRadius: 8 }}>{m}</span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Evolução temporal */}
-          {detailLoc.analysisHistory && detailLoc.analysisHistory.length >= 2 && (
-            <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-                <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('Evolução da Reputação ao Longo do Tempo', 'Reputation Evolution Over Time')}</div>
-                {(() => {
-                  const h = detailLoc.analysisHistory!;
-                  const delta = +(h[h.length - 1].score - h[0].score).toFixed(1);
-                  const col = delta > 0 ? C.positive : delta < 0 ? C.negative : C.textMuted;
-                  return <span style={{ fontSize: 13, fontWeight: 700, color: col, background: delta > 0 ? C.positiveBg : delta < 0 ? C.negativeBg : C.border, padding: '3px 12px', borderRadius: 8 }}>
-                    {delta > 0 ? '↑ +' : delta < 0 ? '↓ ' : '→ '}{delta} {t('pts desde a 1ª análise', 'pts since first analysis')}
-                  </span>;
-                })()}
-              </div>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={detailLoc.analysisHistory.map((s) => ({ label: new Date(s.date).toLocaleDateString(t('pt-PT', 'en-GB'), { day: '2-digit', month: 'short' }), score: s.score, negativo: s.negative }))} margin={{ top: 6, right: 12, left: -18, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                  <XAxis dataKey="label" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
-                  <YAxis domain={[0, 10]} stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
-                  <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} />
-                  <Line type="monotone" dataKey="score" name="Score /10" stroke={C.accent} strokeWidth={2.5} dot={{ r: 4, fill: C.accent }} />
-                  <Line type="monotone" dataKey="negativo" name={t('% Negativo', '% Negative')} stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Dimensions */}
-          <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 18 }}>{t('Dimensões de Avaliação', 'Evaluation Dimensions')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-              {DIMS.map((d, i) => {
-                const val = detailLoc.analysis!.dimensions?.[d] || 0;
-                return (
-                  <div key={i}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 13, color: C.textMuted }}>{dimLabelI(i)}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(val) }}>{val}/10</span>
-                    </div>
-                    <div style={{ height: 8, borderRadius: 4, background: C.border, overflow: 'hidden' }}>
-                      <div style={{ width: `${val * 10}%`, height: '100%', background: scoreColor(val), borderRadius: 4 }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Praises + Issues */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-            {[
-              { title: t('✦ Pontos Fortes', '✦ Strengths'), items: dispAnalysis(detailLoc).keyPraises || [], color: C.positive, sign: '+' },
-              { title: t('⚠ Problemas Identificados', '⚠ Issues Identified'), items: dispAnalysis(detailLoc).keyIssues || [], color: C.negative, sign: '−' },
-            ].map((col, ci) => (
-              <div key={ci} style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '22px 26px' }}>
-                <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{col.title}</div>
-                {col.items.map((p, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, padding: '9px 0', borderBottom: i < col.items.length - 1 ? `1px solid ${C.border}` : 'none', alignItems: 'flex-start' }}>
-                    <span style={{ color: col.color, fontSize: 14, flexShrink: 0, marginTop: 1, fontWeight: 700 }}>{col.sign}</span>
-                    <span style={{ fontSize: 13, lineHeight: 1.6 }}>{p}</span>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          {/* Actionable Insights */}
-          <div style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 28px', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('💡 Sugestões Acionáveis para a Gestão', '💡 Actionable Suggestions for Management')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-              {(dispAnalysis(detailLoc).actionableInsights || []).map((ins, i) => (
-                <div key={i} style={{ display: 'flex', gap: 10, padding: '12px 16px', background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: 12, color: C.accent, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>{i + 1}.</span>
-                  <span style={{ fontSize: 13, lineHeight: 1.6 }}>{ins}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Themes */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
-            {[
-              { title: t('Temas Positivos', 'Positive Themes'), items: dispAnalysis(detailLoc).topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
-              { title: t('Temas Negativos', 'Negative Themes'), items: dispAnalysis(detailLoc).topThemesNegative || [], color: C.negative, bg: C.negativeBg, prefix: '−' },
-            ].map((col, ci) => (
-              <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 26px' }}>
-                <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{col.title}</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {col.items.map((t, i) => (
-                    <span key={i} style={{ fontSize: 12, background: col.bg, color: col.color, padding: '6px 12px', borderRadius: 20 }}>{col.prefix} {t}</span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Footer */}
-          <footer style={{
-            textAlign: 'center', padding: '20px 0 40px',
-            borderTop: `1px solid ${C.border}`, marginTop: 20,
-          }}>
-            <img src={LOGO_URL} alt="Visit Braga" style={{ height: 44, width: 'auto', marginBottom: 8 }} />
-            <div style={{ fontSize: 11, color: C.textDim, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              {t('Município de Braga · Reputação Turística', 'Municipality of Braga · Tourism Reputation')}
-            </div>
-            {detailLoc.lastAnalyzed && (
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>
-                {t('Análise gerada em', 'Analysis generated on')} {new Date(detailLoc.lastAnalyzed).toLocaleDateString(t('pt-PT', 'en-GB'), { day: '2-digit', month: 'long', year: 'numeric' })}
-              </div>
-            )}
-          </footer>
-        </div>
+        <FichaLocal loc={detailLoc} locations={locations} readOnly catLabel={catLabel} />
       </div>
     );
   }
@@ -1964,434 +1820,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
         {/* ── OVERVIEW ── */}
         {view === 'overview' && (
-          <div style={{ padding: '28px 30px' }}>
-            <div style={{ marginBottom: 26 }}>
-              <div style={{ fontSize: 10.5, color: C.accent, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 8 }}>Município de Braga · Visit Braga</div>
-              <h1 style={{ fontSize: 30, fontWeight: 600, margin: '0 0 5px' }}>{t('Visão Geral', 'Overview')}</h1>
-              <p style={{ color: C.textMuted, fontSize: 13.5, margin: 0 }}>{t('Análise consolidada de reputação turística do destino', 'Consolidated tourism reputation analysis of the destination')}</p>
-            </div>
-
-            {analyzed.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '80px 20px' }}>
-                <div style={{ fontSize: 52, marginBottom: 16, opacity: 0.25 }}>📊</div>
-                <h2 style={{ fontSize: 20, marginBottom: 8, color: C.textMuted }}>{t('Sem dados ainda', 'No data yet')}</h2>
-                <p style={{ color: C.textDim, fontSize: 13, maxWidth: 360, margin: '0 auto 24px', lineHeight: 1.6 }}>
-                  {t('Adiciona locais, cola as reviews limpas e analisa com IA para ver o painel completo.', 'Add places, paste the cleaned reviews and run an AI analysis to see the full dashboard.')}
-                </p>
-                <button onClick={() => { setView('locais'); setShowAdd(true); }}
-                  style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: C.accent, color: C.bg, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                  {t('+ Adicionar Primeiro Local', '+ Add First Place')}
-                </button>
-              </div>
-            ) : (
-              <>
-                {/* KPIs */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
-                  {[
-                    { label: t('Score Global', 'Overall Score'), value: avgScore!.toFixed(1), unit: '/10', sub: scoreLabel(avgScore!), color: scoreColor(avgScore!) },
-                    { label: t('Locais Analisados', 'Analysed Places'), value: String(analyzed.length), unit: '', sub: `${t('de', 'of')} ${locations.length} total`, color: C.accent },
-                    { label: t('Reviews Processadas', 'Reviews Processed'), value: String(totalReviews), unit: '', sub: t('análise IA', 'AI analysis'), color: C.accentLight },
-                    { label: t('Problemas Detetados', 'Issues Detected'), value: String(allIssues.length), unit: '', sub: t('issues identificadas', 'issues identified'), color: C.negative },
-                    { label: t('Mercados Emissores', 'Source Markets'), value: String(Array.from(new Set(allMarkets)).length), unit: '', sub: t('idiomas/países', 'languages/countries'), color: C.info },
-                  ].map((k, i) => (
-                    <div key={i} className="rb-card" style={{ background: C.cardGrad, border: `1px solid ${C.border}`, borderRadius: 14, padding: '20px 22px', boxShadow: C.shadow }}>
-                      <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>{k.label}</div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 5 }}>
-                        <span style={{ fontSize: 30, fontWeight: 700, color: k.color, lineHeight: 1 }}>{k.value}</span>
-                        {k.unit && <span style={{ fontSize: 13, color: C.textDim }}>{k.unit}</span>}
-                      </div>
-                      <div style={{ fontSize: 11, color: k.color, opacity: 0.8 }}>{k.sub}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* PRIORIDADES DE MONITORIZAÇÃO */}
-                {priorityLocs.length > 0 && (
-                  <div style={{ background: C.card, border: `1px solid ${C.negative}30`, borderRadius: 12, padding: '18px 22px', marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: C.negative, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {t('⚠ Locais a Acompanhar - menor reputação', '⚠ Places to Watch - lower reputation')}
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                      {priorityLocs.map((l) => {
-                        const sc = l.analysis!.sentimentScore;
-                        const issue = dispAnalysis(l).keyIssues?.[0];
-                        return (
-                          <div key={l.id} onClick={() => { setDetailId(l.id); setView('detalhe'); }}
-                            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: C.bg, cursor: 'pointer', border: `1px solid ${C.border}` }}>
-                            <span style={{ fontSize: 20 }}>{categoryIcon(l.category)}</span>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.name}</div>
-                              {issue && <div style={{ fontSize: 11, color: C.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{issue}</div>}
-                            </div>
-                            <span style={{ fontSize: 16, fontWeight: 700, color: scoreColor(sc), background: scoreBg(sc), padding: '4px 12px', borderRadius: 8 }}>{sc}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Category Stats */}
-                {categoryStats.length > 0 && (
-                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 22px', marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{t('Score Médio por Categoria', 'Average Score by Category')}</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(categoryStats.length, 6)}, 1fr)`, gap: 12 }}>
-                      {categoryStats.map((s) => (
-                        <div key={s.cat} style={{ background: C.bg, borderRadius: 8, padding: '14px 16px', border: `1px solid ${C.border}` }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                            <span style={{ fontSize: 14 }}>{categoryIcon(s.cat)}</span>
-                            <span style={{ fontSize: 11, color: C.textMuted }}>{catLabel(s.cat)}</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                            <span style={{ fontSize: 20, fontWeight: 700, color: scoreColor(s.avg) }}>{s.avg}</span>
-                            <span style={{ fontSize: 11, color: C.textDim }}>/10</span>
-                          </div>
-                          <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{s.count} {t(s.count !== 1 ? 'locais' : 'local', s.count !== 1 ? 'places' : 'place')}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Compact Ranking + Radar */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
-                  {/* Compact ranking list */}
-                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('Ranking por Sentimento', 'Ranking by Sentiment')}</div>
-                      <div style={{ fontSize: 11, color: C.textDim }}>{sortedAnalyzed.length} {t('locais', 'places')}</div>
-                    </div>
-                    <div style={{ maxHeight: 560, overflowY: 'auto', paddingRight: 4 }}>
-                      {sortedAnalyzed.map((loc, i) => {
-                        const sc = loc.analysis!.sentimentScore;
-                        return (
-                          <div key={loc.id} onClick={() => { setDetailId(loc.id); setView('detalhe'); }}
-                            style={{
-                              display: 'grid', gridTemplateColumns: '28px 1fr 110px 50px',
-                              gap: 12, alignItems: 'center', padding: '7px 8px',
-                              borderRadius: 6, cursor: 'pointer', transition: 'background 0.1s',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = C.bg)}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                            <span style={{ fontSize: 11, color: C.textDim, textAlign: 'right' }}>{i + 1}.</span>
-                            <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              <span style={{ marginRight: 6 }}>{categoryIcon(loc.category)}</span>{loc.name}
-                            </span>
-                            <div style={{ height: 6, borderRadius: 3, background: C.border, overflow: 'hidden' }}>
-                              <div style={{ width: `${sc * 10}%`, height: '100%', background: scoreColor(sc), borderRadius: 3 }} />
-                            </div>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: scoreColor(sc), textAlign: 'right' }}>{sc}/10</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Radar */}
-                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{t('Dimensões Médias', 'Average Dimensions')}</div>
-                    <ResponsiveContainer width="100%" height={260}>
-                      <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="78%">
-                        <PolarGrid stroke={C.border} />
-                        <PolarAngleAxis dataKey="dimension" tick={{ fill: C.textMuted, fontSize: 10 }} />
-                        <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-                        <Radar dataKey="value" stroke={C.accent} fill={C.accent} fillOpacity={0.22} strokeWidth={2} dot={{ fill: C.accent, r: 4 }} />
-                        <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12 }} />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                    <div style={{ marginTop: 8 }}>
-                      {radarData.map((d, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: i < radarData.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                          <span style={{ fontSize: 11, color: C.textMuted }}>{d.dimension}</span>
-                          <span style={{ fontSize: 11, fontWeight: 600, color: scoreColor(d.value) }}>{d.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Three-col panels */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
-                  {[
-                    { title: t('✦ Elogios Frequentes', '✦ Frequent Praises'), items: topPraises, color: C.positive, bg: C.positiveBg },
-                    { title: t('⚠ Problemas Recorrentes', '⚠ Recurring Issues'), items: topProblems, color: C.negative, bg: C.negativeBg },
-                  ].map((col, ci) => (
-                    <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 22px' }}>
-                      <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{col.title}</div>
-                      {col.items.length === 0 && <p style={{ color: C.textDim, fontSize: 13 }}>{t('Sem dados', 'No data')}</p>}
-                      {col.items.map(([text, count], i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, padding: '7px 0', borderBottom: i < col.items.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                          <span style={{ fontSize: 12, lineHeight: 1.45, flex: 1 }}>{text}</span>
-                          {count > 1 && <span style={{ fontSize: 10, color: col.color, background: col.bg, padding: '2px 7px', borderRadius: 8, whiteSpace: 'nowrap', flexShrink: 0 }}>{count}×</span>}
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-
-                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 22px' }}>
-                    <div style={{ fontSize: 11, color: C.info, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{t('🌍 Mercados Emissores', '🌍 Source Markets')}</div>
-                    {marketFreq.length === 0
-                      ? <p style={{ color: C.textDim, fontSize: 13, lineHeight: 1.5 }}>{t('Analisa locais para detetar mercados emissores', 'Analyse places to detect source markets')}</p>
-                      : marketFreq.map(([market, count], i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < marketFreq.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                          <span style={{ fontSize: 12 }}>{market}</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ width: 50, height: 4, borderRadius: 2, background: C.border, overflow: 'hidden' }}>
-                              <div style={{ width: `${(count / (marketFreq[0]?.[1] || 1)) * 100}%`, height: '100%', background: C.info, borderRadius: 2 }} />
-                            </div>
-                            <span style={{ fontSize: 10, color: C.textDim, minWidth: 16, textAlign: 'right' }}>{count}</span>
-                          </div>
-                        </div>
-                      ))
-                    }
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('💡 Ações Prioritárias para o Município', '💡 Priority Actions for the Municipality')}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-                    {insightDeduped.map((ins, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 14px', background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, alignItems: 'flex-start' }}>
-                        <span style={{ fontSize: 11, color: C.accent, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>{i + 1}.</span>
-                        <span style={{ fontSize: 13, lineHeight: 1.55 }}>{ins}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Location cards */}
-                <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{t('Detalhe por Local - clica para análise completa', 'Detail by Place - click for full analysis')}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
-                  {sortedAnalyzed.map((loc) => (
-                    <div key={loc.id} onClick={() => { setDetailId(loc.id); setView('detalhe'); }}
-                      style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, cursor: 'pointer', transition: 'border-color 0.15s' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.accent + '60')}
-                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = C.border)}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <span style={{ fontSize: 18 }}>{categoryIcon(loc.category)}</span>
-                            <h4 style={{ fontSize: 15, fontWeight: 600, margin: 0, lineHeight: 1.2 }}>{loc.name}</h4>
-                          </div>
-                          <span style={{ fontSize: 11, color: C.textDim }}>{catLabel(loc.category)} · {catLabel(loc.platform)}</span>
-                        </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 8 }}>
-                          <div style={{ fontSize: 22, fontWeight: 700, color: scoreColor(loc.analysis!.sentimentScore), lineHeight: 1 }}>{loc.analysis!.sentimentScore}/10</div>
-                          <div style={{ fontSize: 10, color: scoreColor(loc.analysis!.sentimentScore), marginTop: 2 }}>{scoreLabel(loc.analysis!.sentimentScore)}</div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', marginBottom: 12, gap: 1 }}>
-                        <div style={{ width: `${loc.analysis!.sentimentBreakdown.positive}%`, background: C.positive }} />
-                        <div style={{ width: `${loc.analysis!.sentimentBreakdown.neutral}%`, background: C.neutral }} />
-                        <div style={{ width: `${loc.analysis!.sentimentBreakdown.negative}%`, background: C.negative }} />
-                      </div>
-                      <p style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.55, margin: '0 0 12px' }}>
-                        {dispAnalysis(loc).summaryPT}
-                      </p>
-                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                        {dispAnalysis(loc).topThemesPositive?.slice(0, 2).map((t, i) => (
-                          <span key={i} style={{ fontSize: 10, background: C.positiveBg, color: C.positive, padding: '3px 8px', borderRadius: 10 }}>+ {t}</span>
-                        ))}
-                        {dispAnalysis(loc).topThemesNegative?.slice(0, 2).map((t, i) => (
-                          <span key={i} style={{ fontSize: 10, background: C.negativeBg, color: C.negative, padding: '3px 8px', borderRadius: 10 }}>− {t}</span>
-                        ))}
-                      </div>
-                      <div style={{ marginTop: 10, fontSize: 10, color: C.textDim }}>{loc.analysis!.reviewCount || loc.reviews.length} reviews · {t('Ver análise completa →', 'View full analysis →')}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <VisaoGeral locations={locations} onOpen={(id) => { setDetailId(id); setView('detalhe'); }} onOpenList={() => setView('locais')} onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} />
         )}
 
         {/* ── LOCAIS ── */}
         {view === 'locais' && (
-          <div style={{ padding: '28px 30px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-              <div>
-                <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>{t('Locais Monitorizados', 'Monitored Places')}</h1>
-                <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{locations.length} {t(locations.length !== 1 ? 'locais' : 'local', locations.length !== 1 ? 'places' : 'place')} · {analyzed.length} {t(analyzed.length !== 1 ? 'analisados' : 'analisado', 'analysed')}</p>
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button onClick={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }}
-                  style={{ padding: '10px 18px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, cursor: 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                  {t('📥 Importar comentários', '📥 Import reviews')}
-                </button>
-                <button onClick={analyzeAll} disabled={!!analyzing || !!batchRun || !locations.some((l) => l.reviewStats)}
-                  style={{ padding: '10px 18px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: !!analyzing || !!batchRun || !locations.some((l) => l.reviewStats) ? C.textDim : C.text, cursor: !!analyzing || !!batchRun || !locations.some((l) => l.reviewStats) ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                  {t('🤖 Analisar todos', '🤖 Analyse all')}
-                </button>
-                <button onClick={() => setShowAdd(true)}
-                  style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: C.accent, color: C.bg, cursor: 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                  {t('+ Adicionar Local', '+ Add Place')}
-                </button>
-              </div>
-            </div>
-            {batchRun && (
-              <div style={{ background: C.card, border: `1px solid ${C.accent}66`, borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.text }}>
-                🤖 {t('A analisar', 'Analysing')} {batchRun.i}/{batchRun.total}: <strong>{batchRun.name}</strong> — {t('mantém esta página aberta até ao fim.', 'keep this page open until it finishes.')}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-              <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder={t('🔍  Pesquisar locais…', '🔍  Search places…')}
-                style={{ ...IS, maxWidth: 320, flex: 1 }} />
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {['Todos', ...CATEGORIES].map((cat) => (
-                  <button key={cat} onClick={() => setFilterCat(cat)}
-                    style={{
-                      padding: '7px 14px', borderRadius: 20,
-                      border: `1px solid ${filterCat === cat ? C.accent : C.border}`,
-                      background: filterCat === cat ? C.accentBg : 'transparent',
-                      color: filterCat === cat ? C.accent : C.textMuted,
-                      cursor: 'pointer', fontSize: 12, fontWeight: filterCat === cat ? 600 : 400,
-                    }}>
-                    {cat !== 'Todos' && filterCat === cat ? categoryIcon(cat) + ' ' : ''}{cat === 'Todos' ? t('Todos', 'All') : catLabel(cat)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {searchQ && (
-              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>
-                {filteredLocations.length} {t(filteredLocations.length !== 1 ? 'resultados' : 'resultado', filteredLocations.length !== 1 ? 'results' : 'result')} {t('para', 'for')} &quot;{searchQ}&quot;
-              </div>
-            )}
-
-            {filteredLocations.length === 0 && (
-              <p style={{ textAlign: 'center', padding: 60, color: C.textMuted, fontSize: 14 }}>
-                {locations.length === 0 ? t('Nenhum local adicionado ainda.', 'No places added yet.') : t('Nenhum resultado encontrado.', 'No results found.')}
-              </p>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {filteredLocations.map((loc) => {
-                const isOpen = selId === loc.id;
-                const isAnalyzing = analyzing === loc.id;
-                return (
-                  <div key={loc.id} style={{ background: isOpen ? C.cardHover : C.card, border: `1px solid ${isOpen ? C.accent + '50' : C.border}`, borderRadius: 12, overflow: 'hidden', transition: 'all 0.15s' }}>
-                    <div onClick={() => setSelId(isOpen ? null : loc.id)}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', cursor: 'pointer' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{
-                          width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-                          background: loc.analysis ? scoreBg(loc.analysis.sentimentScore) : C.border,
-                          border: `1px solid ${loc.analysis ? scoreColor(loc.analysis.sentimentScore) + '40' : C.borderLight}`,
-                        }}>{categoryIcon(loc.category)}</div>
-                        <div>
-                          <h4 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 3px' }}>{loc.name}</h4>
-                          <span style={{ fontSize: 11, color: C.textDim }}>
-                            {catLabel(loc.category)} · {catLabel(loc.platform)} · {revCount(loc)} review{revCount(loc) !== 1 ? 's' : ''}{loc.reviewStats ? ` · ★ ${(windowStats(loc.reviewStats)?.avg ?? 0).toFixed(2)} · ${t('3 anos', '3 years')}` : ''}
-                            {loc.coords && <span style={{ marginLeft: 6, color: C.info }}>· 📍 geo</span>}
-                          </span>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        {loc.analysis ? (
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 20, fontWeight: 700, color: scoreColor(loc.analysis.sentimentScore), lineHeight: 1 }}>{loc.analysis.sentimentScore}/10</div>
-                            <div style={{ fontSize: 10, color: scoreColor(loc.analysis.sentimentScore) }}>{scoreLabel(loc.analysis.sentimentScore)}</div>
-                          </div>
-                        ) : loc.reviews.length > 0 ? (
-                          <span style={{ fontSize: 11, color: C.neutral, background: C.neutralBg, padding: '4px 10px', borderRadius: 8 }}>{t('Por analisar', 'Not analysed')}</span>
-                        ) : (
-                          <span style={{ fontSize: 11, color: C.textDim, background: C.border, padding: '4px 10px', borderRadius: 8 }}>{t('Sem reviews', 'No reviews')}</span>
-                        )}
-                        <button onClick={(e) => { e.stopPropagation(); startEdit(loc); }}
-                          title={t('Editar', 'Edit')}
-                          style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 12 }}>✎</button>
-                        <button onClick={(e) => { e.stopPropagation(); if (confirm(t(`Apagar "${loc.name}"?`, `Delete "${loc.name}"?`))) deleteLoc(loc.id); }}
-                          title={t('Apagar', 'Delete')}
-                          style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, cursor: 'pointer', fontSize: 12 }}>✕</button>
-                      </div>
-                    </div>
-
-                    {isOpen && (
-                      <div style={{ borderTop: `1px solid ${C.border}`, padding: '16px 20px' }}>
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-                          <button onClick={(e) => { e.stopPropagation(); setSelId(loc.id); setShowReview(true); }}
-                            style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
-                            {t('📋 Colar Reviews', '📋 Paste Reviews')}
-                          </button>
-                          <button onClick={(e) => { e.stopPropagation(); analyze(loc.id); }}
-                            disabled={revCount(loc) === 0 || !!analyzing}
-                            style={{
-                              padding: '8px 16px', borderRadius: 8, border: 'none',
-                              background: revCount(loc) === 0 || !!analyzing ? C.border : C.accent,
-                              color: revCount(loc) === 0 || !!analyzing ? C.textDim : C.bg,
-                              cursor: revCount(loc) === 0 || !!analyzing ? 'not-allowed' : 'pointer',
-                              fontSize: 12, fontWeight: 600,
-                            }}>
-                            {isAnalyzing ? t('⏳ A analisar…', '⏳ Analysing…') : t('🤖 Analisar com IA', '🤖 Analyse with AI')}
-                          </button>
-                          {loc.analysis && (
-                            <>
-                              <button onClick={(e) => { e.stopPropagation(); setDetailId(loc.id); setView('detalhe'); }}
-                                style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 12 }}>
-                                {t('Ver Análise Completa →', 'View Full Analysis →')}
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); copyShareLink(loc.id); }}
-                                style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${copiedLinkId === loc.id ? C.positive : C.border}`, background: copiedLinkId === loc.id ? C.positiveBg : 'transparent', color: copiedLinkId === loc.id ? C.positive : C.textMuted, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
-                                {copiedLinkId === loc.id ? t('✓ Link copiado', '✓ Link copied') : t('🔗 Link Partilhável', '🔗 Shareable Link')}
-                              </button>
-                            </>
-                          )}
-                        </div>
-
-                        {error && analyzing === null && (
-                          <p style={{ color: C.negative, fontSize: 12, margin: '0 0 12px' }}>{error}</p>
-                        )}
-
-                        {loc.analysis && (
-                          <div style={{ background: C.bg, borderRadius: 10, padding: 16, marginBottom: 14 }}>
-                            <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: 8, gap: 1 }}>
-                              <div style={{ width: `${loc.analysis.sentimentBreakdown.positive}%`, background: C.positive }} />
-                              <div style={{ width: `${loc.analysis.sentimentBreakdown.neutral}%`, background: C.neutral }} />
-                              <div style={{ width: `${loc.analysis.sentimentBreakdown.negative}%`, background: C.negative }} />
-                            </div>
-                            <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.textDim, marginBottom: 12, flexWrap: 'wrap' }}>
-                              <span style={{ color: C.positive }}>▮ {loc.analysis.sentimentBreakdown.positive}% pos</span>
-                              <span style={{ color: C.neutral }}>▮ {loc.analysis.sentimentBreakdown.neutral}% neu</span>
-                              <span style={{ color: C.negative }}>▮ {loc.analysis.sentimentBreakdown.negative}% neg</span>
-                              <span style={{ marginLeft: 'auto' }}>{t('Analisado em', 'Analysed on')} {new Date(loc.lastAnalyzed!).toLocaleDateString(t('pt-PT', 'en-GB'))}</span>
-                            </div>
-                            <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, margin: '0 0 14px' }}>{dispAnalysis(loc).summaryPT}</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                              <div>
-                                <div style={{ fontSize: 10, color: C.positive, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{t('Pontos Fortes', 'Strengths')}</div>
-                                {dispAnalysis(loc).keyPraises?.map((p, i) => <div key={i} style={{ fontSize: 12, padding: '3px 0', color: C.text, lineHeight: 1.4 }}>+ {p}</div>)}
-                              </div>
-                              <div>
-                                <div style={{ fontSize: 10, color: C.negative, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{t('Problemas', 'Issues')}</div>
-                                {dispAnalysis(loc).keyIssues?.map((p, i) => <div key={i} style={{ fontSize: 12, padding: '3px 0', color: C.text, lineHeight: 1.4 }}>− {p}</div>)}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {loc.reviews.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 10, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{t('Reviews Coladas', 'Pasted Reviews')} ({loc.reviews.length})</div>
-                            <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {loc.reviews.map((rev) => (
-                                <div key={rev.id} style={{ background: C.bg, borderRadius: 8, padding: '8px 12px', fontSize: 12, color: C.textMuted, lineHeight: 1.5, display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-                                  <span style={{ flex: 1 }}>{rev.text.slice(0, 130)}{rev.text.length > 130 ? '…' : ''}</span>
-                                  <button onClick={() => deleteReview(loc.id, rev.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 11, flexShrink: 0 }}>✕</button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <LocaisLista locations={locations} analyzing={analyzing} batchRun={batchRun} catLabel={catLabel}
+            onOpen={(id) => { setDetailId(id); setView('detalhe'); }} onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} onAnalyzeAll={analyzeAll} onAdd={() => setShowAdd(true)} />
         )}
 
         {/* ── MAPA ── */}
@@ -2422,338 +1857,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           </div>
         )}
 
-        {/* ── DETALHE ── */}
-        {view === 'detalhe' && (
-          <div style={{ padding: '28px 30px' }}>
-            <button onClick={() => setView('overview')}
-              style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', fontSize: 13, marginBottom: 18, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-              ← Voltar ao painel
-            </button>
-
-            {!detailLoc ? (
-              <p style={{ color: C.textMuted }}>Local não encontrado.</p>
-            ) : (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <span style={{ fontSize: 40 }}>{categoryIcon(detailLoc.category)}</span>
-                    <div>
-                      <h1 style={{ fontSize: 26, fontWeight: 700, margin: '0 0 6px', letterSpacing: '-0.02em' }}>{detailLoc.name}</h1>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span style={{ fontSize: 12, color: C.textDim, background: C.border, padding: '3px 10px', borderRadius: 8 }}>{catLabel(detailLoc.category)}</span>
-                        <span style={{ fontSize: 12, color: C.textDim, background: C.border, padding: '3px 10px', borderRadius: 8 }}>{catLabel(detailLoc.platform)}</span>
-                        {detailLoc.coords && <span style={{ fontSize: 11, color: C.info }}>📍 {detailLoc.coords[0].toFixed(4)}, {detailLoc.coords[1].toFixed(4)}</span>}
-                        {detailLoc.lastAnalyzed && <span style={{ fontSize: 11, color: C.textDim }}>Analisado a {new Date(detailLoc.lastAnalyzed).toLocaleString('pt-PT')}</span>}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <button onClick={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }}
-                      style={{ padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-                      {t('📥 Importar comentários', '📥 Import reviews')}
-                    </button>
-                    <button onClick={() => { setSelId(detailLoc.id); setShowReview(true); }}
-                      style={{ padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: 'transparent', color: C.accent, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
-                      {t('📋 Colar Reviews', '📋 Paste Reviews')}
-                    </button>
-                    <button onClick={() => analyze(detailLoc.id)} disabled={revCount(detailLoc) === 0 || !!analyzing}
-                      style={{
-                        padding: '9px 16px', borderRadius: 8, border: 'none',
-                        background: revCount(detailLoc) === 0 || !!analyzing ? C.border : C.accent,
-                        color: revCount(detailLoc) === 0 || !!analyzing ? C.textDim : C.bg,
-                        cursor: revCount(detailLoc) === 0 || !!analyzing ? 'not-allowed' : 'pointer',
-                        fontSize: 12, fontWeight: 600,
-                      }}>
-                      {analyzing === detailLoc.id ? '⏳ A analisar…' : '🤖 Reanalisar com IA'}
-                    </button>
-                    {detailLoc.analysis && (
-                      <>
-                        <button onClick={() => copyShareLink(detailLoc.id)}
-                          style={{ padding: '9px 16px', borderRadius: 8, border: `1px solid ${copiedLinkId === detailLoc.id ? C.positive : C.border}`, background: copiedLinkId === detailLoc.id ? C.positiveBg : 'transparent', color: copiedLinkId === detailLoc.id ? C.positive : C.textMuted, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
-                          {copiedLinkId === detailLoc.id ? '✓ Link copiado' : '🔗 Link Partilhável'}
-                        </button>
-                        <div style={{ background: scoreBg(detailLoc.analysis.sentimentScore), border: `1px solid ${scoreColor(detailLoc.analysis.sentimentScore)}40`, borderRadius: 10, padding: '10px 18px', textAlign: 'center' }}>
-                          <div style={{ fontSize: 36, fontWeight: 700, color: scoreColor(detailLoc.analysis.sentimentScore), lineHeight: 1 }}>{detailLoc.analysis.sentimentScore}</div>
-                          <div style={{ fontSize: 11, color: scoreColor(detailLoc.analysis.sentimentScore), marginTop: 2 }}>/10 - {scoreLabel(detailLoc.analysis.sentimentScore)}</div>
-                          <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>{detailLoc.analysis.reviewCount || detailLoc.reviews.length} reviews</div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {error && <p style={{ color: C.negative, fontSize: 13, marginBottom: 14 }}>{error}</p>}
-
-                {!detailLoc.analysis ? (
-                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: 'center' }}>
-                    <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 16 }}>
-                      {revCount(detailLoc) === 0 ? t('Importa os comentários do Google Maps (ou cola-os) e depois clica em Analisar.', 'Import the Google Maps reviews (or paste them) and then click Analyse.') : `${revCount(detailLoc)} reviews prontas para analisar. Clica em "Reanalisar com IA".`}
-                    </p>
-                    {detailLoc.reviewStats && <div style={{ textAlign: 'left', marginTop: 12 }}><ReviewEvolution loc={detailLoc} a={null} /></div>}
-                  </div>
-                ) : (
-                  <>
-                    <GoogleCompare loc={detailLoc} />
-                    <ReviewEvolution loc={detailLoc} a={dispAnalysis(detailLoc)} />
-                    {(() => {
-                      const rob = robustness(detailLoc);
-                      const ch = whatChanged(detailLoc);
-                      return (
-                        <div style={{ display: 'grid', gridTemplateColumns: ch ? '300px 1fr' : '1fr', gap: 14, marginBottom: 14 }}>
-                          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px' }}>
-                            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Robustez da Análise</div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                              <span style={{ fontSize: 22, fontWeight: 700, color: rob.color }}>{robLabel(rob.level)}</span>
-                              <span style={{ fontSize: 12, color: C.textMuted }}>{rob.n} reviews analisadas</span>
-                            </div>
-                            <div style={{ height: 7, borderRadius: 4, background: C.bg, overflow: 'hidden', marginBottom: 8 }}>
-                              <div style={{ width: `${rob.pct}%`, height: '100%', background: rob.color }} />
-                            </div>
-                            {rob.coverage != null && (
-                              <div style={{ fontSize: 11, color: C.textMuted }}>cobertura: <strong style={{ color: C.text }}>{rob.coverage}%</strong> das {detailLoc.googleReviewCount?.toLocaleString('pt-PT')} reviews do Google</div>
-                            )}
-                            <div style={{ fontSize: 10, color: C.textDim, marginTop: 6 }}>Quanto mais reviews analisadas, mais fiável é o score.</div>
-                          </div>
-
-                          {ch && (
-                            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px' }}>
-                              <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
-                                O que mudou desde a última análise <span style={{ color: C.textDim, textTransform: 'none', letterSpacing: 0 }}>· {new Date(ch.prevDate).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                              </div>
-                              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: ch.newIssues.length || ch.resolvedIssues.length ? 12 : 0 }}>
-                                <div>
-                                  <div style={{ fontSize: 10, color: C.textDim, marginBottom: 2 }}>Score</div>
-                                  <div style={{ fontSize: 16, fontWeight: 700, color: ch.scoreDelta > 0 ? C.positive : ch.scoreDelta < 0 ? C.negative : C.textMuted }}>
-                                    {ch.scoreDelta > 0 ? '↑ +' : ch.scoreDelta < 0 ? '↓ ' : '→ '}{ch.scoreDelta}
-                                  </div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: 10, color: C.textDim, marginBottom: 2 }}>Sentimento negativo</div>
-                                  <div style={{ fontSize: 16, fontWeight: 700, color: ch.negDelta < 0 ? C.positive : ch.negDelta > 0 ? C.negative : C.textMuted }}>
-                                    {ch.negDelta > 0 ? '+' : ''}{ch.negDelta} pp
-                                  </div>
-                                </div>
-                                {ch.dimUp && (
-                                  <div>
-                                    <div style={{ fontSize: 10, color: C.textDim, marginBottom: 2 }}>Mais melhorou</div>
-                                    <div style={{ fontSize: 13, fontWeight: 600, color: C.positive }}>{dimLabel(ch.dimUp.dim)} +{ch.dimUp.delta}</div>
-                                  </div>
-                                )}
-                                {ch.dimDown && (
-                                  <div>
-                                    <div style={{ fontSize: 10, color: C.textDim, marginBottom: 2 }}>Mais piorou</div>
-                                    <div style={{ fontSize: 13, fontWeight: 600, color: C.negative }}>{dimLabel(ch.dimDown.dim)} {ch.dimDown.delta}</div>
-                                  </div>
-                                )}
-                              </div>
-                              {(ch.newIssues.length > 0 || ch.resolvedIssues.length > 0) && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                  {ch.newIssues.length > 0 && (
-                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                      <span style={{ fontSize: 11, color: C.negative }}>⚠ Novos temas negativos:</span>
-                                      {ch.newIssues.map((t, i) => <span key={i} style={{ fontSize: 11, background: C.negativeBg, color: C.negative, padding: '2px 8px', borderRadius: 7 }}>{t}</span>)}
-                                    </div>
-                                  )}
-                                  {ch.resolvedIssues.length > 0 && (
-                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                      <span style={{ fontSize: 11, color: C.positive }}>✓ Temas que deixaram de aparecer:</span>
-                                      {ch.resolvedIssues.map((t, i) => <span key={i} style={{ fontSize: 11, background: C.positiveBg, color: C.positive, padding: '2px 8px', borderRadius: 7 }}>{t}</span>)}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{t('Resumo Analítico', 'Analytical Summary')}</div>
-                      <p style={{ fontSize: 14, color: C.text, lineHeight: 1.75, margin: 0 }}>{dispAnalysis(detailLoc).summaryPT}</p>
-                      {detailLoc.analysis.marketSources && detailLoc.analysis.marketSources.length > 0 && (
-                        <div style={{ marginTop: 14, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: C.textDim }}>{t('Mercados emissores:', 'Source markets:')}</span>
-                          {detailLoc.analysis.marketSources.map((m, i) => (
-                            <span key={i} style={{ fontSize: 11, background: C.infoBg, color: C.info, padding: '2px 8px', borderRadius: 8 }}>{m}</span>
-                          ))}
-                        </div>
-                      )}
-                      {(dispAnalysis(detailLoc).marketSentiment?.length ?? 0) > 0 && (
-                        <div style={{ marginTop: 16 }}>
-                          <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Sentimento por Mercado</div>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
-                            {[...(dispAnalysis(detailLoc).marketSentiment ?? [])].sort((a, b) => b.score - a.score).map((m, i) => (
-                              <div key={i} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{m.market}</span>
-                                  <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(m.score), background: scoreBg(m.score), padding: '2px 9px', borderRadius: 7 }}>{m.score}</span>
-                                </div>
-                                {m.note && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 5, lineHeight: 1.4 }}>{m.note}</div>}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ═══ EVOLUÇÃO TEMPORAL ═══ */}
-                    {(() => {
-                      const hist = detailLoc.analysisHistory || [];
-                      const chartData = hist.map((h) => ({
-                        label: new Date(h.date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }),
-                        score: h.score,
-                        negativo: h.negative,
-                        reviews: h.reviewCount,
-                      }));
-                      const first = hist[0];
-                      const last = hist[hist.length - 1];
-                      const delta = first && last ? +(last.score - first.score).toFixed(1) : 0;
-                      const deltaColor = delta > 0 ? C.positive : delta < 0 ? C.negative : C.textMuted;
-                      return (
-                        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-                            <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Evolução Temporal da Reputação</div>
-                            {hist.length >= 2 && (
-                              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                                <span style={{ fontSize: 12, color: C.textMuted }}>{hist.length} análises registadas</span>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: deltaColor, background: delta > 0 ? C.positiveBg : delta < 0 ? C.negativeBg : C.border, padding: '3px 12px', borderRadius: 8 }}>
-                                  {delta > 0 ? '↑' : delta < 0 ? '↓' : '→'} {delta > 0 ? '+' : ''}{delta} {t('pts desde a 1ª análise', 'pts since first analysis')}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          {hist.length < 2 ? (
-                            <div style={{ textAlign: 'center', padding: '28px 16px', color: C.textDim, fontSize: 13, lineHeight: 1.6 }}>
-                              📈 Esta é a primeira análise deste local.<br />
-                              Volta a analisar no futuro (ex.: após uma intervenção ou nova época) para começares a medir a evolução da reputação ao longo do tempo.
-                            </div>
-                          ) : (
-                            <ResponsiveContainer width="100%" height={240}>
-                              <LineChart data={chartData} margin={{ top: 6, right: 12, left: -18, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                                <XAxis dataKey="label" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
-                                <YAxis domain={[0, 10]} stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
-                                <Tooltip
-                                  contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 }}
-                                  labelStyle={{ color: C.text }}
-                                  itemStyle={{ color: C.text }}
-                                />
-                                <Line type="monotone" dataKey="score" name="Score /10" stroke={C.accent} strokeWidth={2.5} dot={{ r: 4, fill: C.accent }} activeDot={{ r: 6 }} />
-                                <Line type="monotone" dataKey="negativo" name={t('% Negativo', '% Negative')} stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 3 }} />
-                              </LineChart>
-                            </ResponsiveContainer>
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-                      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                        <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Distribuição de Sentimento</div>
-                        <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', marginBottom: 18, gap: 1 }}>
-                          <div style={{ width: `${detailLoc.analysis.sentimentBreakdown.positive}%`, background: C.positive }} />
-                          <div style={{ width: `${detailLoc.analysis.sentimentBreakdown.neutral}%`, background: C.neutral }} />
-                          <div style={{ width: `${detailLoc.analysis.sentimentBreakdown.negative}%`, background: C.negative }} />
-                        </div>
-                        {[
-                          { label: 'Positivo', value: detailLoc.analysis.sentimentBreakdown.positive, color: C.positive },
-                          { label: 'Neutro', value: detailLoc.analysis.sentimentBreakdown.neutral, color: C.neutral },
-                          { label: 'Negativo', value: detailLoc.analysis.sentimentBreakdown.negative, color: C.negative },
-                        ].map((s, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderBottom: i < 2 ? `1px solid ${C.border}` : 'none' }}>
-                            <span style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.color, display: 'inline-block' }} />{s.label}
-                            </span>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.value}%</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                        <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('Dimensões de Avaliação', 'Evaluation Dimensions')}</div>
-                        {DIMS.map((d, i) => {
-                          const val = detailLoc.analysis!.dimensions?.[d] || 0;
-                          return (
-                            <div key={i} style={{ marginBottom: 12 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                                <span style={{ fontSize: 12, color: C.textMuted }}>{dimLabelI(i)}</span>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: scoreColor(val) }}>{val}/10</span>
-                              </div>
-                              <div style={{ height: 6, borderRadius: 3, background: C.border, overflow: 'hidden' }}>
-                                <div style={{ width: `${val * 10}%`, height: '100%', background: scoreColor(val), borderRadius: 3 }} />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-                      {[
-                        { title: t('✦ Pontos Fortes', '✦ Strengths'), items: dispAnalysis(detailLoc).keyPraises || [], color: C.positive, sign: '+' },
-                        { title: t('⚠ Problemas Identificados', '⚠ Issues Identified'), items: dispAnalysis(detailLoc).keyIssues || [], color: C.negative, sign: '−' },
-                      ].map((col, ci) => (
-                        <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                          <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>{col.title}</div>
-                          {col.items.map((p, i) => (
-                            <div key={i} style={{ display: 'flex', gap: 10, padding: '9px 0', borderBottom: i < col.items.length - 1 ? `1px solid ${C.border}` : 'none', alignItems: 'flex-start' }}>
-                              <span style={{ color: col.color, fontSize: 14, flexShrink: 0, marginTop: 1, fontWeight: 700 }}>{col.sign}</span>
-                              <span style={{ fontSize: 13, lineHeight: 1.55 }}>{p}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-
-                    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('💡 Sugestões Acionáveis para a Gestão', '💡 Actionable Suggestions for Management')}</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
-                        {(dispAnalysis(detailLoc).actionableInsights || []).map((ins, i) => (
-                          <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 14px', background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, alignItems: 'flex-start' }}>
-                            <span style={{ fontSize: 12, color: C.accent, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>{i + 1}.</span>
-                            <span style={{ fontSize: 13, lineHeight: 1.55 }}>{ins}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-                      {[
-                        { title: t('Temas Positivos', 'Positive Themes'), items: dispAnalysis(detailLoc).topThemesPositive || [], color: C.positive, bg: C.positiveBg, prefix: '+' },
-                        { title: t('Temas Negativos', 'Negative Themes'), items: dispAnalysis(detailLoc).topThemesNegative || [], color: C.negative, bg: C.negativeBg, prefix: '−' },
-                      ].map((col, ci) => (
-                        <div key={ci} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 22px' }}>
-                          <div style={{ fontSize: 11, color: col.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{col.title}</div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                            {col.items.map((t, i) => (
-                              <span key={i} style={{ fontSize: 12, background: col.bg, color: col.color, padding: '5px 12px', borderRadius: 20 }}>{col.prefix} {t}</span>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {detailLoc.reviews.length > 0 && (
-                    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
-                        Todas as Reviews ({detailLoc.reviews.length})
-                      </div>
-                      <div style={{ maxHeight: 450, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
-                        {detailLoc.reviews.map((rev, i) => (
-                          <div key={rev.id} style={{ background: C.bg, borderRadius: 8, padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                            <span style={{ fontSize: 10, color: C.textDim, flexShrink: 0, marginTop: 3, minWidth: 20, textAlign: 'right' }}>{i + 1}</span>
-                            <span style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.65, flex: 1 }}>{rev.text}</span>
-                            <button onClick={() => deleteReview(detailLoc.id, rev.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 12, flexShrink: 0, padding: '2px 4px' }}>✕</button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-          </div>
+        {/* ── DETALHE (ficha do local) ── */}
+        {view === 'detalhe' && detailLoc && (
+          <FichaLocal loc={detailLoc} locations={locations} analyzing={analyzing} copied={copiedLinkId === detailLoc.id} catLabel={catLabel}
+            onReanalyze={(id) => analyze(id)} onShare={(id) => copyShareLink(id)} onOpenList={() => setView('locais')} onOpen={(id) => setDetailId(id)}
+            onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} onPaste={(id) => { setSelId(id); setShowReview(true); }}
+            onEdit={(id) => { const l = locations.find((z) => z.id === id); if (l) startEdit(l); }}
+            onDelete={(id) => deleteLoc(id)} onSaveInterventions={guardarIntervencoes} />
         )}
 
         {/* ── COMPARAR ── */}
