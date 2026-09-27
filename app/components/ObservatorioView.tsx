@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ResponsiveContainer, ComposedChart, LineChart, BarChart, AreaChart,
   Line, Bar, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
@@ -66,7 +66,10 @@ const OBS_CSS = `
 .obs-pdf { flex: 0 0 auto; height: 34px; padding: 0 16px; border-radius: 4px; border: 1px solid #8AB0E6; background: #8AB0E6; color: #0F1216; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .obs-pdf:hover { filter: brightness(1.08); }
 .obs-body { max-width: 1760px; margin: 0 auto; padding: 28px 40px 64px; animation: obsIn .6s cubic-bezier(.2,.7,.2,1) both; }
-.obs-card { animation: obsIn .7s cubic-bezier(.2,.7,.2,1) both; }
+.obs-card { opacity: 0; transform: translateY(26px); transition: opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1), border-color .25s ease; }
+.obs-card.in { opacity: 1; transform: none; }
+.obs-card:hover { border-color: #3A404B !important; }
+.obs-pdf-m { display: none; }
 @keyframes obsIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 .obs h1, .obs h2, .obs h3, .obs .rb-display { font-family: 'Public Sans', system-ui, sans-serif !important; }
 .obs-hero { min-height: 380px; }
@@ -90,23 +93,26 @@ const OBS_CSS = `
 .obs-grow { animation: obsGrow 1.1s cubic-bezier(.2,.7,.2,1) both; transform-origin: left center; }
 @keyframes obsGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .obs .recharts-legend-item-text { color: #A3A8B1 !important; }
-@media (prefers-reduced-motion: reduce) { .obs-hero-img, .obs-hero-in, .obs-body, .obs-card, .obs-grow { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .obs-hero-img, .obs-hero-in, .obs-body, .obs-grow { animation: none !important; } .obs-card { opacity: 1 !important; transform: none !important; transition: none !important; } }
 @media (max-width: 820px) {
   .obs-hero { min-height: 260px; }
   .obs-hero-in { padding: 40px 18px 22px; }
   .obs-tabs-in { padding: 8px 12px; }
+  .obs-tabs-in > .obs-pdf { display: none; }
+  .obs-pdf-m { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; height: 36px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: rgba(21,23,27,.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #ECEDEF; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .obs-kpi-v { font-size: 30px !important; }
   .obs-tabs-list { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   .obs-hero { min-height: 280px; }
   .obs-body { padding: 18px 14px 48px; }
 }
-@media print { .obs-hero, .obs-tabs { display: none !important; } .obs-body { padding: 0; max-width: none; } }
+@media print { .obs-hero, .obs-tabs { display: none !important; } .obs-body { padding: 0; max-width: none; } .obs-card { opacity: 1 !important; transform: none !important; } }
 `;
 
 const PAL = [C.accent, C.positive, C.orange, C.purple, C.cyan, C.pink, C.info, '#6F747D'];
 
 type Tab = 'geral' | 'procura' | 'economia' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
 
-interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; }
+interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; }
 
 const fmt = (n: number | null | undefined, c = 0) =>
   n == null || isNaN(n as number) ? '-' : (n as number).toLocaleString('pt-PT', { minimumFractionDigits: c, maximumFractionDigits: c });
@@ -117,7 +123,7 @@ const fmtE = (n: number | null | undefined) => {
   return `${fmt(n)} €`;
 };
 
-export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, reputacaoReviews }: Props) {
+export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, reputacaoReviews, fotoTopo }: Props) {
   const [tab, setTab] = useState<Tab>('geral');
   const [foto, setFoto] = useState<string | null>(null);
   useEffect(() => { let vivo = true; obterFotoBraga().then((x) => { if (vivo) setFoto(x); }); return () => { vivo = false; }; }, []);
@@ -599,12 +605,26 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     <div className="obs" style={{ background: C.bg, minHeight: '100vh', fontFamily: "'Public Sans', system-ui, sans-serif", fontVariantNumeric: 'tabular-nums', color: C.text }}>
       <style>{OBS_CSS}</style>
       <div className="obs-hero">
-        {foto && <div className="obs-hero-img" style={{ backgroundImage: `url(${foto})` }} />}
+        {(fotoTopo || foto) && <div className="obs-hero-img" style={{ backgroundImage: `url(${fotoTopo || foto})` }} />}
         <div className="obs-hero-shade" />
         <div className="obs-hero-in">
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: C.accent }}>Braga</div>
           <h1 className="obs-h1">{t('Observatório de Turismo de Braga', 'Braga Tourism Observatory')}</h1>
           <p style={{ color: C.textMuted, fontSize: 15, margin: 0, maxWidth: 760, lineHeight: 1.55 }}>{t('Análise integrada de dados reais - INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística', 'Integrated analysis of real data - INE/TravelBI · Front Desk · Municipal Tourist Tax')}</p>
+          {tab !== 'meteo' && (
+            <button className="obs-pdf-m" onClick={() => {
+              const map: Record<string, () => void> = {
+                geral: exportGeral, procura: exportProcura, economia: exportEconomia, mercados: exportMercados,
+                balcao: exportBalcao, taxa: exportTaxa, sustentabilidade: exportSustentabilidade,
+                digital: exportDigital, acessibilidade: exportAcessibilidade, caminhos: exportCaminhos,
+                cruzamentos: exportCruzamentos,
+              };
+              (map[tab] || exportarPDF)();
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v11m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></svg>
+              {t('Exportar PDF', 'Export PDF')}
+            </button>
+          )}
         </div>
       </div>
       <div className="obs-tabs">
@@ -649,23 +669,78 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
 }
 
 // ─── Componentes base ────────────────────────────────────────────────────────
+
+// ─── Efeitos como nos Locais (só aspeto): aparecer ao descer e números a contar ───
+const semMov = () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function useVisivelObs<T extends Element>(): [React.RefObject<T>, boolean] {
+  const ref = useRef<T>(null);
+  const [vis, setVis] = useState(false);
+  useEffect(() => {
+    if (vis) return;
+    const el = ref.current;
+    const mostra = () => setVis(true);
+    window.addEventListener('beforeprint', mostra);
+    if (!el || typeof IntersectionObserver === 'undefined' || semMov()) { setVis(true); return () => window.removeEventListener('beforeprint', mostra); }
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { setVis(true); io.disconnect(); } }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
+    io.observe(el);
+    return () => { io.disconnect(); window.removeEventListener('beforeprint', mostra); };
+  }, [vis]);
+  return [ref, vis];
+}
+/** Conta até ao número do texto (ex.: "689 063", "58.1%", "20,66 M€"); no fim mostra o texto original, tal e qual. */
+function ContaTexto({ texto }: { texto: string }) {
+  const [ref, vis] = useVisivelObs<HTMLSpanElement>();
+  const [p, setP] = useState(0);
+  const m = typeof texto === 'string' ? texto.match(/\d[\d\s\u00A0\u202F.,]*\d|\d/) : null;
+  useEffect(() => {
+    if (!vis || !m) return;
+    if (semMov()) { setP(1); return; }
+    let raf = 0; const t0 = performance.now(), dur = 1200;
+    const passo = (agora: number) => { const x = Math.min(1, (agora - t0) / dur); setP(1 - Math.pow(1 - x, 3)); if (x < 1) raf = requestAnimationFrame(passo); };
+    raf = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vis, texto]);
+  if (!m || p >= 1) return <span ref={ref}>{texto}</span>;
+  const tok = m[0];
+  const temVirg = tok.includes(','), temPonto = tok.includes('.');
+  let dec = 0, sepDec = '', sepMil = '';
+  if (temVirg) { dec = tok.split(',').pop()!.length; sepDec = ','; }
+  else if (temPonto && tok.split('.').pop()!.length !== 3) { dec = tok.split('.').pop()!.length; sepDec = '.'; }
+  else if (temPonto) sepMil = '.';
+  const gm = tok.match(/[\s\u00A0\u202F]/); if (gm) sepMil = gm[0];
+  const limpo = tok.replace(/[\s\u00A0\u202F]/g, '').replace(sepMil === '.' ? /\./g : /$^/, '').replace(',', '.');
+  const alvo = parseFloat(limpo);
+  if (!isFinite(alvo)) return <span ref={ref}>{texto}</span>;
+  const v = alvo * p;
+  const [ip, dp] = v.toFixed(dec).split('.');
+  const inteiro = sepMil ? ip.replace(/\B(?=(\d{3})+(?!\d))/g, sepMil) : ip;
+  const num = dp ? `${inteiro}${sepDec}${dp}` : inteiro;
+  return <span ref={ref}>{texto.slice(0, m.index)}{num}{texto.slice((m.index || 0) + tok.length)}</span>;
+}
+
 function KPI({ label, value, sub, color = C.accent }: { label: string; value: string; sub?: string; color?: string }) {
+  const [kref, kvis] = useVisivelObs<HTMLDivElement>();
   return (
-    <div className="obs-card" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '18px 20px' }}>
-      <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8, lineHeight: 1.35 }}>{label}</div>
-      <div style={{ fontSize: 30, fontWeight: 700, color, lineHeight: 1.1, marginBottom: 6, letterSpacing: '-0.02em' }}>{value}</div>
-      {sub && <div style={{ fontSize: 12.5, color: color, opacity: 0.9, lineHeight: 1.4 }}>{sub}</div>}
+    <div ref={kref} className={`obs-card obs-kpi${kvis ? ' in' : ''}`} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.textMuted, marginBottom: 10, lineHeight: 1.35 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 999, background: color, boxShadow: `0 0 10px ${color}`, flexShrink: 0 }} />{label}
+      </div>
+      <div className="obs-kpi-v" style={{ fontSize: 36, fontWeight: 700, color: C.text, lineHeight: 1.05, marginBottom: 8, letterSpacing: '-0.02em' }}><ContaTexto texto={value} /></div>
+      {sub && <div style={{ fontSize: 13, color: color, lineHeight: 1.4 }}>{sub}</div>}
+      <div className="obs-kpi-linha" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, background: `linear-gradient(90deg, ${color}, transparent 75%)` }} />
     </div>
   );
 }
 function Card({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
+  const [cref, cvis] = useVisivelObs<HTMLDivElement>();
   return (
-    <div className="obs-card" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '22px 24px', marginBottom: 16 }}>
+    <div ref={cref} className={`obs-card${cvis ? ' in' : ''}`} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '22px 24px', marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 10 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: C.text, letterSpacing: '-0.01em', lineHeight: 1.35 }}>{title}</div>
         {right}
       </div>
-      {children}
+      {cvis ? children : <div style={{ minHeight: 240 }} />}
     </div>
   );
 }
@@ -1359,8 +1434,9 @@ const BADGE_ICON: Record<string, string> = {
 };
 function Badge({ icon, value, label, color = C.accent, hint }: { icon: string; value: string; label: string; color?: string; hint?: string }) {
   const path = BADGE_ICON[icon] || BADGE_ICON[icon.replace(/\uFE0F/g, '')];
+  const [bref, bvis] = useVisivelObs<HTMLDivElement>();
   return (
-    <div className="obs-card" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '16px 18px' }}>
+    <div ref={bref} className={`obs-card${bvis ? ' in' : ''}`} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '16px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         {path && (
           <div style={{ width: 42, height: 42, borderRadius: 6, background: `${color}1f`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1368,7 +1444,7 @@ function Badge({ icon, value, label, color = C.accent, hint }: { icon: string; v
           </div>
         )}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 24, fontWeight: 700, color, lineHeight: 1.1, letterSpacing: '-0.01em' }}>{value}</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: C.text, lineHeight: 1.1, letterSpacing: '-0.01em' }}><ContaTexto texto={value} /></div>
           <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.35, marginTop: 3 }}>{label}</div>
         </div>
       </div>

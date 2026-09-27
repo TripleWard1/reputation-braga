@@ -7,7 +7,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import { db } from './firebase';
-import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc, getDoc } from 'firebase/firestore';
 import ObservatorioView from '@/app/components/ObservatorioView';
 import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
 import { dispAnalysis, setTransNotify, invalidateTrans } from '@/app/lib/ai-translate';
@@ -648,6 +648,15 @@ export default function Home() {
   const [batchRun, setBatchRun] = useState<{ i: number; total: number; name: string } | null>(null);
   const [fotoBraga, setFotoBraga] = useState<string | null>(null);
   useEffect(() => { let vivo = true; obterFotoBraga().then((f) => { if (vivo) setFotoBraga(f); }); return () => { vivo = false; }; }, []);
+  // Fotografia do Posto de Turismo para o topo do Observatório
+  const [fotoPosto, setFotoPosto] = useState<string | null>(null);
+  const postoId = locations.find((l) => /posto de turismo/i.test(l.name))?.id;
+  useEffect(() => {
+    if (!postoId) return;
+    let vivo = true;
+    getDoc(doc(db, 'locationPhotos', postoId)).then((d) => { if (vivo && d.exists()) setFotoPosto((d.data() as any).data || null); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [postoId]);
   // Ao abrir um local ou mudar de vista, a página começa sempre no topo
   useEffect(() => {
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -2068,6 +2077,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         {view === 'observatorio' && (
           <ObservatorioView
             reputacaoMedia={avgScore}
+            fotoTopo={fotoPosto}
             reputacaoLocais={analyzed.length}
             reputacaoReviews={totalReviews}
           />

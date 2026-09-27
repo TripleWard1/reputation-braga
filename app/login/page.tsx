@@ -4,26 +4,45 @@ import { useState, useEffect } from 'react';
 import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
 
 const LOGO_URL = 'https://i.imgur.com/Vij12Qd.png';
+const FOTO_LOGIN = '/login-avenida.jpg';
 
 const C = {
-  bg: '#0c0e14',
-  card: 'linear-gradient(180deg, #161922 0%, #11131b 100%)',
-  border: '#262a36',
-  accent: '#c9a84c',
-  accentLight: '#e3c977',
-  accentBg: 'rgba(201,168,76,0.12)',
-  text: '#e8e9ed',
-  textMuted: '#9a9ca8',
-  inputBg: '#0f1118',
-  negative: '#ef6a6a',
-  negativeBg: 'rgba(239,106,106,0.10)',
+  bg: '#15171B',
+  card: 'rgba(21,23,27,0.62)',
+  border: 'rgba(255,255,255,0.10)',
+  accent: '#8AB0E6',
+  accentLight: '#B7CDF0',
+  accentBg: 'rgba(138,176,230,0.16)',
+  text: '#ECEDEF',
+  textMuted: '#A3A8B1',
+  inputBg: 'rgba(15,18,22,0.72)',
+  negative: '#EF8A7B',
+  negativeBg: 'rgba(239,138,123,0.12)',
 };
+
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
+.lg-foto { position: absolute; inset: -40px; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.2s ease; animation: lgKb 26s ease-in-out infinite alternate; }
+.lg-foto.on { opacity: 1; }
+@keyframes lgKb { from { transform: scale(1.04); } to { transform: scale(1.16) translate(-16px, 10px); } }
+.lg-in { animation: lgUp .9s cubic-bezier(.2,.7,.2,1) both; }
+.lg-in2 { animation: lgUp .9s cubic-bezier(.2,.7,.2,1) .15s both; }
+@keyframes lgUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.lg-input:focus { border-color: #8AB0E6 !important; box-shadow: 0 0 0 3px rgba(138,176,230,.18); }
+.lg-btn:not(:disabled):hover { filter: brightness(1.08); transform: translateY(-1px); }
+.lg-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, 400px); gap: 56px; align-items: center; width: 100%; max-width: 1080px; }
+@media (max-width: 860px) { .lg-grid { grid-template-columns: 1fr; gap: 28px; } .lg-titulo { text-align: center; } .lg-titulo p { margin-left: auto !important; margin-right: auto !important; } }
+@media (prefers-reduced-motion: reduce) { .lg-foto, .lg-in, .lg-in2 { animation: none !important; } }
+`;
 
 export default function LoginPage() {
   const [lang, setLang] = useState<Lang>('pt');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Fotografia do login: Avenida da Liberdade (public/login-avenida.jpg); aparece suavemente quando carrega
+  const [foto, setFoto] = useState<string | null>(null);
+  useEffect(() => { const img = new Image(); img.onload = () => setFoto(FOTO_LOGIN); img.src = FOTO_LOGIN; }, []);
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('rb-lang') : null;
@@ -61,138 +80,69 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: `radial-gradient(1100px 600px at 50% -10%, rgba(201,168,76,0.10), transparent), ${C.bg}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-        fontFamily: "'DM Sans', system-ui, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 380,
-          background: C.card,
-          border: `1px solid ${C.border}`,
-          borderRadius: 18,
-          padding: '40px 32px 32px',
-          textAlign: 'center',
-          boxShadow: '0 30px 80px rgba(0,0,0,0.45)',
-        }}
-      >
-        <img src={LOGO_URL} alt="Visit Braga" style={{ height: 48, width: 'auto', marginBottom: 16 }} />
+    <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: `radial-gradient(1000px 560px at 30% 20%, rgba(138,176,230,0.10), transparent), ${C.bg}`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 20px', fontFamily: "'Public Sans', system-ui, sans-serif", color: C.text }}>
+      <style>{CSS}</style>
+      {foto && <div className="lg-foto on" style={{ backgroundImage: `url(${foto})` }} />}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(21,23,27,.92) 0%, rgba(21,23,27,.62) 55%, rgba(21,23,27,.45) 100%), linear-gradient(0deg, rgba(21,23,27,.85) 0%, rgba(21,23,27,0) 45%)' }} />
 
-        <div style={{ fontSize: 12, color: C.accentLight, letterSpacing: '0.04em', marginBottom: 4 }}>
-          {t('Observatório de Reputação', 'Reputation Observatory')}
-        </div>
-        <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 22 }}>
-          {t('Acesso reservado à equipa', 'Team access only')}
+      <div className="lg-grid" style={{ position: 'relative' }}>
+        <div className="lg-titulo lg-in">
+          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 54, width: 'auto', marginBottom: 30 }} />
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: C.accent }}>Braga</div>
+          <h1 style={{ fontSize: 'clamp(34px, 5vw, 56px)', fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1.05, margin: '12px 0 16px', textShadow: '0 2px 24px rgba(0,0,0,.35)' }}>
+            {t('Observatório de Turismo e Reputação', 'Tourism and Reputation Observatory')}
+          </h1>
+          <p style={{ fontSize: 16, color: C.textMuted, lineHeight: 1.6, margin: 0, maxWidth: 480 }}>
+            {t('Procura, economia, sustentabilidade e reputação do destino, reunidos numa só plataforma.', 'Demand, economy, sustainability and destination reputation, together in one platform.')}
+          </p>
         </div>
 
-        {/* Toggle de idioma */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 22 }}>
-          {(['pt', 'en'] as Lang[]).map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => pickLang(l)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '5px 15px',
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                letterSpacing: '0.06em',
-                transition: 'all 0.2s',
-                border: `1px solid ${lang === l ? C.accent : C.border}`,
-                background: lang === l ? C.accentBg : 'transparent',
-                color: lang === l ? C.accentLight : C.textMuted,
-              }}
-            >
-              <img
-                src={`https://flagcdn.com/${l === 'pt' ? 'pt' : 'gb'}.svg`}
-                alt=""
-                width={20}
-                height={14}
-                style={{ borderRadius: 2, objectFit: 'cover', display: 'block' }}
-              />
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </div>
+        <div className="lg-in2" style={{ width: '100%', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '32px 28px 28px', boxShadow: '0 30px 80px rgba(0,0,0,0.45)', backdropFilter: 'blur(18px) saturate(140%)', WebkitBackdropFilter: 'blur(18px) saturate(140%)' }}>
+          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em' }}>{t('Entrar', 'Sign in')}</div>
+          <div style={{ fontSize: 14, color: C.textMuted, margin: '6px 0 22px' }}>{t('Acesso reservado à equipa', 'Team access only')}</div>
 
-        {/* Palavra-passe */}
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-            if (error) setError(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') submit();
-          }}
-          placeholder={t('Palavra-passe', 'Password')}
-          autoFocus
-          style={{
-            width: '100%',
-            boxSizing: 'border-box',
-            padding: '12px 14px',
-            borderRadius: 10,
-            border: `1px solid ${error ? C.negative : C.border}`,
-            background: C.inputBg,
-            color: C.text,
-            fontSize: 14,
-            outline: 'none',
-            marginBottom: 12,
-          }}
-        />
-
-        {error && (
-          <div
-            style={{
-              fontSize: 12.5,
-              color: C.negative,
-              background: C.negativeBg,
-              borderRadius: 8,
-              padding: '8px 10px',
-              marginBottom: 12,
-            }}
-          >
-            {t('Palavra-passe incorreta. Tenta novamente.', 'Incorrect password. Please try again.')}
+          {/* Idioma */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+            {(['pt', 'en'] as Lang[]).map((l) => (
+              <button key={l} type="button" onClick={() => pickLang(l)} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', letterSpacing: '0.04em', transition: 'all 0.2s', fontFamily: 'inherit',
+                border: `1px solid ${lang === l ? C.accent : C.border}`, background: lang === l ? C.accentBg : 'transparent', color: lang === l ? C.text : C.textMuted,
+              }}>
+                <img src={`https://flagcdn.com/${l === 'pt' ? 'pt' : 'gb'}.svg`} alt="" width={20} height={14} style={{ borderRadius: 2, objectFit: 'cover', display: 'block' }} />
+                {l.toUpperCase()}
+              </button>
+            ))}
           </div>
-        )}
- 
-        <button
-          type="button"
-          onClick={submit}
-          disabled={loading || !password}
-          style={{
-            width: '100%',
-            padding: '12px 14px',
-            borderRadius: 10,
-            border: 'none',
-            cursor: loading || !password ? 'default' : 'pointer',
-            fontSize: 14,
-            fontWeight: 700,
-            letterSpacing: '0.02em',
-            background: loading || !password ? '#3a3320' : C.accent,
-            color: loading || !password ? C.textMuted : '#1a1505',
-            transition: 'all 0.2s',
-          }}
-        >
-          {loading ? t('A entrar…', 'Signing in…') : t('Entrar', 'Sign in')}
-        </button>
 
-        <div style={{ fontSize: 11, color: C.textMuted, marginTop: 20, lineHeight: 1.5 }}>
-          {t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}
+          {/* Palavra-passe */}
+          <label style={{ display: 'block', fontSize: 13, color: C.textMuted, marginBottom: 8 }}>{t('Palavra-passe', 'Password')}</label>
+          <input
+            className="lg-input"
+            type="password"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); if (error) setError(false); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+            placeholder="••••••••"
+            autoFocus
+            style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', borderRadius: 4, border: `1px solid ${error ? C.negative : C.border}`, background: C.inputBg, color: C.text, fontSize: 15, outline: 'none', marginBottom: 12, fontFamily: 'inherit', transition: 'border-color .2s, box-shadow .2s' }}
+          />
+
+          {error && (
+            <div style={{ fontSize: 13, color: C.negative, background: C.negativeBg, borderRadius: 4, padding: '9px 12px', marginBottom: 12 }}>
+              {t('Palavra-passe incorreta. Tenta novamente.', 'Incorrect password. Please try again.')}
+            </div>
+          )}
+
+          <button className="lg-btn" type="button" onClick={submit} disabled={loading || !password} style={{
+            width: '100%', padding: '13px 14px', borderRadius: 4, border: 'none', cursor: loading || !password ? 'default' : 'pointer', fontSize: 15, fontWeight: 700, fontFamily: 'inherit', transition: 'all 0.2s',
+            background: loading || !password ? 'rgba(138,176,230,0.25)' : C.accent, color: loading || !password ? C.textMuted : '#0F1216',
+          }}>
+            {loading ? t('A entrar…', 'Signing in…') : t('Entrar', 'Sign in')}
+          </button>
+
+          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 22, lineHeight: 1.5 }}>
+            {t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}
+          </div>
         </div>
       </div>
     </div>
