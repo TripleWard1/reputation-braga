@@ -1332,3 +1332,542 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SEPARADORES COMPLEMENTARES — Mapa, Comparar, Temas (Problemas) e Relatório
+// Mesma identidade da Visão Geral e dos Locais; números da fonte única (numeros()).
+// ═══════════════════════════════════════════════════════════════════════════
+const ESTILO_EXTRA = `
+.rbx .leaflet-container { background: #15171B; font-family: 'Public Sans', system-ui, sans-serif; border-radius: 6px; }
+.rbx .leaflet-control-zoom a { background: #1C1F24; color: #ECEDEF; border-color: #2D3139; }
+.rbx .leaflet-control-attribution { background: rgba(21,23,27,.7) !important; color: #6F747D !important; }
+.rbx .leaflet-control-attribution a { color: #A3A8B1 !important; }
+.rbm-pin { position: relative; width: 44px; height: 44px; border-radius: 50%; background: rgba(21,23,27,.9); border: 2px solid var(--c); box-shadow: 0 0 0 4px rgba(0,0,0,.25), 0 0 18px var(--c); display: flex; align-items: center; justify-content: center; color: #ECEDEF; font: 700 13px 'Public Sans', system-ui, sans-serif; transition: transform .2s ease; }
+.rbm-pin:hover, .rbm-pin.sel { transform: scale(1.15); }
+.rbm-al::after { content: ''; position: absolute; inset: -7px; border-radius: 50%; border: 2px solid #EDA06B; animation: rbmPulso 1.8s ease-out infinite; }
+@keyframes rbmPulso { from { transform: scale(.85); opacity: 1; } to { transform: scale(1.35); opacity: 0; } }
+.rbm-popup .leaflet-popup-content-wrapper { background: #1C1F24; color: #ECEDEF; border: 1px solid #2D3139; border-radius: 6px; box-shadow: 0 20px 50px rgba(0,0,0,.5); padding: 0; overflow: hidden; }
+.rbm-popup .leaflet-popup-tip { background: #1C1F24; }
+.rbm-popup .leaflet-popup-content { margin: 0; width: 270px !important; font-family: 'Public Sans', system-ui, sans-serif; }
+.rbm-popup a.leaflet-popup-close-button { color: #ECEDEF; }
+.rbm-pop img { width: 100%; height: 124px; object-fit: cover; display: block; }
+.rbm-pop .rbm-in { padding: 14px 16px 16px; }
+.rbm-cat { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8AB0E6; }
+.rbm-nome { font-size: 16px; font-weight: 700; margin: 4px 0 8px; line-height: 1.25; }
+.rbm-num { font-size: 13.5px; color: #A3A8B1; }
+.rbm-num b { color: #ECEDEF; font-size: 15px; }
+.rbm-alt { font-size: 12.5px; color: #EDA06B; margin-top: 8px; line-height: 1.4; }
+.rbm-btn { margin-top: 12px; height: 32px; padding: 0 14px; border-radius: 999px; border: 0; background: #8AB0E6; color: #0F1216; font: 600 13px 'Public Sans', system-ui, sans-serif; cursor: pointer; }
+.rb-mapa-grid { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 20px; align-items: start; }
+.rb-lista-mapa { max-height: 640px; overflow-y: auto; border: 1px solid var(--rb-line); border-radius: 6px; background: var(--rb-surface); }
+.rb-lista-mapa button { display: grid; grid-template-columns: 12px minmax(0,1fr) auto; gap: 12px; align-items: center; width: 100%; text-align: left; padding: 12px 14px; background: none; border: 0; border-bottom: 1px solid var(--rb-line); color: var(--rb-text); font: inherit; cursor: pointer; transition: background .2s ease; }
+.rb-lista-mapa button:hover, .rb-lista-mapa button.on { background: var(--rb-accent-bg); }
+.rb-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.rb-heat td, .rb-heat th { padding: 10px 8px; text-align: center; border-bottom: 1px solid var(--rb-line); font-size: 13px; white-space: nowrap; }
+.rb-heat th { font-size: 11.5px; font-weight: 700; color: var(--rb-text2); letter-spacing: .02em; }
+.rb-heat .rb-fixa { position: sticky; left: 0; background: var(--rb-bg); text-align: left; z-index: 1; min-width: 200px; white-space: normal; }
+.rb-heat tbody tr { cursor: pointer; }
+.rb-heat tbody tr:hover .rb-fixa { color: var(--rb-accent); }
+.rb-cel { display: inline-flex; align-items: center; justify-content: center; min-width: 52px; height: 30px; padding: 0 6px; border-radius: 4px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rb-card-tema { background: var(--rb-surface); border: 1px solid var(--rb-line); border-radius: 6px; padding: 18px 20px; cursor: pointer; text-align: left; color: var(--rb-text); font: inherit; transition: border-color .2s ease, transform .2s ease; }
+.rb-card-tema:hover { border-color: #3A404B; transform: translateY(-2px); }
+.rb-card-tema.on { border-color: var(--rb-accent); }
+.rb-pre { font-family: 'Public Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.7; white-space: pre-wrap; margin: 0; color: var(--rb-text); }
+@media (max-width: 900px) {
+  .rb-mapa-grid { grid-template-columns: 1fr; }
+  .rb-mapa-box { height: 58vh !important; }
+  .rb-lista-mapa { max-height: none; }
+}
+`;
+
+function Cabecalho({ kicker, titulo, sub, direita }: { kicker: string; titulo: string; sub?: string; direita?: ReactNode }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 20, flexWrap: 'wrap', marginBottom: 8 }}>
+      <div style={{ maxWidth: 820 }}>
+        <div style={{ fontSize: 14, color: 'var(--rb-text2)' }}>{kicker}</div>
+        <h1 className="rb-h1-m" style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.02em', margin: '8px 0 0', lineHeight: 1.08 }}>{titulo}</h1>
+        {sub && <p className="rb-cap" style={{ fontSize: 14.5 }}>{sub}</p>}
+      </div>
+      {direita}
+    </div>
+  );
+}
+const corIndice = (x: Numeros | null) => (!x || x.robustez === 'insuficiente' ? '#6F747D' : x.idx >= 9 ? '#8AB0E6' : x.idx >= 8 ? '#B7CDF0' : '#EDA06B');
+const escH = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// ─── MAPA ───────────────────────────────────────────────────────────────────
+export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => string; onOpen: (id: string) => void; onMove: (id: string, c: [number, number]) => void; coordsDe: (l: LocV) => [number, number] | null }) {
+  const caixa = useRef<HTMLDivElement>(null);
+  const mapa = useRef<any>(null);
+  const marcadores = useRef<Record<string, any>>({});
+  const [mover, setMover] = useState(false);
+  const [sel, setSel] = useState<string | null>(null);
+  const mini = useMiniaturas();
+  useRevelar(props.locations.length);
+  const dados = props.locations.map((l) => ({ l, x: numeros(l), al: alerta(l.reviewStats), c: props.coordsDe(l) }));
+  const comCoords = dados.filter((d) => d.c).sort((p, q) => p.l.name.localeCompare(q.l.name, 'pt'));
+  const nMini = Object.keys(mini).length;
+  const onOpenRef = useRef(props.onOpen); onOpenRef.current = props.onOpen;
+  const onMoveRef = useRef(props.onMove); onMoveRef.current = props.onMove;
+
+  useEffect(() => {
+    (window as any).__rbAbrirLocal = (id: string) => onOpenRef.current(id);
+    return () => { delete (window as any).__rbAbrirLocal; };
+  }, []);
+
+  useEffect(() => {
+    let cancelado = false;
+    const w = window as any;
+    if (!document.getElementById('leaflet-css')) {
+      const lk = document.createElement('link'); lk.id = 'leaflet-css'; lk.rel = 'stylesheet'; lk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(lk);
+    }
+    const pronto = new Promise<any>((ok) => {
+      if (w.L) return ok(w.L);
+      const sc = document.createElement('script'); sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; sc.onload = () => ok(w.L); document.head.appendChild(sc);
+    });
+    pronto.then((L: any) => {
+      if (cancelado || !caixa.current || !L) return;
+      if (mapa.current) { mapa.current.remove(); mapa.current = null; }
+      const m = L.map(caixa.current, { center: [41.548, -8.426], zoom: 13 });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 }).addTo(m);
+      const lista: any[] = [];
+      marcadores.current = {};
+      comCoords.forEach((d) => {
+        const c = corIndice(d.x);
+        const txt = d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '–';
+        const icon = L.divIcon({ className: '', html: `<div class="rbm-pin${d.al ? ' rbm-al' : ''}" style="--c:${c}">${txt}</div>`, iconSize: [44, 44], iconAnchor: [22, 22], popupAnchor: [0, -20] });
+        const mk = L.marker(d.c, { icon, draggable: false });
+        const foto = mini[d.l.id] ? `<img src="${mini[d.l.id]}" alt="" />` : '';
+        const num = d.x ? `<div class="rbm-num"><b>${fmt(d.x.avg, 2)}</b> <span style="color:#F2C14E">★</span> · ${fmt(d.x.n)} ${t('comentários', 'reviews')}${d.x.robustez === 'insuficiente' ? ` · ${t('dados insuficientes', 'insufficient data')}` : ''}</div>` : `<div class="rbm-num">${t('Sem avaliações', 'No reviews')}</div>`;
+        mk.bindPopup(`<div class="rbm-pop">${foto}<div class="rbm-in"><div class="rbm-cat">${escH(props.catLabel(d.l.category))}</div><div class="rbm-nome">${escH(d.l.name)}</div>${num}${d.al ? `<div class="rbm-alt">${escH(d.al)}</div>` : ''}<button class="rbm-btn" onclick="window.__rbAbrirLocal && window.__rbAbrirLocal('${d.l.id}')">${t('Abrir ficha', 'Open profile')} →</button></div></div>`, { maxWidth: 300, className: 'rbm-popup' });
+        mk.on('dragend', (e: any) => { const ll = e.target.getLatLng(); onMoveRef.current(d.l.id, [ll.lat, ll.lng]); });
+        mk.on('click', () => setSel(d.l.id));
+        mk.addTo(m); lista.push(mk); marcadores.current[d.l.id] = mk;
+      });
+      if (lista.length) { const b = L.featureGroup(lista).getBounds(); if (b.isValid()) m.fitBounds(b, { padding: [50, 50], maxZoom: 15 }); }
+      mapa.current = m;
+      setTimeout(() => m.invalidateSize(), 250);
+    });
+    return () => { cancelado = true; if (mapa.current) { mapa.current.remove(); mapa.current = null; } };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comCoords.length, nMini]);
+
+  useEffect(() => {
+    Object.values(marcadores.current).forEach((mk: any) => { if (mk?.dragging) (mover ? mk.dragging.enable() : mk.dragging.disable()); });
+  }, [mover, comCoords.length, nMini]);
+
+  const ir = (id: string) => {
+    const mk = marcadores.current[id];
+    setSel(id);
+    if (mk && mapa.current) { mapa.current.flyTo(mk.getLatLng(), 16, { duration: 0.8 }); setTimeout(() => mk.openPopup(), 850); }
+    if (typeof window !== 'undefined' && window.innerWidth < 900) caixa.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const nAl = dados.filter((d) => d.al).length;
+
+  return (
+    <div className="rbx">
+      <style>{ESTILO + ESTILO_EXTRA}</style>
+      <div className="rb-wrap" style={{ maxWidth: 1400 }}>
+        <Cabecalho kicker={t('Reputação', 'Reputation')} titulo={t('Mapa de reputação', 'Reputation map')}
+          sub={t(`${comCoords.length} locais no mapa${nAl ? ` · ${nAl} com alerta no último trimestre` : ''} · a nota dentro de cada ponto é o índice /10`, `${comCoords.length} places on the map${nAl ? ` · ${nAl} with an alert last quarter` : ''} · the number in each point is the /10 index`)}
+          direita={<button className={`rb-chip${mover ? ' warn' : ' ghost'}`} onClick={() => setMover((v) => !v)}>{mover ? t('Concluir reposicionamento', 'Finish repositioning') : t('Reposicionar marcadores', 'Reposition markers')}</button>} />
+        <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 13, color: 'var(--rb-text2)', margin: '18px 0 14px' }}>
+          {[['#8AB0E6', t('Índice 9 ou mais', 'Index 9 or more')], ['#B7CDF0', t('8 a 9', '8 to 9')], ['#EDA06B', t('Abaixo de 8', 'Below 8')], ['#6F747D', t('Dados insuficientes', 'Insufficient data')]].map(([c, l]) => (
+            <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: 999, border: `2px solid ${c}`, boxShadow: `0 0 8px ${c}` }} />{l}</span>
+          ))}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: 999, border: '2px solid #EDA06B', outline: '2px solid rgba(237,160,107,.35)', outlineOffset: 2 }} />{t('Alerta', 'Alert')}</span>
+        </div>
+        {mover && <p className="rb-sub" style={{ marginTop: 0, marginBottom: 12, color: 'var(--rb-warn)' }}>{t('Arrasta os pontos para a posição correta. As novas coordenadas ficam guardadas.', 'Drag the points to the right position. New coordinates are saved.')}</p>}
+        <div className="rb-mapa-grid">
+          <div ref={caixa} className="rb-mapa-box" style={{ height: 640, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--rb-line)' }} />
+          <div className="rb-lista-mapa">
+            {comCoords.map((d) => (
+              <button key={d.l.id} className={sel === d.l.id ? 'on' : ''} onClick={() => ir(d.l.id)}>
+                <span style={{ width: 10, height: 10, borderRadius: 999, background: corIndice(d.x), boxShadow: `0 0 8px ${corIndice(d.x)}` }} />
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: 'block', fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.l.name}</span>
+                  <span style={{ display: 'block', fontSize: 12, color: d.al ? 'var(--rb-warn)' : 'var(--rb-text2)', marginTop: 2 }}>{d.al ? t('Alerta no último trimestre', 'Alert last quarter') : props.catLabel(d.l.category)}</span>
+                </span>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '—'}</span>
+              </button>
+            ))}
+            {dados.length > comCoords.length && <div className="rb-sub" style={{ padding: '12px 14px', marginTop: 0 }}>{t(`${dados.length - comCoords.length} locais sem coordenadas (edita o local para as indicar).`, `${dados.length - comCoords.length} places without coordinates (edit the place to add them).`)}</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── COMPARAR ───────────────────────────────────────────────────────────────
+const CORES_CMP = ['#8AB0E6', '#7CC79A', '#EDA06B', '#C9A0E6'];
+function LinhasComparadas({ series }: { series: { nome: string; cor: string; q: { q: string; avg: number; n: number }[] }[] }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [larg, setLarg] = useState(900);
+  const [hover, setHover] = useState<number | null>(null);
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((es) => { const w = Math.round(es[0].contentRect.width); if (w > 0) setLarg(w); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const qs = Array.from(new Set(series.flatMap((s) => s.q.map((z) => z.q)))).sort();
+  if (qs.length < 2) return <p className="rb-sub">{t('Ainda não há trimestres suficientes para comparar.', 'Not enough quarters to compare yet.')}</p>;
+  const W = Math.max(300, larg), H = W < 520 ? 240 : 300, L = 40, R = 16, T = 18, B = 30;
+  const vals = series.flatMap((s) => s.q.map((z) => z.avg));
+  const lo = Math.max(1, Math.floor((Math.min(...vals) - 0.15) * 10) / 10), hi = Math.min(5, Math.ceil((Math.max(...vals) + 0.1) * 10) / 10);
+  const X = (i: number) => L + (i * (W - L - R)) / (qs.length - 1);
+  const Y = (v: number) => T + ((hi - v) / (hi - lo || 1)) * (H - T - B);
+  const step = Math.ceil(qs.length / (W < 520 ? 4 : 8));
+  const lab = (s2: string) => { const [y, tq] = s2.split('-T'); return `T${tq} ${y.slice(2)}`; };
+  const mexe = (cx: number, el: SVGSVGElement) => { const r = el.getBoundingClientRect(); const px = ((cx - r.left) / r.width) * W; setHover(Math.max(0, Math.min(qs.length - 1, Math.round(((px - L) / (W - L - R)) * (qs.length - 1))))); };
+  return (
+    <div ref={boxRef} style={{ position: 'relative' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible', cursor: 'crosshair', touchAction: 'pan-y' }}
+        onMouseMove={(e) => mexe(e.clientX, e.currentTarget)} onMouseLeave={() => setHover(null)} onTouchStart={(e) => mexe(e.touches[0].clientX, e.currentTarget)} onTouchMove={(e) => mexe(e.touches[0].clientX, e.currentTarget)}>
+        {[lo, (lo + hi) / 2, hi].map((v) => (
+          <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="var(--rb-line)" strokeDasharray="2 6" /><text x={L - 8} y={Y(v) + 4} textAnchor="end" fontSize="11" fill="var(--rb-text2)">{fmt(v, 1)}</text></g>
+        ))}
+        {series.map((s) => {
+          const pts = s.q.map((z) => `${X(qs.indexOf(z.q))},${Y(z.avg)}`).join(' ');
+          return (
+            <g key={s.nome}>
+              <polyline className="rb-draw" pathLength={1} fill="none" stroke={s.cor} strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" points={pts} style={{ filter: `drop-shadow(0 4px 8px rgba(0,0,0,.4))` }} />
+              {s.q.map((z) => <circle key={z.q} className="rb-dot" cx={X(qs.indexOf(z.q))} cy={Y(z.avg)} r={hover === qs.indexOf(z.q) ? 5 : 3} fill={s.cor} stroke="var(--rb-bg)" strokeWidth={1.5} />)}
+            </g>
+          );
+        })}
+        {hover != null && <line x1={X(hover)} x2={X(hover)} y1={T - 4} y2={H - B} stroke="var(--rb-text2)" strokeOpacity={0.45} />}
+        {qs.map((q, i) => (i % step === 0 || i === qs.length - 1 ? <text key={q} x={X(i)} y={H - 8} textAnchor="middle" fontSize="11" fill="var(--rb-text2)">{lab(q)}</text> : null))}
+      </svg>
+      {hover != null && (
+        <div className="rb-tip" style={{ left: `${(X(hover) / W) * 100}%`, top: 0, transform: `translate(${hover > qs.length / 2 ? '-105%' : '5%'}, 0)` }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>{lab(qs[hover])}</div>
+          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, 2) : '—'}</strong></div>; })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CompararView(props: { locations: LocV[]; catLabel: (c: string) => string; onOpen: (id: string) => void }) {
+  const [ids, setIds] = useState<string[]>([]);
+  const [q, setQ] = useState('');
+  useRevelar(ids.join(','));
+  const dados = props.locations.map((l) => ({ l, x: numeros(l), a: l.analysis ? (dispAnalysis(l) as any) : null, ws: windowStats(l.reviewStats) })).filter((d) => d.x);
+  const padrao = [...dados].filter((d) => d.x!.robustez !== 'insuficiente').sort((p, r) => r.x!.n - p.x!.n).slice(0, 3).map((d) => d.l.id);
+  const escolhidos = (ids.length ? ids : padrao).map((id) => dados.find((d) => d.l.id === id)).filter((d): d is (typeof dados)[number] => !!d);
+  const corDe = (id: string) => CORES_CMP[escolhidos.findIndex((d) => d.l.id === id)] || '#8AB0E6';
+  const alterna = (id: string) => {
+    const base = ids.length ? ids : padrao;
+    setIds(base.includes(id) ? base.filter((x) => x !== id) : base.length >= 4 ? base : [...base, id]);
+  };
+  const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const opcoes = [...dados].sort((p, r) => p.l.name.localeCompare(r.l.name, 'pt')).filter((d) => !q || norm(d.l.name).includes(norm(q)));
+  const DIMS: [string, string][] = [['localizacao', t('Localização', 'Location')], ['servico', t('Serviço', 'Service')], ['precoQualidade', t('Preço/Qualidade', 'Value for money')], ['limpeza', t('Limpeza', 'Cleanliness')], ['experiencia', t('Experiência', 'Experience')], ['acessibilidade', t('Acessibilidade', 'Accessibility')]];
+  const temasDe = (d: (typeof dados)[number]) => (Array.isArray(d.a?.v2?.temas) ? d.a.v2.temas : []) as { id: string; estado: Estado }[];
+  const colMin = Math.max(560, 200 + escolhidos.length * 170);
+  return (
+    <div className="rbx">
+      <style>{ESTILO + ESTILO_EXTRA}</style>
+      <div className="rb-wrap" style={{ maxWidth: 1400 }}>
+        <Cabecalho kicker={t('Reputação', 'Reputation')} titulo={t('Comparar locais', 'Compare places')} sub={t('Escolhe até 4 locais. Por defeito aparecem os três com mais avaliações.', 'Pick up to 4 places. By default, the three with the most reviews are shown.')} />
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '20px 0 8px' }}>
+          <input className="rb-field" style={{ flex: '1 1 220px', maxWidth: 300 }} placeholder={t('Procurar local', 'Search place')} value={q} onChange={(e) => setQ(e.target.value)} aria-label={t('Procurar local', 'Search place')} />
+          {ids.length > 0 && <button className="rb-chip ghost" onClick={() => setIds([])}>{t('Repor seleção', 'Reset selection')}</button>}
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+          {opcoes.map((d) => {
+            const on = escolhidos.some((e) => e.l.id === d.l.id);
+            const cheio = !on && escolhidos.length >= 4;
+            return (
+              <button key={d.l.id} className="rb-chip ghost" disabled={cheio} onClick={() => alterna(d.l.id)}
+                style={on ? { borderColor: corDe(d.l.id), color: 'var(--rb-text)', background: 'rgba(255,255,255,.04)' } : undefined}>
+                {on && <span style={{ width: 8, height: 8, borderRadius: 999, background: corDe(d.l.id) }} />}{d.l.name}
+              </button>
+            );
+          })}
+        </div>
+
+        {escolhidos.length === 0 ? <p className="rb-sub">{t('Escolhe pelo menos um local.', 'Pick at least one place.')}</p> : (
+          <>
+            {/* Números lado a lado */}
+            <section className="rb-sec">
+              <Titulo h={t('Números lado a lado', 'Numbers side by side')} cap={t('Últimos 3 anos · índice /10 = média de estrelas × 2', 'Last 3 years · index /10 = average stars × 2')} />
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(230px, 1fr))`, gap: 14 }}>
+                {escolhidos.map((d, i) => {
+                  const insuf = d.x!.robustez === 'insuficiente';
+                  return (
+                    <div key={d.l.id} className="rb-rise" style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '20px 22px', position: 'relative', overflow: 'hidden', transitionDelay: `${i * 90}ms` }}>
+                      <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: CORES_CMP[i] }} />
+                      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: CORES_CMP[i] }}>{props.catLabel(d.l.category)}</div>
+                      <button onClick={() => props.onOpen(d.l.id)} style={{ background: 'none', border: 0, padding: 0, color: 'var(--rb-text)', font: 'inherit', fontSize: 17, fontWeight: 700, textAlign: 'left', cursor: 'pointer', margin: '6px 0 14px', lineHeight: 1.3 }}>{d.l.name}</button>
+                      <div className="rb-lab">{t('Índice', 'Index')}</div>
+                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>—</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
+                      <div className="rb-sub">{insuf ? t('Dados insuficientes', 'Insufficient data') : ''}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--rb-line)' }}>
+                        <div><div className="rb-lab">{t('Média', 'Average')}</div><div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}><Conta v={d.x!.avg} d={2} /> <span style={{ color: 'var(--rb-star)', fontSize: 16 }}>★</span></div></div>
+                        <div><div className="rb-lab">{t('Comentários', 'Reviews')}</div><div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}><Conta v={d.x!.n} /></div></div>
+                      </div>
+                      <div className="rb-split rb-bar" style={{ marginTop: 14 }}>
+                        <i style={{ width: `${d.x!.pos}%`, background: 'var(--rb-good)' }} />
+                        <i style={{ width: `${Math.max(0, 100 - d.x!.pos - d.x!.neg)}%`, background: 'var(--rb-text2)', opacity: 0.35 }} />
+                        <i style={{ width: `${d.x!.neg}%`, background: 'var(--rb-bad)', minWidth: d.x!.neg > 0 ? 3 : 0 }} />
+                      </div>
+                      <div className="rb-sub"><span style={{ color: 'var(--rb-good)' }}>{fmt(d.x!.pos, 1)}%</span> {t('positivas', 'positive')} · <span style={{ color: 'var(--rb-bad)' }}>{fmt(d.x!.neg, 1)}%</span> {t('negativas', 'negative')}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Evolução comparada */}
+            <section className="rb-sec">
+              <Titulo h={t('Evolução da média, trimestre a trimestre', 'Average rating, quarter by quarter')} cap={t('Passa o cursor sobre o gráfico para ver os valores', 'Hover over the chart to see the values')} />
+              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 13.5, marginBottom: 12 }}>
+                {escolhidos.map((d, i) => <span key={d.l.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 3, borderRadius: 2, background: CORES_CMP[i] }} />{d.l.name}</span>)}
+              </div>
+              <LinhasComparadas series={escolhidos.map((d, i) => ({ nome: d.l.name, cor: CORES_CMP[i], q: d.ws ? d.ws.quarters.map((z) => ({ q: z.q, avg: z.avg, n: z.n })) : [] }))} />
+            </section>
+
+            {/* Dimensões */}
+            <section className="rb-sec">
+              <Titulo h={t('Dimensões de avaliação', 'Rating dimensions')} cap={t('De 0 a 10, a partir dos elogios e críticas nos comentários', '0 to 10, from praise and criticism in the reviews')} />
+              <div className="rb-2" style={{ gap: '8px 48px' }}>
+                {DIMS.map(([k, nome]) => (
+                  <div key={k} style={{ padding: '12px 0', borderBottom: '1px solid var(--rb-line)' }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{nome}</div>
+                    {escolhidos.map((d, i) => {
+                      const v = d.a?.dimensions?.[k];
+                      return (
+                        <div key={d.l.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 44px', gap: 10, alignItems: 'center', margin: '6px 0' }}>
+                          <div style={{ height: 8, background: 'var(--rb-muted)', borderRadius: 999, overflow: 'hidden' }}>
+                            {typeof v === 'number' && <div className="rb-bar" style={{ width: `${v * 10}%`, height: '100%', background: CORES_CMP[i], borderRadius: 999, transitionDelay: `${i * 90}ms` }} />}
+                          </div>
+                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '—'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Temas */}
+            <section className="rb-sec">
+              <Titulo h={t('Estado dos temas em cada local', 'Theme status at each place')} cap={t('Últimos 12 meses comparados com os 12–36 meses anteriores', 'Last 12 months compared with the previous 12–36 months')} />
+              <div className="rb-scroll-x">
+                <table className="rb-heat" style={{ borderCollapse: 'collapse', minWidth: colMin, width: '100%' }}>
+                  <thead><tr><th className="rb-fixa">{t('Tema', 'Theme')}</th>{escolhidos.map((d, i) => <th key={d.l.id} style={{ color: CORES_CMP[i], whiteSpace: 'normal', maxWidth: 170 }}>{d.l.name}</th>)}</tr></thead>
+                  <tbody>{TEMAS.map((tm) => (
+                    <tr key={tm.id} style={{ cursor: 'default' }}>
+                      <td className="rb-fixa" style={{ fontWeight: 600 }}>{temaNome(tm.id)}</td>
+                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>; })}
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+              {escolhidos.some((d) => !d.a?.v2) && <p className="rb-sub">{t('Alguns locais ainda não foram reanalisados com os temas.', 'Some places have not yet been re-analysed with themes.')}</p>}
+            </section>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── TEMAS NO DESTINO (antigo "Problemas") ─────────────────────────────────
+const TEMA_CURTO: Record<string, [string, string]> = {
+  paisagem: ['Paisagem', 'Landscape'], acesso: ['Acesso', 'Access'], sinalizacao: ['Sinalização', 'Signage'], fluxos: ['Fluxos', 'Flows'],
+  acessibilidade: ['Acessibil.', 'Accessib.'], servicos: ['Serviços', 'Services'], multilingue: ['Multilingue', 'Multilingual'],
+  atendimento: ['Atendimento', 'Staff'], preco: ['Preço', 'Price'], limpeza: ['Limpeza', 'Cleanliness'],
+};
+export function TemasView(props: { locations: LocV[]; catLabel: (c: string) => string; onOpen: (id: string) => void }) {
+  const [foco, setFoco] = useState<string | null>(null);
+  useRevelar(props.locations.length + (foco || ''));
+  const dados = props.locations.map((l) => ({ l, a: l.analysis ? (dispAnalysis(l) as any) : null }));
+  const com = dados.filter((d) => Array.isArray(d.a?.v2?.temasTodos) && (d.a.v2.textRec || d.a.v2.textPrev)).sort((p, q) => p.l.name.localeCompare(q.l.name, 'pt'));
+  const sem = dados.filter((d) => !com.includes(d) && d.a);
+  const stat = (d: (typeof com)[number], id: string) => (d.a.v2.temasTodos as { id: string; recPos: number; recNeg: number; prevPos: number; prevNeg: number }[]).find((z) => z.id === id);
+  const estadoDe = (d: (typeof com)[number], id: string) => ((d.a.v2.temas || []) as { id: string; estado: Estado }[]).find((z) => z.id === id)?.estado;
+  const resumo = TEMAS.map((tm) => {
+    let recNeg = 0, prevNeg = 0, tR = 0, tP = 0;
+    const prob: string[] = [], forte: string[] = [];
+    com.forEach((d) => {
+      const z = stat(d, tm.id); tR += d.a.v2.textRec || 0; tP += d.a.v2.textPrev || 0;
+      if (z) { recNeg += z.recNeg; prevNeg += z.prevNeg; }
+      const e = estadoDe(d, tm.id);
+      if (e === 'persistente' || e === 'novo') prob.push(d.l.name); else if (e === 'forte') forte.push(d.l.name);
+    });
+    const pr = tR ? (recNeg / tR) * 100 : 0, pp = tP ? (prevNeg / tP) * 100 : 0;
+    return { id: tm.id, prob, forte, pr, pp, d: pr - pp };
+  }).sort((p, q) => q.prob.length - p.prob.length || q.pr - p.pr);
+  const top = resumo.find((z) => z.prob.length > 0);
+  const pctCel = (d: (typeof com)[number], id: string) => { const z = stat(d, id); const tR = d.a.v2.textRec || 0; return z && tR ? (z.recNeg / tR) * 100 : 0; };
+  const maxCel = Math.max(1, ...com.flatMap((d) => TEMAS.map((tm) => pctCel(d, tm.id))));
+  const colunas = foco ? [foco, ...TEMAS.map((x) => x.id).filter((x) => x !== foco)] : TEMAS.map((x) => x.id);
+  return (
+    <div className="rbx">
+      <style>{ESTILO + ESTILO_EXTRA}</style>
+      <div className="rb-wrap" style={{ maxWidth: 1400 }}>
+        <Cabecalho kicker={t('Reputação', 'Reputation')}
+          titulo={top ? t(`${temaNome(top.id)} é o problema mais transversal do destino`, `${temaNome(top.id)} is the destination's most widespread issue`) : t('Temas no destino', 'Themes across the destination')}
+          sub={t(`Críticas e elogios por tema em ${com.length} locais analisados · últimos 12 meses comparados com os 12–36 meses anteriores`, `Criticism and praise by theme across ${com.length} analysed places · last 12 months compared with the previous 12–36 months`)} />
+        {com.length === 0 ? <p className="rb-sub" style={{ fontSize: 15 }}>{t('Reanalisa os locais para classificar os comentários por tema.', 'Re-analyse the places to classify reviews by theme.')}</p> : (
+          <>
+            <section className="rb-sec" style={{ paddingTop: 28 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+                {resumo.map((z, i) => {
+                  const tend = z.d >= 1 ? { s: '↑', c: 'var(--rb-bad)', l: t('a agravar', 'worsening') } : z.d <= -1 ? { s: '↓', c: 'var(--rb-good)', l: t('a melhorar', 'improving') } : { s: '→', c: 'var(--rb-text2)', l: t('estável', 'stable') };
+                  return (
+                    <button key={z.id} className={`rb-card-tema rb-rise${foco === z.id ? ' on' : ''}`} style={{ transitionDelay: `${Math.min(i, 8) * 50}ms` }} onClick={() => setFoco(foco === z.id ? null : z.id)}>
+                      <div style={{ fontSize: 15, fontWeight: 700 }}>{temaNome(z.id)}</div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 10 }}>
+                        <span style={{ fontSize: 32, fontWeight: 700, color: z.prob.length ? 'var(--rb-warn)' : 'var(--rb-text)' }}><Conta v={z.prob.length} /></span>
+                        <span style={{ fontSize: 13, color: 'var(--rb-text2)' }}>{t(z.prob.length === 1 ? 'local com problema' : 'locais com problema', z.prob.length === 1 ? 'place with an issue' : 'places with an issue')}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--rb-text2)', marginTop: 6 }}>
+                        <strong style={{ color: 'var(--rb-text)' }}>{fmt(z.pr, 1)}%</strong> {t('dos comentários criticam', 'of reviews criticise')} · <span style={{ color: tend.c, fontWeight: 700 }}>{tend.s} {tend.l}</span>
+                      </div>
+                      <div style={{ height: 5, background: 'var(--rb-muted)', borderRadius: 999, marginTop: 10, overflow: 'hidden' }}>
+                        <div className="rb-bar" style={{ width: `${Math.min(100, (z.pr / Math.max(1, resumo[0] ? Math.max(...resumo.map((y) => y.pr)) : 1)) * 100)}%`, height: '100%', background: 'var(--rb-warn)', borderRadius: 999 }} />
+                      </div>
+                      {z.forte.length > 0 && <div style={{ fontSize: 12.5, color: 'var(--rb-good)', marginTop: 10 }}>{t(`Ponto forte em ${z.forte.length} ${z.forte.length === 1 ? 'local' : 'locais'}`, `Strength at ${z.forte.length} ${z.forte.length === 1 ? 'place' : 'places'}`)}</div>}
+                    </button>
+                  );
+                })}
+              </div>
+              {foco && (() => { const z = resumo.find((y) => y.id === foco)!; return (
+                <div className="rb-rise" style={{ marginTop: 16, background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '18px 22px' }}>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>{temaNome(foco)}</div>
+                  <div style={{ fontSize: 14, color: 'var(--rb-text2)', marginTop: 8, lineHeight: 1.6 }}>
+                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '—'}<br />
+                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '—'}
+                  </div>
+                </div>
+              ); })()}
+            </section>
+
+            <section className="rb-sec">
+              <Titulo h={t('Mapa de calor: críticas por tema em cada local', 'Heatmap: criticism by theme at each place')} cap={t('% dos comentários com texto dos últimos 12 meses que criticam o tema · clica num local para abrir a ficha', '% of the last 12 months’ reviews with text criticising the theme · click a place to open its profile')} />
+              <div className="rb-scroll-x rb-rise">
+                <table className="rb-heat" style={{ borderCollapse: 'collapse', minWidth: 980, width: '100%' }}>
+                  <thead><tr><th className="rb-fixa">{t('Local', 'Place')}</th>{colunas.map((id) => <th key={id} style={{ color: foco === id ? 'var(--rb-accent)' : undefined }}>{t(TEMA_CURTO[id][0], TEMA_CURTO[id][1])}</th>)}</tr></thead>
+                  <tbody>{com.map((d) => (
+                    <tr key={d.l.id} onClick={() => props.onOpen(d.l.id)}>
+                      <td className="rb-fixa"><div style={{ fontWeight: 600, fontSize: 13.5 }}>{d.l.name}</div><div style={{ fontSize: 11.5, color: 'var(--rb-text2)' }}>{props.catLabel(d.l.category)}</div></td>
+                      {colunas.map((id) => {
+                        const v = pctCel(d, id), e = estadoDe(d, id), a = v / maxCel;
+                        return (
+                          <td key={id}>
+                            <span className="rb-cel" title={e ? estadoNome(e) : ''} style={{ background: v > 0 ? `rgba(237,160,107,${0.12 + a * 0.6})` : e === 'forte' ? 'rgba(124,199,154,.14)' : 'var(--rb-muted)', color: v > 0 ? (a > 0.55 ? '#1a1206' : 'var(--rb-text)') : e === 'forte' ? 'var(--rb-good)' : 'var(--rb-text2)', outline: e === 'persistente' ? '2px solid #EDA06B' : e === 'novo' ? '1px dashed #EDA06B' : 'none', outlineOffset: -2 }}>
+                              {v > 0 ? `${fmt(v, v < 10 ? 1 : 0)}%` : e === 'forte' ? '+' : '·'}
+                            </span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--rb-text2)', marginTop: 12 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="rb-cel" style={{ minWidth: 26, height: 18, background: 'rgba(237,160,107,.6)' }} /> {t('mais críticas', 'more criticism')}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="rb-cel" style={{ minWidth: 26, height: 18, background: 'rgba(237,160,107,.12)', outline: '2px solid #EDA06B', outlineOffset: -2 }} /> {t('persistente', 'persistent')}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="rb-cel" style={{ minWidth: 26, height: 18, background: 'rgba(237,160,107,.12)', outline: '1px dashed #EDA06B', outlineOffset: -2 }} /> {t('novo', 'new')}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="rb-cel" style={{ minWidth: 26, height: 18, background: 'rgba(124,199,154,.14)', color: 'var(--rb-good)' }}>+</span> {t('ponto forte', 'strength')}</span>
+              </div>
+              {sem.length > 0 && <p className="rb-sub">{t(`Por reanalisar com temas: ${sem.map((d) => d.l.name).join(', ')}.`, `Not yet re-analysed with themes: ${sem.map((d) => d.l.name).join(', ')}.`)}</p>}
+            </section>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── RELATÓRIOS E PARTILHA ──────────────────────────────────────────────────
+export function RelatorioView(props: {
+  analisados: LocV[]; catLabel: (c: string) => string;
+  relatorioIA: ReactNode | null; gerando: boolean; onGerar: () => void; onExportarPDF: () => void;
+  textoConsolidado: (id: string | null) => string; onCopiarConsolidado: (id: string | null) => void; copiado: boolean;
+  copiedLinkId: string | null; onCopiarLink: (id: string) => void; onAbrirPagina: (id: string) => void; onOpen: (id: string) => void;
+}) {
+  const [consId, setConsId] = useState<string | null>(null);
+  const [verTexto, setVerTexto] = useState(false);
+  const mini = useMiniaturas();
+  useRevelar(props.analisados.length);
+  const lista = [...props.analisados].sort((p, q) => p.name.localeCompare(q.name, 'pt'));
+  const mes = new Date().toLocaleDateString(t('pt-PT', 'en-GB'), { month: 'long', year: 'numeric' });
+  return (
+    <div className="rbx">
+      <style>{ESTILO + ESTILO_EXTRA}</style>
+      <div className="rb-wrap" style={{ maxWidth: 1400 }}>
+        <Cabecalho kicker={t('Reputação', 'Reputation')} titulo={t('Relatórios e partilha', 'Reports and sharing')} sub={t('Relatório mensal para a chefia, páginas públicas de cada local e relatório consolidado em texto.', 'Monthly report for management, public pages for each place and a consolidated text report.')} />
+        {lista.length === 0 ? <p className="rb-sub" style={{ fontSize: 15 }}>{t('Analisa locais para gerar relatórios.', 'Analyse places to generate reports.')}</p> : (
+          <>
+            <section className="rb-sec" style={{ paddingTop: 28 }}>
+              <div className="rb-rise" style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, overflow: 'hidden' }}>
+                <div style={{ padding: '24px 26px', display: 'flex', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start', background: 'linear-gradient(135deg, rgba(34,50,74,.55) 0%, rgba(28,31,36,0) 70%)', borderBottom: '1px solid var(--rb-line)' }}>
+                  <div style={{ maxWidth: 640 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>{t('Relatório mensal executivo', 'Monthly executive report')} · {mes}</div>
+                    <h2 className="rb-h2" style={{ marginTop: 8 }}>{t('Síntese da reputação do destino, escrita pela IA', 'Destination reputation summary, written by AI')}</h2>
+                    <p className="rb-cap" style={{ fontSize: 14 }}>{t(`Baseado em ${lista.length} locais analisados. Os números usados são os mesmos da plataforma.`, `Based on ${lista.length} analysed places. The numbers used are the same as in the platform.`)}</p>
+                  </div>
+                  <div className="rb-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {props.relatorioIA && <button className="rb-btn" onClick={props.onExportarPDF}>{t('Exportar PDF', 'Export PDF')}</button>}
+                    <button className="rb-btn p" disabled={props.gerando} onClick={props.onGerar}>{props.gerando ? t('A gerar…', 'Generating…') : props.relatorioIA ? t('Regenerar', 'Regenerate') : t('Gerar relatório', 'Generate report')}</button>
+                  </div>
+                </div>
+                <div style={{ padding: '22px 26px 26px' }}>
+                  {props.gerando ? (
+                    <div>{[92, 78, 85, 60].map((w, i) => <div key={i} style={{ height: 12, width: `${w}%`, borderRadius: 4, background: 'linear-gradient(90deg, var(--rb-muted), #2F343C, var(--rb-muted))', backgroundSize: '200% 100%', animation: 'rbShimmer 1.4s ease-in-out infinite', margin: '10px 0' }} />)}</div>
+                  ) : props.relatorioIA ? <div id="ai-report-print">{props.relatorioIA}</div>
+                    : <p className="rb-sub" style={{ fontSize: 14.5, marginTop: 0 }}>{t('Clica em "Gerar relatório" para a IA redigir o sumário do mês, com os destaques, os alertas e as recomendações.', 'Click "Generate report" for the AI to write the month’s summary, with highlights, alerts and recommendations.')}</p>}
+                </div>
+              </div>
+            </section>
+
+            <section className="rb-sec">
+              <Titulo h={t('Páginas públicas de cada local', 'Public page for each place')} cap={t('Link para partilhar com as entidades gestoras ou parceiros, sem precisar de palavra-passe', 'Link to share with site managers or partners, no password needed')} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+                {lista.map((l, i) => {
+                  const x = numeros(l);
+                  const ok = props.copiedLinkId === l.id;
+                  return (
+                    <div key={l.id} className="rb-rise" style={{ display: 'flex', gap: 14, alignItems: 'center', background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: 12, transitionDelay: `${Math.min(i, 9) * 40}ms` }}>
+                      <Miniatura src={mini[l.id]} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <button onClick={() => props.onOpen(l.id)} style={{ background: 'none', border: 0, padding: 0, color: 'var(--rb-text)', font: 'inherit', fontSize: 14.5, fontWeight: 700, textAlign: 'left', cursor: 'pointer', display: 'block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</button>
+                        <div style={{ fontSize: 12.5, color: 'var(--rb-text2)', marginTop: 2 }}>{x ? <>{x.robustez === 'insuficiente' ? t('Dados insuficientes', 'Insufficient data') : `${fmt(x.idx, 1)}/10`} · {fmt(x.avg, 2)} <span style={{ color: 'var(--rb-star)' }}>★</span></> : props.catLabel(l.category)}</div>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                          <button className="rb-chip ghost" style={{ height: 30, fontSize: 12.5, borderColor: ok ? 'var(--rb-good)' : undefined, color: ok ? 'var(--rb-good)' : undefined }} onClick={() => props.onCopiarLink(l.id)}>{ok ? t('Link copiado', 'Link copied') : t('Copiar link', 'Copy link')}</button>
+                          <button className="rb-chip" style={{ height: 30, fontSize: 12.5 }} onClick={() => props.onAbrirPagina(l.id)}>{t('Abrir', 'Open')} <Seta /></button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="rb-sec">
+              <Titulo h={t('Relatório consolidado em texto', 'Consolidated text report')} cap={t('Para colar num email ou documento', 'To paste into an email or document')} />
+              <div className="rb-rise" style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '20px 22px' }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <select className="rb-field" value={consId || ''} onChange={(e) => setConsId(e.target.value || null)} aria-label={t('Local', 'Place')}>
+                    <option value="">{t(`Todos os locais (${lista.length})`, `All places (${lista.length})`)}</option>
+                    {lista.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                  <button className="rb-btn p" onClick={() => props.onCopiarConsolidado(consId)}>{props.copiado ? t('Copiado', 'Copied') : t('Copiar relatório', 'Copy report')}</button>
+                  <button className="rb-chip ghost" onClick={() => setVerTexto((v) => !v)}>{verTexto ? t('Esconder texto', 'Hide text') : t('Pré-visualizar', 'Preview')}</button>
+                </div>
+                {verTexto && <div style={{ marginTop: 16, maxHeight: 420, overflowY: 'auto', background: 'var(--rb-bg)', border: '1px solid var(--rb-line)', borderRadius: 4, padding: '16px 18px' }}><pre className="rb-pre">{props.textoConsolidado(consId)}</pre></div>}
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

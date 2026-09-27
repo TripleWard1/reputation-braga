@@ -17,7 +17,7 @@ import {
 } from '@/app/lib/reviews';
 import { TEMAS, temaStats, excertos, numeros, ranking, numerosCoerentes, numerosPermitidos, resumoModelo, tagValida, indiceDestino } from '@/app/lib/temas';
 import { obterFotoBraga } from '@/app/lib/foto-braga';
-import { VisaoGeral, LocaisLista, FichaLocal, type Intervencao } from '@/app/components/Reputacao';
+import { VisaoGeral, LocaisLista, FichaLocal, MapaView, CompararView, TemasView, RelatorioView, type Intervencao } from '@/app/components/Reputacao';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -610,6 +610,9 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
   );
 }
 
+// Miniatura desfocada da foto do login (aparece instantaneamente enquanto a foto carrega)
+const FOTO_LOGIN_MINI = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA4KCw0LCQ4NDA0QDw4RFiQXFhQUFiwgIRokNC43NjMuMjI6QVNGOj1OPjIySGJJTlZYXV5dOEVmbWVabFNbXVn/2wBDAQ8QEBYTFioXFypZOzI7WVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVn/wAARCAASACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCaPUbgYEZGQM4NTG7uWiMm8AjrkVmL9nk8vhdq8kZ6j04q7PseNjDGAEToCalTZTgTJrMuEH7pifapX1h85KRkLwcE1hPImGWRAQDwVGCKjjRRtZGk2nkFj2qucSgu5BpnzBs8/N3rY08f6Qo7Ef0oorOOwkUvESKqLhQOR0FUYeBgdKKKHsaR3P/Z';
+
 // Ícones da barra lateral (traço fino, por secção)
 const NAV_ICON: Record<string, string> = {
   overview: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z',
@@ -937,7 +940,7 @@ export default function Home() {
     setGenReport(true); setError(null); setAiReport(null);
     try {
       const sorted = sortedAnalyzed;
-      const avg = (analyzed.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / analyzed.length).toFixed(1);
+      const avg = (destino ? destino.idx : analyzed.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / analyzed.length).toFixed(1);
       const top = sorted.slice(0, 5).map((l) => `${l.name} (${l.analysis!.sentimentScore}/10)`);
       const bottom = [...sorted].reverse().slice(0, 5).map((l) => `${l.name} (${l.analysis!.sentimentScore}/10)`);
       const rowsP = analyzed.map((l) => ({ loc: l, probs: classifyProblems(l) })).filter((x) => Object.keys(x.probs).length > 0);
@@ -1674,8 +1677,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     const targets = locFilter || sortedAnalyzed;
     const date = new Date().toLocaleDateString(t('pt-PT', 'en-GB'), { day: '2-digit', month: 'long', year: 'numeric' });
     const reportTotalReviews = targets.reduce((s, l) => s + (l.analysis?.reviewCount || l.reviews.length), 0);
-    const reportAvgScore = targets.length > 0
-      ? targets.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / targets.length
+    const reportAvgScore = targets.length > 1 && destino && targets.length === sortedAnalyzed.length ? destino.idx
+      : targets.length > 0 ? targets.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / targets.length
       : null;
     const reportMarkets = Array.from(new Set(targets.flatMap((l) => l.analysis?.marketSources || [])));
     const reportProblems = countTop(targets.flatMap((l) => dispAnalysis(l)?.topThemesNegative || []), 8);
@@ -1747,7 +1750,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
   if (loading) {
     return (
       <div style={{ position: 'relative', overflow: 'hidden', background: 'radial-gradient(900px 520px at 50% 30%, rgba(138,176,230,0.10), transparent), #15171B', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Public Sans', system-ui, sans-serif" }}>
-        {fotoBraga && <div className="rb-splash-foto" style={{ backgroundImage: `url(${fotoBraga})` }} />}
+        <div className="rb-splash-foto" style={{ backgroundImage: `url(/login-avenida.jpg), url(${FOTO_LOGIN_MINI})` }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(21,23,27,.55) 0%, rgba(21,23,27,.9) 70%, #15171B 100%)' }} />
         <div style={{ position: 'relative', textAlign: 'center', animation: 'rbFadeUp 0.8s ease both', padding: 24 }}>
           <img src={LOGO_URL} alt="Visit Braga" style={{ width: 210, height: 'auto', marginBottom: 28 }} />
@@ -1910,30 +1913,16 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
         {/* ── MAPA ── */}
         {view === 'mapa' && (
-          <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '16px 28px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-              <div>
-                <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 2px' }}>{t('Mapa de Reputação', 'Reputation Map')}</h1>
-                <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>
-                  {analyzed.length} {t(analyzed.length !== 1 ? 'locais' : 'local', analyzed.length !== 1 ? 'places' : 'place')} {t('com análise', 'analysed')} · <span style={{ color: C.accent }}>{t('arrasta marcadores para reposicionar', 'drag markers to reposition')}</span>
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                {[
-                  { color: C.positive, label: '≥ 7.5' },
-                  { color: C.neutral, label: '5–7.5' },
-                  { color: C.negative, label: '< 5' },
-                  { color: '#4a4960', label: 'Sem análise' },
-                ].map((l, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: l.color }} />
-                    <span style={{ fontSize: 11, color: C.textMuted }}>{l.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div ref={mapRef} style={{ flex: 1 }} />
-          </div>
+          <MapaView locations={locations} catLabel={catLabel} onOpen={(id) => { setDetailId(id); setView('detalhe'); }}
+            coordsDe={(l) => (l as Location).coords || getKnownCoords(l.name)}
+            onMove={(id, c) => {
+              const l = locations.find((z) => z.id === id);
+              if (!l) return;
+              gravarLocal(l, { coords: c }).then(() => {
+                setLocations((prev) => prev.map((z) => (z.id === id ? { ...z, coords: c } : z)));
+                showToast(t(`${l.name} reposicionado`, `${l.name} repositioned`));
+              }).catch((e: any) => setError(e?.message || String(e)));
+            }} />
         )}
 
         {/* ── DETALHE (ficha do local) ── */}
@@ -1947,130 +1936,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
         {/* ── COMPARAR ── */}
         {view === 'comparar' && (
-          <div style={{ padding: '28px 30px' }}>
-            <div style={{ marginBottom: 20 }}>
-              <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>{t('Comparar Locais', 'Compare Places')}</h1>
-              <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{t('Seleciona até 4 locais analisados para comparação lado a lado', 'Select up to 4 analysed places for side-by-side comparison')}</p>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
-              {analyzed.map((loc) => {
-                const isSel = compareIds.includes(loc.id);
-                return (
-                  <button key={loc.id} onClick={() => setCompareIds(isSel ? compareIds.filter((id) => id !== loc.id) : compareIds.length < 4 ? [...compareIds, loc.id] : compareIds)}
-                    style={{
-                      padding: '8px 16px', borderRadius: 8,
-                      border: `1px solid ${isSel ? scoreColor(loc.analysis!.sentimentScore) : C.border}`,
-                      background: isSel ? scoreBg(loc.analysis!.sentimentScore) : C.card,
-                      color: isSel ? scoreColor(loc.analysis!.sentimentScore) : C.textMuted,
-                      cursor: 'pointer', fontSize: 12, fontWeight: isSel ? 600 : 400,
-                    }}>
-                    {categoryIcon(loc.category)} {loc.name} - {loc.analysis!.sentimentScore}/10
-                  </button>
-                );
-              })}
-            </div>
-
-            {compareIds.length < 2 ? (
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 60, textAlign: 'center' }}>
-                <p style={{ color: C.textMuted, fontSize: 14 }}>{t('Seleciona pelo menos 2 locais para comparar.', 'Select at least 2 places to compare.')}</p>
-              </div>
-            ) : (
-              <>
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'auto', marginBottom: 14 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
-                    <thead>
-                      <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                        <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 11, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', width: 160 }}>{t('Dimensão', 'Dimension')}</th>
-                        {compareIds.map((id) => {
-                          const l = locations.find((x) => x.id === id)!;
-                          return (
-                            <th key={id} style={{ padding: '14px 20px', textAlign: 'center', fontSize: 12 }}>
-                              <div style={{ marginBottom: 4 }}>{categoryIcon(l.category)} {l.name}</div>
-                              <div style={{ fontSize: 20, fontWeight: 700, color: scoreColor(l.analysis!.sentimentScore) }}>{l.analysis!.sentimentScore}/10</div>
-                              <div style={{ fontSize: 10, color: scoreColor(l.analysis!.sentimentScore) }}>{scoreLabel(l.analysis!.sentimentScore)}</div>
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { key: 'sentimentScore', label: t('Score Global', 'Overall Score'), fmt: (v: number) => v + '/10' },
-                        { key: 'positive', label: t('Sentimento Positivo', 'Positive Sentiment'), fmt: (v: number) => v + '%' },
-                        { key: 'negative', label: t('Sentimento Negativo', 'Negative Sentiment'), fmt: (v: number) => v + '%' },
-                        ...DIMS.map((d, i) => ({ key: `dim_${d}`, label: dimLabelI(i), fmt: (v: number) => v + '/10' })),
-                        { key: 'reviewCount', label: t('Nº Reviews', 'No. of Reviews'), fmt: (v: number) => String(v) },
-                      ].map((row, ri) => {
-                        const vals = compareIds.map((id) => {
-                          const l = locations.find((x) => x.id === id)!;
-                          const a = l.analysis!;
-                          if (row.key === 'sentimentScore') return a.sentimentScore;
-                          if (row.key === 'positive') return a.sentimentBreakdown.positive;
-                          if (row.key === 'negative') return a.sentimentBreakdown.negative;
-                          if (row.key.startsWith('dim_')) return a.dimensions?.[row.key.slice(4)] || 0;
-                          if (row.key === 'reviewCount') return a.reviewCount || 0;
-                          return 0;
-                        });
-                        const maxVal = Math.max(...vals);
-                        const minVal = Math.min(...vals);
-                        return (
-                          <tr key={ri} style={{ borderBottom: `1px solid ${C.border}` }}>
-                            <td style={{ padding: '11px 20px', fontSize: 12, color: C.textMuted }}>{row.label}</td>
-                            {vals.map((val, vi) => {
-                              const isBest = val === maxVal && maxVal !== minVal && row.key !== 'negative';
-                              const isWorst = val === minVal && maxVal !== minVal && row.key !== 'negative';
-                              return (
-                                <td key={vi} style={{ padding: '11px 20px', textAlign: 'center', fontSize: 13, fontWeight: isBest || isWorst ? 700 : 400, color: isBest ? C.positive : isWorst ? C.negative : C.text }}>
-                                  {row.fmt(val)}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                  <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>{t('Comparação Visual - Dimensões', 'Visual Comparison - Dimensions')}</div>
-                  {DIMS.map((d, di) => (
-                    <div key={di} style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6 }}>{dimLabelI(di)}</div>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        {compareIds.map((id, ci) => {
-                          const loc = locations.find((l) => l.id === id)!;
-                          const val = loc.analysis!.dimensions?.[d] || 0;
-                          const colors = [C.accent, C.info, C.positive, C.purple];
-                          return (
-                            <div key={id} style={{ flex: 1 }}>
-                              <div style={{ height: 22, borderRadius: 4, background: C.border, overflow: 'hidden', marginBottom: 3 }}>
-                                <div style={{ width: `${val * 10}%`, height: '100%', background: colors[ci], opacity: 0.85 }} />
-                              </div>
-                              <div style={{ fontSize: 10, color: colors[ci], textAlign: 'center', fontWeight: 600 }}>{val}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{ display: 'flex', gap: 14, marginTop: 12, flexWrap: 'wrap' }}>
-                    {compareIds.map((id, ci) => {
-                      const loc = locations.find((l) => l.id === id)!;
-                      const colors = [C.accent, C.info, C.positive, C.purple];
-                      return (
-                        <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ width: 12, height: 12, borderRadius: 2, background: colors[ci] }} />
-                          <span style={{ fontSize: 12, color: C.textMuted }}>{loc.name}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          <CompararView locations={locations} catLabel={catLabel} onOpen={(id) => { setDetailId(id); setView('detalhe'); }} />
         )}
 
         {/* ── OBSERVATÓRIO ── */}
@@ -2083,262 +1949,27 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           />
         )}
 
-        {/* ── PROBLEMAS (taxonomia + mapa de calor) ── */}
-        {view === 'problemas' && (() => {
-          const rows = analyzed
-            .map((l) => ({ loc: l, probs: classifyProblems(l) }))
-            .filter((x) => Object.keys(x.probs).length > 0)
-            .sort((a, b) =>
-              Object.values(b.probs).reduce((s, n) => s + n, 0) -
-              Object.values(a.probs).reduce((s, n) => s + n, 0));
-          const agg = PROBLEM_TAXONOMY.map((p) => {
-            const affected = rows.filter((r) => r.probs[p.id]);
-            return { ...p, affected: affected.length, total: affected.reduce((s, r) => s + r.probs[p.id], 0), locs: affected.map((r) => r.loc.name) };
-          }).filter((p) => p.affected > 0).sort((a, b) => b.affected - a.affected || b.total - a.total);
-          const cols = agg;
-          const maxAff = Math.max(...agg.map((a) => a.affected), 1);
-
-          return (
-            <div style={{ padding: '28px 30px' }}>
-              <div style={{ marginBottom: 18 }}>
-                <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>{t('Problemas da Cidade', 'City Issues')}</h1>
-                <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{t('Classificação automática das críticas em categorias fixas, agregada ao nível da cidade. Permite ver padrões transversais a vários locais.', 'Automatic classification of reviews into fixed categories, aggregated at city level. Reveals patterns shared across several places.')}</p>
-              </div>
-
-              {rows.length === 0 ? (
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: 'center' }}>
-                  <p style={{ color: C.textMuted, fontSize: 14, margin: 0 }}>{t('Ainda não há problemas classificáveis. Analisa locais com reviews para que as críticas sejam categorizadas automaticamente.', 'No classifiable issues yet. Analyse places with reviews so the criticism is categorised automatically.')}</p>
-                </div>
-              ) : (
-                <>
-                  {/* KPIs rápidos */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-                    {agg.slice(0, 3).map((p, i) => (
-                      <div key={p.id} style={{ background: C.card, border: `1px solid ${i === 0 ? C.negative + '40' : C.border}`, borderRadius: 12, padding: '16px 18px' }}>
-                        <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{t('Problema nº', 'Issue No. ')}{i + 1}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 22 }}>{p.icon}</span>
-                          <div>
-                            <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{probLabel(p)}</div>
-                            <div style={{ fontSize: 11, color: C.negative }}>{t('afeta', 'affects')} {p.affected} {t(p.affected === 1 ? 'local' : 'locais', p.affected === 1 ? 'place' : 'places')}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Ranking de problemas */}
-                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('Ranking - nº de locais afetados por cada problema', 'Ranking - number of places affected by each issue')}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-                      {agg.map((p) => (
-                        <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '190px 1fr 130px', gap: 12, alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                            <span style={{ fontSize: 15 }}>{p.icon}</span>
-                            <span style={{ fontSize: 13, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{probLabel(p)}</span>
-                          </div>
-                          <div style={{ height: 18, borderRadius: 5, background: C.bg, overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ width: `${(p.affected / maxAff) * 100}%`, height: '100%', background: C.negative, opacity: 0.55, borderRadius: 5 }} />
-                          </div>
-                          <div style={{ fontSize: 11, color: C.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.locs.join(', ')}>
-                            <strong style={{ color: C.text }}>{p.affected}</strong> {t(p.affected === 1 ? 'local' : 'locais', p.affected === 1 ? 'place' : 'places')}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Mapa de calor problema × local */}
-                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-                      <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('Mapa de Calor - problema × local', 'Heat Map - issue × place')}</div>
-                      <div style={{ fontSize: 10, color: C.textDim }}>{t('intensidade = nº de termos que correspondem ao problema', 'intensity = number of terms matching the issue')}</div>
-                    </div>
-                    {/* Legenda dos ícones */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
-                      {cols.map((p) => (
-                        <span key={p.id} style={{ fontSize: 10, color: C.textMuted, display: 'flex', alignItems: 'center', gap: 4 }}>{p.icon} {probShort(p)}</span>
-                      ))}
-                    </div>
-                    <div style={{ overflowX: 'auto', paddingBottom: 6 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: `200px repeat(${cols.length}, 46px)`, gap: 3, minWidth: 'fit-content' }}>
-                        {/* Cabeçalho */}
-                        <div style={{ position: 'sticky', left: 0, background: C.card, zIndex: 1 }} />
-                        {cols.map((p) => (
-                          <div key={p.id} title={probLabel(p)} style={{ fontSize: 16, textAlign: 'center', paddingBottom: 6, cursor: 'default' }}>{p.icon}</div>
-                        ))}
-                        {/* Linhas */}
-                        {rows.map(({ loc, probs }) => (
-                          <div key={loc.id} style={{ display: 'contents' }}>
-                            <div onClick={() => { setDetailId(loc.id); setView('detalhe'); }}
-                              style={{ position: 'sticky', left: 0, background: C.card, zIndex: 1, display: 'flex', alignItems: 'center', gap: 8, paddingRight: 8, cursor: 'pointer', borderRight: `1px solid ${C.border}` }}>
-                              <span style={{ fontSize: 14, flexShrink: 0 }}>{categoryIcon(loc.category)}</span>
-                              <span style={{ fontSize: 12, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{loc.name}</span>
-                            </div>
-                            {cols.map((p) => {
-                              const n = probs[p.id] || 0;
-                              return (
-                                <div key={p.id} title={n > 0 ? `${loc.name} - ${probLabel(p)}: ${n}` : ''}
-                                  style={{ height: 34, borderRadius: 6, background: problemCellBg(n), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: n > 0 ? '#fff' : 'transparent', border: `1px solid ${n > 0 ? 'transparent' : C.border}` }}>
-                                  {n > 0 ? n : ''}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <p style={{ fontSize: 11, color: C.textDim, margin: '14px 0 0', lineHeight: 1.5 }}>
-                      {t('A classificação é automática, a partir dos problemas e temas negativos detetados pela IA em cada local. Clica num local para ver a análise completa. É uma leitura de padrões, não um diagnóstico fechado.', 'Classification is automatic, based on the issues and negative themes detected by the AI in each place. Click a place to see the full analysis. It is a reading of patterns, not a closed diagnosis.')}
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })()}
+        {/* ── PROBLEMAS → Temas no destino ── */}
+        {view === 'problemas' && (
+          <TemasView locations={locations} catLabel={catLabel} onOpen={(id) => { setDetailId(id); setView('detalhe'); }} />
+        )}
 
         {/* ── RELATÓRIO ── */}
         {view === 'relatorio' && (
-          <div style={{ padding: '28px 30px' }}>
-            <div style={{ marginBottom: 22 }}>
-              <h1 style={{ fontSize: 27, fontWeight: 600, margin: '0 0 4px' }}>{t('Relatórios e Partilha', 'Reports & Sharing')}</h1>
-              <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{t('Gera relatórios completos ou links públicos partilháveis por POI', 'Generate full reports or shareable public links per POI')}</p>
-            </div>
-
-            {analyzed.length === 0 ? (
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 60, textAlign: 'center' }}>
-                <p style={{ color: C.textMuted, fontSize: 14 }}>{t('Analisa locais para gerar relatórios.', 'Analyse places to generate reports.')}</p>
-              </div>
-            ) : (
-              <>
-                {/* Relatório Mensal Executivo (IA) */}
-                <div style={{ background: C.card, border: `1px solid ${C.accent}40`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: 240 }}>
-                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>{t('✨ Relatório Mensal Executivo (IA)', '✨ Monthly Executive Report (AI)')}</div>
-                      <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{t('Texto escrito pela IA a partir dos dados de reputação (', 'AI-written text based on reputation data (')}{analyzed.length} {t('locais, score médio e problemas transversais), pronto a exportar com a marca Visit Braga.', 'places, average score and cross-cutting issues), ready to export with the Visit Braga brand.')}</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                      {aiReport && (
-                        <button onClick={exportReportPDF}
-                          style={{ padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: C.accentBg, color: C.accentLight, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                          {t('⬇ Exportar PDF', '⬇ Export PDF')}
-                        </button>
-                      )}
-                      <button onClick={generateAIReport} disabled={genReport}
-                        style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: genReport ? C.border : C.accent, color: genReport ? C.textDim : C.bg, cursor: genReport ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        {genReport ? t('⏳ A gerar…', '⏳ Generating…') : aiReport ? t('↻ Regenerar', '↻ Regenerate') : t('✨ Gerar relatório', '✨ Generate report')}
-                      </button>
-                    </div>
-                  </div>
-
-                  {aiReport ? (
-                    <div id="ai-report-print" style={{ marginTop: 18, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '22px 26px' }}>
-                      <AIReportBody text={aiReport} />
-                    </div>
-                  ) : (
-                    <div style={{ marginTop: 16, background: C.bg, border: `1px dashed ${C.border}`, borderRadius: 10, padding: '20px 22px', fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>
-                      {t('Clica em', 'Click')} <strong style={{ color: C.accentLight }}>{t('Gerar relatório', 'Generate report')}</strong> {t('para a IA redigir um sumário executivo do mês - destaques, locais a acompanhar, problemas transversais e recomendações de monitorização. Demora alguns segundos (uma chamada à IA).', 'for the AI to write an executive monthly summary - highlights, places to watch, cross-cutting issues and monitoring recommendations. It takes a few seconds (one AI call).')}
-                    </div>
-                  )}
-                </div>
-
-                {/* Per-POI shareable links */}
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-                    <div>
-                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>{t('🔗 Links Partilháveis por POI', '🔗 Shareable Links per POI')}</div>
-                      <div style={{ fontSize: 11, color: C.textDim }}>{t('Cada link mostra um relatório institucional público com a marca Visit Braga', 'Each link shows a public institutional report with the Visit Braga brand')}</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 8 }}>
-                    {sortedAnalyzed.map((loc) => (
-                      <div key={loc.id} style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        gap: 10, padding: '10px 14px', background: C.bg,
-                        borderRadius: 8, border: `1px solid ${C.border}`,
-                      }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                            <span style={{ fontSize: 14 }}>{categoryIcon(loc.category)}</span>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc.name}</span>
-                          </div>
-                          <div style={{ fontSize: 10, color: C.textDim }}>
-                            <span style={{ color: scoreColor(loc.analysis!.sentimentScore) }}>{loc.analysis!.sentimentScore}/10</span> · {loc.analysis!.reviewCount || loc.reviews.length} reviews
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                          <button onClick={() => { setDetailId(loc.id); setView('detalhe'); }}
-                            title="Ver"
-                            style={{ padding: '6px 10px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: 11 }}>
-                            👁
-                          </button>
-                          <button onClick={() => copyShareLink(loc.id)}
-                            title="Copiar link partilhável"
-                            style={{
-                              padding: '6px 10px', borderRadius: 6,
-                              border: `1px solid ${copiedLinkId === loc.id ? C.positive : C.border}`,
-                              background: copiedLinkId === loc.id ? C.positiveBg : 'transparent',
-                              color: copiedLinkId === loc.id ? C.positive : C.textMuted,
-                              cursor: 'pointer', fontSize: 11,
-                            }}>
-                            {copiedLinkId === loc.id ? '✓' : '🔗'}
-                          </button>
-                          <button onClick={() => openShareLink(loc.id)}
-                            style={{
-                              padding: '6px 14px', borderRadius: 6,
-                              border: `1px solid ${C.accent}`, background: C.accentBg,
-                              color: C.accent, cursor: 'pointer', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
-                            }}>
-                            {t('Abrir página', 'Open page')}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Full report */}
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 24px', marginBottom: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 11, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>{t('📄 Relatório Consolidado', '📄 Consolidated Report')}</div>
-                      <div style={{ fontSize: 11, color: C.textDim }}>
-                        {t('Relatório completo', 'Full report')} {reportLocId ? `${t('de', 'for')} "${reportLoc?.name}"` : `${t('com todos os', 'with all')} ${analyzed.length} ${t('locais analisados', 'analysed places')}`}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <select value={reportLocId || ''} onChange={(e) => setReportLocId(e.target.value || null)}
-                        style={{ ...IS, width: 'auto', minWidth: 200 }}>
-                        <option value="">{t('- Todos os locais -', '- All places -')}</option>
-                        {sortedAnalyzed.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                      </select>
-                      <button onClick={() => {
-                        const targets = reportLocId ? sortedAnalyzed.filter((l) => l.id === reportLocId) : sortedAnalyzed;
-                        navigator.clipboard.writeText(generateReport(targets));
-                        setCopiedReport(true);
-                        setTimeout(() => setCopiedReport(false), 2000);
-                      }}
-                        style={{
-                          padding: '10px 18px', borderRadius: 8, border: 'none',
-                          background: copiedReport ? C.positive : C.accent,
-                          color: copiedReport ? '#000' : C.bg,
-                          cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.3s',
-                        }}>
-                        {copiedReport ? t('✓ Copiado!', '✓ Copied!') : t('📋 Copiar Relatório', '📋 Copy Report')}
-                      </button>
-                    </div>
-                  </div>
-                  <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: 20, maxHeight: 600, overflowY: 'auto' }}>
-                    <pre style={{ fontSize: 11, lineHeight: 1.8, color: C.text, whiteSpace: 'pre-wrap', fontFamily: 'DM Mono, "Courier New", monospace', margin: 0, wordBreak: 'break-word' }}>
-                      {generateReport(reportLocId ? sortedAnalyzed.filter((l) => l.id === reportLocId) : sortedAnalyzed)}
-                    </pre>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          <RelatorioView
+            analisados={sortedAnalyzed} catLabel={catLabel}
+            relatorioIA={aiReport ? <AIReportBody text={aiReport} /> : null}
+            gerando={genReport} onGerar={generateAIReport} onExportarPDF={exportReportPDF}
+            textoConsolidado={(id) => generateReport(id ? sortedAnalyzed.filter((l) => l.id === id) : sortedAnalyzed)}
+            onCopiarConsolidado={(id) => {
+              navigator.clipboard.writeText(generateReport(id ? sortedAnalyzed.filter((l) => l.id === id) : sortedAnalyzed));
+              setCopiedReport(true);
+              setTimeout(() => setCopiedReport(false), 2000);
+            }}
+            copiado={copiedReport}
+            copiedLinkId={copiedLinkId} onCopiarLink={(id) => copyShareLink(id)} onAbrirPagina={(id) => openShareLink(id)}
+            onOpen={(id) => { setDetailId(id); setView('detalhe'); }}
+          />
         )}
       </main>
 

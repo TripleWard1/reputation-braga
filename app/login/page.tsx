@@ -5,6 +5,7 @@ import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
 
 const LOGO_URL = 'https://i.imgur.com/Vij12Qd.png';
 const FOTO_LOGIN = '/login-avenida.jpg';
+const FOTO_LOGIN_MINI = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA4KCw0LCQ4NDA0QDw4RFiQXFhQUFiwgIRokNC43NjMuMjI6QVNGOj1OPjIySGJJTlZYXV5dOEVmbWVabFNbXVn/2wBDAQ8QEBYTFioXFypZOzI7WVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVn/wAARCAASACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCaPUbgYEZGQM4NTG7uWiMm8AjrkVmL9nk8vhdq8kZ6j04q7PseNjDGAEToCalTZTgTJrMuEH7pifapX1h85KRkLwcE1hPImGWRAQDwVGCKjjRRtZGk2nkFj2qucSgu5BpnzBs8/N3rY08f6Qo7Ef0oorOOwkUvESKqLhQOR0FUYeBgdKKKHsaR3P/Z';
 
 const C = {
   bg: '#15171B',
@@ -22,7 +23,7 @@ const C = {
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
-.lg-foto { position: absolute; inset: -40px; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.2s ease; animation: lgKb 26s ease-in-out infinite alternate; }
+.lg-foto { position: absolute; inset: -40px; background-size: cover; background-position: center; opacity: 1; animation: lgKb 26s ease-in-out infinite alternate; }
 .lg-foto.on { opacity: 1; }
 @keyframes lgKb { from { transform: scale(1.04); } to { transform: scale(1.16) translate(-16px, 10px); } }
 .lg-in { animation: lgUp .9s cubic-bezier(.2,.7,.2,1) both; }
@@ -40,9 +41,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
-  // Fotografia do login: Avenida da Liberdade (public/login-avenida.jpg); aparece suavemente quando carrega
-  const [foto, setFoto] = useState<string | null>(null);
-  useEffect(() => { const img = new Image(); img.onload = () => setFoto(FOTO_LOGIN); img.src = FOTO_LOGIN; }, []);
+  // Fotografia do login: Avenida da Liberdade. A miniatura aparece de imediato; a foto completa por cima assim que chega.
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('rb-lang') : null;
@@ -82,7 +81,8 @@ export default function LoginPage() {
   return (
     <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: `radial-gradient(1000px 560px at 30% 20%, rgba(138,176,230,0.10), transparent), ${C.bg}`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 20px', fontFamily: "'Public Sans', system-ui, sans-serif", color: C.text }}>
       <style>{CSS}</style>
-      {foto && <div className="lg-foto on" style={{ backgroundImage: `url(${foto})` }} />}
+      <link rel="preload" as="image" href={FOTO_LOGIN} />
+      <div className="lg-foto on" style={{ backgroundImage: `url(${FOTO_LOGIN}), url(${FOTO_LOGIN_MINI})` }} />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(21,23,27,.92) 0%, rgba(21,23,27,.62) 55%, rgba(21,23,27,.45) 100%), linear-gradient(0deg, rgba(21,23,27,.85) 0%, rgba(21,23,27,0) 45%)' }} />
 
       <div className="lg-grid" style={{ position: 'relative' }}>

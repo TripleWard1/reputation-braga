@@ -126,6 +126,15 @@ const fmtE = (n: number | null | undefined) => {
 export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, reputacaoReviews, fotoTopo }: Props) {
   const [tab, setTab] = useState<Tab>('geral');
   const [foto, setFoto] = useState<string | null>(null);
+  // Ao mudar de separador, se estiveres mais abaixo, a página volta ao início do conteúdo (menu visível no topo)
+  const primeiroTab = useRef(true);
+  useEffect(() => {
+    if (primeiroTab.current) { primeiroTab.current = false; return; }
+    const hero = document.querySelector('.obs-hero') as HTMLElement | null;
+    const tabs = document.querySelector('.obs-tabs') as HTMLElement | null;
+    const alvo = hero ? hero.getBoundingClientRect().bottom + window.scrollY : tabs ? tabs.getBoundingClientRect().top + window.scrollY : 0;
+    if (window.scrollY > alvo + 2) window.scrollTo({ top: alvo, behavior: 'smooth' });
+  }, [tab]);
   useEffect(() => { let vivo = true; obterFotoBraga().then((x) => { if (vivo) setFoto(x); }); return () => { vivo = false; }; }, []);
   // Camada visual: cada barra recebe um degradê da sua própria cor (a cor e os valores não mudam)
   useEffect(() => {
