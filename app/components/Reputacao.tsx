@@ -244,6 +244,7 @@ const ESTILO = `
 .rb-hero-top { position: absolute; top: 24px; left: 48px; right: 48px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
 .rb-hero-h1 { font-size: clamp(34px, 5vw, 58px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.04; margin: 12px 0 14px; text-shadow: 0 2px 24px rgba(0,0,0,.35); }
 .rb-row:hover .rb-th img { transform: scale(1.08); }
+.rb-only-m { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .rb-sec, .rb-rise, .rb-dot { opacity: 1 !important; transform: none !important; transition: none !important; }
   .rb-draw { stroke-dashoffset: 0 !important; transition: none !important; }
@@ -251,15 +252,36 @@ const ESTILO = `
   .rb-enter, .rb-kb { animation: none !important; }
 }
 @media (max-width: 900px) {
-  .rb-hero-foto { height: 380px !important; }
-  .rb-hero-in { padding: 0 20px 24px; }
-  .rb-hero-top { left: 20px; right: 20px; top: 16px; }
+  .rb-hero-foto { height: auto !important; min-height: 360px; }
+  .rb-hero-in { padding: 16px 20px 28px; justify-content: flex-start; }
+  .rb-hero-top { position: static; margin-bottom: 64px; gap: 12px; }
+  .rb-hero-top .rb-btn, .rb-hero-top .rb-chip { height: 34px; padding: 0 12px; font-size: 13px; }
+  .rb-hero-h1 { font-size: 32px; margin: 10px 0 12px; }
+  .rb-big { font-size: 30px; white-space: nowrap; }
+  .rb-big small { font-size: 14px; }
+  .rb-big .rb-sec2 { font-size: 18px !important; }
+  .rb-estrela { width: 22px; height: 22px; margin-left: 6px; }
+  .rb-strip > div { padding: 16px 14px 16px 16px; }
+  .rb-strip > div:nth-child(n+3) { border-top: 1px solid var(--rb-line); }
+  .rb-anc { flex-wrap: nowrap !important; overflow-x: auto; white-space: nowrap; gap: 20px !important; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .rb-anc::-webkit-scrollbar { display: none; }
+  .rb-stack thead { display: none; }
+  .rb-stack tr { display: block; padding: 14px 0; border-bottom: 1px solid var(--rb-line); }
+  .rb-stack td { display: block; border: 0 !important; padding: 4px 0 !important; width: auto !important; }
+  .rb-stack td[data-l]::before { content: attr(data-l); display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--rb-text2); margin: 6px 0 4px; }
+  .rb-kpis { grid-template-columns: 1fr 1fr !important; }
+  .rb-kpis > div { padding: 14px 14px 16px !important; border-left: 0 !important; border-top: 1px solid rgba(255,255,255,.08); }
+  .rb-kpis > div:nth-child(-n+2) { border-top: 0; }
+  .rb-kpis > div:nth-child(even) { border-left: 1px solid rgba(255,255,255,.08) !important; }
+  .rb-h2 { font-size: 23px; }
   .rb-wrap { padding: 24px 20px 48px; }
   .rb-strip { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .rb-strip > div:nth-child(3) { border-left: 0; padding-left: 0; }
   .rb-2, .rb-3, .rb-hero { grid-template-columns: 1fr !important; gap: 28px !important; }
   .rb-card { flex-basis: 220px; height: 300px; }
   .rb-hide-m { display: none; }
+  .rb-only-m { display: block; }
+  .rb-h1-m { font-size: 34px !important; }
 }
 @media print {
   .rb-sidebar, .rb-noprint, .rb-mobile-bar { display: none !important; }
@@ -316,7 +338,7 @@ function Faixa({ x, a }: { x: Numeros | null; a?: any }) {
         <div className="rb-lab">{t('Positivos e negativos', 'Positive and negative')}</div>
         <div className="rb-big" style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
           <span style={{ color: 'var(--rb-good)' }}><Conta v={x.pos} d={1} />%</span>
-          <span style={{ color: 'var(--rb-bad)', fontSize: 24 }}><Conta v={x.neg} d={1} />%</span>
+          <span className="rb-sec2" style={{ color: 'var(--rb-bad)', fontSize: 24 }}><Conta v={x.neg} d={1} />%</span>
         </div>
         <div className="rb-split rb-bar">
           <i style={{ width: `${x.pos}%`, background: 'var(--rb-good)' }} />
@@ -345,15 +367,24 @@ function Titulo({ h, cap, id, right }: { h: string; cap?: string; id?: string; r
 function Evolucao({ q, intervencoes, alertaUltimo }: { q: { q: string; avg: number; n: number; negPct?: number }[]; intervencoes: Intervencao[]; alertaUltimo: boolean }) {
   const [hover, setHover] = useState<number | null>(null);
   const idRef = useRef(`rbg${Math.random().toString(36).slice(2, 8)}`);
+  const caixa = useRef<HTMLDivElement>(null);
+  const [cw, setCw] = useState(560);
+  useEffect(() => {
+    const el = caixa.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => { if (el.clientWidth) setCw(Math.round(el.clientWidth)); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   if (q.length < 2) return <p className="rb-sub">{t('Ainda não há trimestres suficientes para mostrar a evolução.', 'Not enough quarters yet to show the trend.')}</p>;
-  const W = 560, H = 250, L = 38, R = 16, T = 24, B = 28;
+  const W = Math.max(300, cw), H = cw < 500 ? 220 : 250, L = 38, R = 16, T = 24, B = 28;
   const min = Math.min(...q.map((x) => x.avg)), max = Math.max(...q.map((x) => x.avg));
   const lo = Math.max(1, Math.floor((min - 0.15) * 10) / 10), hi = Math.min(5, Math.ceil((max + 0.1) * 10) / 10);
   const X = (i: number) => L + (i * (W - L - R)) / (q.length - 1);
   const Y = (v: number) => T + ((hi - v) / (hi - lo || 1)) * (H - T - B);
   const lab = (s2: string) => { const [y, tq] = s2.split('-T'); return `T${tq} ${y.slice(2)}`; };
   const labLongo = (s2: string) => { const [y, tq] = s2.split('-T'); return t(`${tq}.º trimestre de ${y}`, `Q${tq} ${y}`); };
-  const step = Math.ceil(q.length / 7);
+  const step = Math.ceil(q.length / Math.max(3, Math.floor((W - L - R) / 72)));
   const qIdx = (iso: string) => { const d = new Date(iso); const k = `${d.getFullYear()}-T${Math.floor(d.getMonth() / 3) + 1}`; return q.findIndex((x) => x.q === k); };
   const pts = q.map((x, i) => `${X(i)},${Y(x.avg)}`).join(' ');
   const area = `M ${X(0)} ${H - B} L ${q.map((x, i) => `${X(i)} ${Y(x.avg)}`).join(' L ')} L ${X(q.length - 1)} ${H - B} Z`;
@@ -365,7 +396,7 @@ function Evolucao({ q, intervencoes, alertaUltimo }: { q: { q: string; avg: numb
   };
   const h = hover != null ? q[hover] : null;
   return (
-    <div style={{ position: 'relative' }}>
+    <div ref={caixa} style={{ position: 'relative' }}>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={t('Média de estrelas por trimestre', 'Average stars per quarter')} style={{ display: 'block', overflow: 'visible', cursor: 'crosshair', touchAction: 'pan-y' }}
         onMouseMove={(e) => mexe(e.clientX, e.currentTarget)} onMouseLeave={() => setHover(null)}
         onTouchStart={(e) => mexe(e.touches[0].clientX, e.currentTarget)} onTouchMove={(e) => mexe(e.touches[0].clientX, e.currentTarget)}>
@@ -687,7 +718,7 @@ export function FichaLocal(props: {
         )}
 
         {/* 5. Âncoras */}
-        <nav className="rb-noprint" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginTop: 28, paddingBottom: 12, borderBottom: '1px solid var(--rb-line)', fontSize: 14.5 }}>
+        <nav className="rb-noprint rb-anc" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginTop: 28, paddingBottom: 12, borderBottom: '1px solid var(--rb-line)', fontSize: 14.5 }}>
           {[['rb-resumo', t('Resumo', 'Summary')], ['rb-temas', t('Temas', 'Themes')], ['rb-comentarios', t('Pontos fortes e problemas', 'Strengths and issues')], ['rb-periodos', t('Problemas por período', 'Issues by period')], ['rb-dimensoes', t('Dimensões', 'Dimensions')], ['rb-evolucao', t('Evolução', 'Trend')], ['rb-estrelas', t('Estrelas', 'Stars')], ['rb-mercados', t('Mercados', 'Markets')], ['rb-recomendacoes', t('Sugestões', 'Suggestions')]].map(([id, lb], i) => (
             <button key={id} onClick={() => ir(id)} style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', color: i === 0 ? 'var(--rb-text)' : 'var(--rb-text2)', fontWeight: i === 0 ? 700 : 400, fontSize: 14.5 }}>{lb}</button>
           ))}
@@ -705,7 +736,7 @@ export function FichaLocal(props: {
         <section id="rb-temas" className="rb-sec">
           <Titulo h={temas.length ? tituloTemas : t('Temas', 'Themes')} cap={t('Comparação entre os últimos 12 meses e os 12–36 meses anteriores', 'Comparison between the last 12 months and the previous 12–36 months')} />
           {temas.length ? (
-            <table className="rb-table">
+            <table className="rb-table rb-stack">
               <thead><tr><th style={{ width: '28%' }}>{t('Tema', 'Theme')}</th><th style={{ width: '20%' }}>{t('Estado', 'Status')}</th><th>{t('O que os visitantes dizem', 'What visitors say')}</th></tr></thead>
               <tbody>{temas.map((z) => <tr key={z.id}><td style={{ fontWeight: 700 }}>{temaNome(z.id)}</td><td><Tag e={z.estado} /></td><td style={{ color: 'var(--rb-text2)' }}>{z.nota}</td></tr>)}</tbody>
             </table>
@@ -798,13 +829,13 @@ export function FichaLocal(props: {
               {linhasTemas.length > 0 && (
                 <div className="rb-rise" style={{ marginTop: 28 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--rb-text2)', marginBottom: 6 }}>{t('Críticas por tema nos dois períodos', 'Criticism by theme in both periods')}</div>
-                  <table className="rb-table" style={{ fontSize: 14.5 }}>
+                  <table className="rb-table rb-stack" style={{ fontSize: 14.5 }}>
                     <thead><tr><th style={{ width: '28%' }}>{t('Tema', 'Theme')}</th><th>{t('Últimos 12 meses', 'Last 12 months')}</th><th>{t('12 a 36 meses atrás', '12 to 36 months ago')}</th><th style={{ width: 130 }}>{t('Tendência', 'Trend')}</th></tr></thead>
                     <tbody>{linhasTemas.map((z, i) => {
                       const d = z.pr - z.pp;
                       const tend = d >= 1 ? { txt: t('A agravar', 'Worsening'), cor: 'var(--rb-bad)', seta: '↑' } : d <= -1 ? { txt: t('A melhorar', 'Improving'), cor: 'var(--rb-good)', seta: '↓' } : { txt: t('Estável', 'Stable'), cor: 'var(--rb-text2)', seta: '→' };
-                      const celula = (n: number, pct: number, cor: string, op: number) => (
-                        <td>
+                      const celula = (n: number, pct: number, cor: string, op: number, rot: string) => (
+                        <td data-l={rot}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 14 }}><span><strong>{fmt(pct, 1)}%</strong></span><span style={{ color: 'var(--rb-text2)' }}>{fmt(n)} {t(n === 1 ? 'menção' : 'menções', n === 1 ? 'mention' : 'mentions')}</span></div>
                           <div style={{ height: 6, background: 'var(--rb-muted)', borderRadius: 999, marginTop: 6, overflow: 'hidden' }}>
                             <div className="rb-bar" style={{ width: `${(pct / maxPct) * 100}%`, height: '100%', background: cor, opacity: op, borderRadius: 999, transitionDelay: `${i * 70}ms` }} />
@@ -814,9 +845,9 @@ export function FichaLocal(props: {
                       return (
                         <tr key={z.id}>
                           <td style={{ fontWeight: 700 }}>{temaNome(z.id)}</td>
-                          {celula(z.recNeg, z.pr, 'var(--rb-bad)', 1)}
-                          {celula(z.prevNeg, z.pp, 'var(--rb-text2)', 0.6)}
-                          <td style={{ color: tend.cor, fontWeight: 700 }}>{tend.seta} {tend.txt}</td>
+                          {celula(z.recNeg, z.pr, 'var(--rb-bad)', 1, t('Últimos 12 meses', 'Last 12 months'))}
+                          {celula(z.prevNeg, z.pp, 'var(--rb-text2)', 0.6, t('12 a 36 meses atrás', '12 to 36 months ago'))}
+                          <td data-l={t('Tendência', 'Trend')} style={{ color: tend.cor, fontWeight: 700 }}>{tend.seta} {tend.txt}</td>
                         </tr>
                       );
                     })}</tbody>
@@ -856,7 +887,7 @@ export function FichaLocal(props: {
         {/* Evolução + distribuição das estrelas */}
         <div className="rb-2">
           <section id="rb-evolucao" className="rb-sec">
-            <Titulo h={tituloEvolucao(qs)} cap={t('Média de estrelas por trimestre · passa o cursor sobre o gráfico', 'Average stars per quarter · hover over the chart')} />
+            <Titulo h={tituloEvolucao(qs)} cap={t('Média de estrelas por trimestre · passa o cursor ou toca no gráfico', 'Average stars per quarter · hover or tap the chart')} />
             <Evolucao q={qs} intervencoes={[]} alertaUltimo={!!al} />
           </section>
           <section id="rb-estrelas" className="rb-sec">
@@ -954,7 +985,7 @@ export function LocaisLista(props: {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 20, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 14, color: 'var(--rb-text2)' }}>{t('Reputação', 'Reputation')}</div>
-            <h1 style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.02em', margin: '8px 0 0' }}>{t('Locais', 'Places')}</h1>
+            <h1 className="rb-h1-m" style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.02em', margin: '8px 0 0' }}>{t('Locais', 'Places')}</h1>
             <p className="rb-cap" style={{ fontSize: 14 }}>{t(`${props.locations.length} locais monitorizados · por ordem alfabética · locais com menos de ${MIN_ROBUSTO} avaliações não têm índice`, `${props.locations.length} places monitored · alphabetical order · places with fewer than ${MIN_ROBUSTO} reviews have no index`)}</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -985,7 +1016,7 @@ export function LocaisLista(props: {
               const insuf = !o.x || o.x.robustez === 'insuficiente';
               return (
                 <tr key={o.l.id} className="rb-row" onClick={() => props.onOpen(o.l.id)}>
-                  <td><div style={{ display: 'flex', gap: 16, alignItems: 'center' }}><Miniatura src={mini[o.l.id]} /><div><div style={{ fontWeight: 700 }}>{o.l.name}</div><div style={{ fontSize: 13, color: 'var(--rb-text2)' }}>{props.catLabel(o.l.category)}{props.analyzing === o.l.id ? ` · ${t('a analisar…', 'analysing…')}` : ''}</div></div></div></td>
+                  <td><div style={{ display: 'flex', gap: 16, alignItems: 'center' }}><Miniatura src={mini[o.l.id]} /><div><div style={{ fontWeight: 700 }}>{o.l.name}</div><div style={{ fontSize: 13, color: 'var(--rb-text2)' }}>{props.catLabel(o.l.category)}{props.analyzing === o.l.id ? ` · ${t('a analisar…', 'analysing…')}` : ''}</div><div className="rb-only-m" style={{ fontSize: 13, marginTop: 4, lineHeight: 1.4 }}>{situacao(o)}</div></div></div></td>
                   <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>—</span> : fmt(o.x!.idx, 1)}</td>
                   <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '—'}</td>
                   <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '—'}</td>
@@ -1159,12 +1190,12 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
           <h1 className="rb-hero-h1">{titulo}</h1>
           <p style={{ fontSize: 15, color: 'var(--rb-text2)', lineHeight: 1.55, margin: 0, maxWidth: 680 }}>{t(`Avaliações do Google Maps nos últimos 3 anos · médias ponderadas pelo número de avaliações de cada local.`, `Google Maps reviews over the last 3 years · averages weighted by each place’s number of reviews.`)}</p>
         </div>
-        <div className="rb-glass rb-enter" style={{ marginTop: 28, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', animationDelay: '220ms' }}>
+        <div className="rb-glass rb-kpis rb-enter" style={{ marginTop: 28, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', animationDelay: '220ms' }}>
           {[
             { l: t('Índice do destino', 'Destination index'), v: <><Conta v={Math.round(avg * 20) / 10} d={1} /><small>/10</small></>, s: t(`${robustos.length} locais com dados suficientes`, `${robustos.length} places with enough data`) },
             { l: t('Média Google', 'Google average'), v: <><Conta v={Math.round(avg * 100) / 100} d={2} /><Estrela /></>, s: t('em 5 estrelas', 'out of 5 stars') },
             { l: t('Avaliações analisadas', 'Reviews analysed'), v: <Conta v={totalN} />, s: t(`${locations.length} locais monitorizados`, `${locations.length} places monitored`) },
-            { l: t('Positivos e negativos', 'Positive and negative'), v: <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 12 }}><span style={{ color: 'var(--rb-good)' }}><Conta v={Math.round(pos * 10) / 10} d={1} />%</span><span style={{ color: 'var(--rb-bad)', fontSize: 24 }}><Conta v={Math.round(neg * 10) / 10} d={1} />%</span></span>, s: t('positivos 4–5★ · negativos 1–2★', 'positive 4–5★ · negative 1–2★') },
+            { l: t('Positivos e negativos', 'Positive and negative'), v: <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 12 }}><span style={{ color: 'var(--rb-good)' }}><Conta v={Math.round(pos * 10) / 10} d={1} />%</span><span className="rb-sec2" style={{ color: 'var(--rb-bad)', fontSize: 24 }}><Conta v={Math.round(neg * 10) / 10} d={1} />%</span></span>, s: t('positivos 4–5★ · negativos 1–2★', 'positive 4–5★ · negative 1–2★') },
           ].map((k, i) => (
             <div key={i} style={{ padding: '20px 24px', borderLeft: i ? '1px solid rgba(255,255,255,.08)' : 'none' }}>
               <div className="rb-lab">{k.l}</div>
@@ -1196,8 +1227,8 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
         <section className="rb-sec">
           <Titulo h={t(`${locations.length} locais monitorizados`, `${locations.length} places monitored`)} cap={t('Desliza para ver todos · por ordem alfabética', 'Scroll to see them all · alphabetical order')}
             right={<div className="rb-noprint" style={{ display: 'flex', gap: 8 }}>
-              <button className="rb-chip ghost" aria-label={t('Anteriores', 'Previous')} onClick={() => desliza(-1)} style={{ width: 38, padding: 0, justifyContent: 'center' }}><span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}><Seta /></span></button>
-              <button className="rb-chip ghost" aria-label={t('Seguintes', 'Next')} onClick={() => desliza(1)} style={{ width: 38, padding: 0, justifyContent: 'center' }}><Seta /></button>
+              <button className="rb-chip ghost rb-hide-m" aria-label={t('Anteriores', 'Previous')} onClick={() => desliza(-1)} style={{ width: 38, padding: 0, justifyContent: 'center' }}><span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}><Seta /></span></button>
+              <button className="rb-chip ghost rb-hide-m" aria-label={t('Seguintes', 'Next')} onClick={() => desliza(1)} style={{ width: 38, padding: 0, justifyContent: 'center' }}><Seta /></button>
               <button className="rb-chip" onClick={props.onOpenList}>{t('Ver lista', 'See list')} <Seta /></button>
             </div>} />
           <div ref={carrosselRef} className="rb-carrossel">
@@ -1234,7 +1265,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0,1fr))', gap: 6, alignItems: 'end', height: 200 }}>
                 {porMes.map((v, i) => (
                   <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
-                    <span style={{ fontSize: 11, color: i === pico ? 'var(--rb-text)' : 'var(--rb-text2)', fontWeight: i === pico ? 700 : 400 }}>{fmt(v)}</span>
+                    <span className={i === pico ? undefined : 'rb-hide-m'} style={{ fontSize: 11, color: i === pico ? 'var(--rb-text)' : 'var(--rb-text2)', fontWeight: i === pico ? 700 : 400 }}>{fmt(v)}</span>
                     <div className="rb-vbar" style={{ width: '100%', height: `${Math.max(3, (v / maxMes) * 150)}px`, background: 'var(--rb-accent)', opacity: i === pico ? 1 : 0.45, borderRadius: '3px 3px 0 0', transitionDelay: `${i * 60}ms` }} />
                     <span style={{ fontSize: 11.5, color: 'var(--rb-text2)' }}>{t(MESES_PT[i], MESES_EN[i])}</span>
                   </div>
