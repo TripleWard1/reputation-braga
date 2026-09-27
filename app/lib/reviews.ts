@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// COMENTÁRIOS DO GOOGLE MAPS — importação, armazenamento e estatísticas
+// COMENTÁRIOS DO GOOGLE MAPS - importação, armazenamento e estatísticas
 //
 // • Importa ficheiros exportados (JSON ou CSV) de serviços como o Apify
 //   ("Google Maps Reviews Scraper"): texto, estrelas, data exata, língua e
@@ -7,7 +7,7 @@
 // • Só ficam comentários com menos de 3 anos (janela móvel: os mais antigos
 //   são removidos automaticamente a cada nova importação).
 // • Sem duplicados: cada comentário tem um identificador único.
-// • Armazenamento: locations/{id}/reviewMonths/{AAAA-MM} — um documento por mês,
+// • Armazenamento: locations/{id}/reviewMonths/{AAAA-MM} - um documento por mês,
 //   para nunca ultrapassar o limite de 1 MB por documento do Firestore.
 // • O documento do local guarda só as estatísticas mensais (reviewStats).
 // ═══════════════════════════════════════════════════════════════════════════
@@ -183,7 +183,7 @@ export function groupByPlace(reviews: ParsedReview[], now = new Date()): ImportG
   const cut = cutoffDate(now).toISOString();
   const m = new Map<string, ImportGroup>();
   for (const r of reviews) {
-    const key = r.placeKey || r.placeTitle || '—';
+    const key = r.placeKey || r.placeTitle || '-';
     let g = m.get(key);
     if (!g) { g = { key, title: r.placeTitle || t('(local sem nome no ficheiro)', '(place without a name in the file)'), reviews: [], inWindow: 0, outWindow: 0, from: r.d, to: r.d, avg: 0 }; m.set(key, g); }
     g.reviews.push(r);

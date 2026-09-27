@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REPUTAÇÃO — Visão Geral, lista de Locais e Ficha do local
+// REPUTAÇÃO - Visão Geral, lista de Locais e Ficha do local
 // Segue o mockup aprovado (versão escura). Na impressão/PDF usa a versão clara.
 // Todos os números vêm de app/lib/temas.ts → numeros() (fonte única).
 // ═══════════════════════════════════════════════════════════════════════════
@@ -322,7 +322,7 @@ function Faixa({ x, a }: { x: Numeros | null; a?: any }) {
     <div className="rb-strip rb-rise">
       <div>
         <div className="rb-lab">{t('Índice de reputação', 'Reputation index')}</div>
-        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>—</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
+        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>-</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
         <div className="rb-sub">{insuf ? t(`Dados insuficientes · menos de ${MIN_ROBUSTO} avaliações`, `Insufficient data · fewer than ${MIN_ROBUSTO} reviews`) : `${x.robustez === 'alta' ? t('Robustez alta', 'High robustness') : t('Robustez média', 'Medium robustness')} · ${fmt(x.textN)} ${t('com texto', 'with text')}`}{x.basis === 'ia' ? ` · ${t('estimado pela IA', 'AI estimate')}` : ''}</div>
       </div>
       <div>
@@ -557,7 +557,7 @@ function MercadosDetalhe({ lista }: { lista: Mercado[] }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr)', gap: '8px 12px', marginTop: 10, alignItems: 'start' }}>
             <span style={{ fontSize: 13, color: 'var(--rb-good)', fontWeight: 700, paddingTop: 3 }}>{t('Valoriza', 'Values')}</span>
-            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>—</span>}</div>
+            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>-</span>}</div>
             <span style={{ fontSize: 13, color: 'var(--rb-bad)', fontWeight: 700, paddingTop: 3 }}>{t('Critica', 'Criticises')}</span>
             <div>{m.critica.length ? m.critica.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-bad)', 'var(--rb-bad-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>{t('sem críticas relevantes', 'no relevant criticism')}</span>}</div>
           </div>
@@ -763,7 +763,7 @@ export function FichaLocal(props: {
                     <span style={{ color: col.cor, fontWeight: 700, fontSize: 16, lineHeight: 1.4, flexShrink: 0 }}>{col.sinal}</span>
                     <span style={{ fontSize: 15, lineHeight: 1.55 }}>{p}</span>
                   </div>
-                )) : <p className="rb-sub">—</p>}
+                )) : <p className="rb-sub">-</p>}
                 {col.cit.length > 0 && (
                   <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--rb-line)' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--rb-text2)' }}>{t('Nas palavras dos visitantes', 'In visitors’ own words')}</div>
@@ -780,7 +780,7 @@ export function FichaLocal(props: {
           </section>
         )}
 
-        {/* Problemas por período — detalhe da leitura + números dos temas */}
+        {/* Problemas por período - detalhe da leitura + números dos temas */}
         {a && (() => {
           const per = v2?.periodos
             ? { recentes: (v2.periodos.recentes || []) as { problema: string; detalhe: string; estado: string }[], anteriores: (v2.periodos.anteriores || []) as { problema: string; detalhe: string; estado: string }[] }
@@ -917,7 +917,7 @@ export function FichaLocal(props: {
           </div>
         </section>
 
-        {/* 10. Sugestões (indicativas — o Município não gere o local) */}
+        {/* 10. Sugestões (indicativas - o Município não gere o local) */}
         <section id="rb-recomendacoes" className="rb-sec">
           <Titulo h={t('O que os comentários sugerem', 'What the reviews suggest')} cap={t('Possíveis melhorias identificadas pela IA a partir dos comentários dos visitantes · a título indicativo', 'Possible improvements identified by AI from visitor reviews · for guidance only')} />
           {recs.length ? (
@@ -1018,9 +1018,9 @@ export function LocaisLista(props: {
               return (
                 <tr key={o.l.id} className="rb-row" onClick={() => props.onOpen(o.l.id)}>
                   <td><div style={{ display: 'flex', gap: 16, alignItems: 'center' }}><Miniatura src={mini[o.l.id]} /><div><div style={{ fontWeight: 700 }}>{o.l.name}</div><div style={{ fontSize: 13, color: 'var(--rb-text2)' }}>{props.catLabel(o.l.category)}{props.analyzing === o.l.id ? ` · ${t('a analisar…', 'analysing…')}` : ''}</div><div className="rb-only-m" style={{ fontSize: 13, marginTop: 4, lineHeight: 1.4 }}>{situacao(o)}</div></div></div></td>
-                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>—</span> : fmt(o.x!.idx, 1)}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '—'}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '—'}</td>
+                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>-</span> : fmt(o.x!.idx, 1)}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '-'}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '-'}</td>
                   <td className="rb-hide-m" style={{ paddingLeft: 24, fontSize: 14 }}>{situacao(o)}</td>
                 </tr>
               );
@@ -1034,7 +1034,7 @@ export function LocaisLista(props: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VISÃO GERAL — o destino num relance (sem rankings)
+// VISÃO GERAL - o destino num relance (sem rankings)
 // ═══════════════════════════════════════════════════════════════════════════
 const MES_LONGO_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const MES_LONGO_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -1318,7 +1318,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SEPARADORES COMPLEMENTARES — Mapa, Comparar, Temas (Problemas) e Relatório
+// SEPARADORES COMPLEMENTARES - Mapa, Comparar, Temas (Problemas) e Relatório
 // Mesma identidade da Visão Geral e dos Locais; números da fonte única (numeros()).
 // ═══════════════════════════════════════════════════════════════════════════
 const ESTILO_EXTRA = `
@@ -1477,7 +1477,7 @@ export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => st
                   <span style={{ display: 'block', fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.l.name}</span>
                   <span style={{ display: 'block', fontSize: 12, color: d.al ? 'var(--rb-warn)' : 'var(--rb-text2)', marginTop: 2 }}>{d.al ? t('Alerta no último trimestre', 'Alert last quarter') : props.catLabel(d.l.category)}</span>
                 </span>
-                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '—'}</span>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '-'}</span>
               </button>
             ))}
             {dados.length > comCoords.length && <div className="rb-sub" style={{ padding: '12px 14px', marginTop: 0 }}>{t(`${dados.length - comCoords.length} locais sem coordenadas (edita o local para as indicar).`, `${dados.length - comCoords.length} places without coordinates (edit the place to add them).`)}</div>}
@@ -1533,7 +1533,7 @@ function LinhasComparadas({ series }: { series: { nome: string; cor: string; q: 
       {hover != null && (
         <div className="rb-tip" style={{ left: `${(X(hover) / W) * 100}%`, top: 0, transform: `translate(${hover > qs.length / 2 ? '-105%' : '5%'}, 0)` }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>{lab(qs[hover])}</div>
-          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, 2) : '—'}</strong></div>; })}
+          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, 2) : '-'}</strong></div>; })}
         </div>
       )}
     </div>
@@ -1593,7 +1593,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: CORES_CMP[i] }}>{props.catLabel(d.l.category)}</div>
                       <button onClick={() => props.onOpen(d.l.id)} style={{ background: 'none', border: 0, padding: 0, color: 'var(--rb-text)', font: 'inherit', fontSize: 17, fontWeight: 700, textAlign: 'left', cursor: 'pointer', margin: '6px 0 14px', lineHeight: 1.3 }}>{d.l.name}</button>
                       <div className="rb-lab">{t('Índice', 'Index')}</div>
-                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>—</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
+                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>-</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
                       <div className="rb-sub">{insuf ? t('Dados insuficientes', 'Insufficient data') : ''}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--rb-line)' }}>
                         <div><div className="rb-lab">{t('Média', 'Average')}</div><div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}><Conta v={d.x!.avg} d={2} /> <span style={{ color: 'var(--rb-star)', fontSize: 16 }}>★</span></div></div>
@@ -1634,7 +1634,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                           <div style={{ height: 8, background: 'var(--rb-muted)', borderRadius: 999, overflow: 'hidden' }}>
                             {typeof v === 'number' && <div className="rb-bar" style={{ width: `${v * 10}%`, height: '100%', background: CORES_CMP[i], borderRadius: 999, transitionDelay: `${i * 90}ms` }} />}
                           </div>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '—'}</span>
+                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '-'}</span>
                         </div>
                       );
                     })}
@@ -1652,7 +1652,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                   <tbody>{TEMAS.map((tm) => (
                     <tr key={tm.id} style={{ cursor: 'default' }}>
                       <td className="rb-fixa" style={{ fontWeight: 600 }}>{temaNome(tm.id)}</td>
-                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>; })}
+                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>-</span>}</td>; })}
                     </tr>
                   ))}</tbody>
                 </table>
@@ -1731,8 +1731,8 @@ export function TemasView(props: { locations: LocV[]; catLabel: (c: string) => s
                 <div className="rb-rise" style={{ marginTop: 16, background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '18px 22px' }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{temaNome(foco)}</div>
                   <div style={{ fontSize: 14, color: 'var(--rb-text2)', marginTop: 8, lineHeight: 1.6 }}>
-                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '—'}<br />
-                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '—'}
+                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '-'}<br />
+                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '-'}
                   </div>
                 </div>
               ); })()}

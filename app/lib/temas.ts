@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // LÓGICA DA REPUTAÇÃO (Visão Geral e Locais)
-// • Números: uma só fonte (reviewStats) — o topo, os rankings e o texto da IA
+// • Números: uma só fonte (reviewStats) - o topo, os rankings e o texto da IA
 //   usam todos os mesmos valores.
 // • Temas fixos: cada comentário com texto é classificado pela IA em 0–3 temas
 //   com polaridade (+ elogio / − crítica). O ESTADO de cada tema é calculado

@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VISÃO GERAL + LOCAIS — painel de apoio à decisão (reputação dos locais)
+// VISÃO GERAL + LOCAIS - painel de apoio à decisão (reputação dos locais)
 // • Medidor de reputação (média real de estrelas, com o valor de há 12 meses)
 // • Alertas por regras claras: queda de média, subida de críticas, média < 4,
 //   falta de resposta, análise desatualizada, amostra pequena
@@ -388,8 +388,8 @@ export function VisaoGeral({ locations, onOpen, onAdd, onImport, problemsOf, tax
           <dl style={{ display: 'flex', flexWrap: 'wrap', gap: '18px 36px', margin: '28px 0 0', padding: '18px 0 0', borderTop: `1px solid ${K.line}` }}>
             {[
               [t('Comentários', 'Reviews'), fmt(totalN), t('últimos 3 anos', 'last 3 years')],
-              [t('Críticas', 'Criticism'), pctNeg != null ? `${fmt(pctNeg, 1)}%` : '—', t('com 1–2 estrelas', 'with 1–2 stars')],
-              [t('Respostas', 'Replies'), pctResp != null ? `${fmt(pctResp, 1)}%` : '—', t('de quem gere os locais', 'from site managers')],
+              [t('Críticas', 'Criticism'), pctNeg != null ? `${fmt(pctNeg, 1)}%` : '-', t('com 1–2 estrelas', 'with 1–2 stars')],
+              [t('Respostas', 'Replies'), pctResp != null ? `${fmt(pctResp, 1)}%` : '-', t('de quem gere os locais', 'from site managers')],
               [t('Locais analisados', 'Places analysed'), `${analisados}/${locations.length}`, t('com análise de temas', 'with theme analysis')],
             ].map(([l, v, s]) => (
               <div key={l}>
@@ -510,7 +510,7 @@ export function VisaoGeral({ locations, onOpen, onAdd, onImport, problemsOf, tax
               <Spark values={m.quarters} w={70} h={22} color={m.delta != null && m.delta <= -0.15 ? K.bad : K.gold} />
               <Tendencia delta={m.delta} />
             </span>
-            <span className="rbv-rank-col-opc" style={{ fontSize: 13.5, color: m.neg != null && m.neg >= 10 ? K.bad : K.mute, ...NUM }}>{m.neg != null ? `${fmt(m.neg, 1)}%` : '—'}</span>
+            <span className="rbv-rank-col-opc" style={{ fontSize: 13.5, color: m.neg != null && m.neg >= 10 ? K.bad : K.mute, ...NUM }}>{m.neg != null ? `${fmt(m.neg, 1)}%` : '-'}</span>
           </button>
         ))}
       </Secao>
@@ -571,7 +571,7 @@ export function VisaoGeral({ locations, onOpen, onAdd, onImport, problemsOf, tax
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LOCAIS — dossiês com a análise sempre visível
+// LOCAIS - dossiês com a análise sempre visível
 // ═══════════════════════════════════════════════════════════════════════════
 export function LocaisView(props: {
   locations: VLoc[];
@@ -707,11 +707,11 @@ export function LocaisView(props: {
                   </div>
                   <div>
                     <div style={{ fontSize: 13, color: K.good, marginBottom: 8 }}>{t('Pontos fortes', 'Strengths')}</div>
-                    {fortes.length ? fortes.map((x, i) => <p key={i} style={{ fontSize: 13.5, color: K.text, lineHeight: 1.55, margin: '0 0 8px', paddingLeft: 12, borderLeft: `1px solid ${K.line}` }}>{x}</p>) : <p style={{ fontSize: 13, color: K.dim, margin: 0 }}>—</p>}
+                    {fortes.length ? fortes.map((x, i) => <p key={i} style={{ fontSize: 13.5, color: K.text, lineHeight: 1.55, margin: '0 0 8px', paddingLeft: 12, borderLeft: `1px solid ${K.line}` }}>{x}</p>) : <p style={{ fontSize: 13, color: K.dim, margin: 0 }}>-</p>}
                   </div>
                   <div>
                     <div style={{ fontSize: 13, color: K.bad, marginBottom: 8 }}>{a.issuesRecent?.length ? t('Problemas nos últimos 12 meses', 'Issues in the last 12 months') : t('Problemas', 'Issues')}</div>
-                    {fracos.length ? fracos.map((x, i) => <p key={i} style={{ fontSize: 13.5, color: K.text, lineHeight: 1.55, margin: '0 0 8px', paddingLeft: 12, borderLeft: `1px solid ${K.line}` }}>{x}</p>) : <p style={{ fontSize: 13, color: K.dim, margin: 0 }}>—</p>}
+                    {fracos.length ? fracos.map((x, i) => <p key={i} style={{ fontSize: 13.5, color: K.text, lineHeight: 1.55, margin: '0 0 8px', paddingLeft: 12, borderLeft: `1px solid ${K.line}` }}>{x}</p>) : <p style={{ fontSize: 13, color: K.dim, margin: 0 }}>-</p>}
                   </div>
                 </div>
               )}
