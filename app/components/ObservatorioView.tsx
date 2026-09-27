@@ -21,6 +21,7 @@ import {
 import { CAMINHOS } from '@/app/lib/caminhos-santiago-dados';
 import { openPremiumDoc, Section } from '@/app/lib/premium-doc';
 import { t, dl } from '@/app/lib/i18n';
+import { obterFotoBraga } from '@/app/lib/foto-braga';
 
 const LOGO = 'https://i.imgur.com/Vij12Qd.png';
 
@@ -30,21 +31,78 @@ const dDec = (v: number) => String(v).replace('.', t(',', '.'));
 const dPct = (v: number) => (v >= 0 ? '+' : '') + dDec(v) + '%';
 const dEur = (n: number) => (n >= 1e6 ? dDec(+(n / 1e6).toFixed(2)) + ' M€' : dNum(Math.round(n)) + ' €');
 
+// Paleta da identidade nova (a mesma da Visão Geral e dos Locais)
 const C = {
-  bg: '#0c0e14', card: '#161920', cardAlt: '#1c2030', border: '#252836',
-  accent: '#c9a84c', accentLight: '#e8cc7e', accentBg: 'rgba(201,168,76,0.12)',
-  positive: '#34d399', positiveBg: 'rgba(52,211,153,0.12)',
-  negative: '#f87171', negativeBg: 'rgba(248,113,113,0.12)',
-  info: '#60a5fa', purple: '#a78bfa', pink: '#f472b6', cyan: '#22d3ee', orange: '#fb923c',
-  text: '#e2e0db', textMuted: '#9a99a0', textDim: '#8a8c9e',
+  bg: '#15171B', card: '#1C1F24', cardAlt: '#22262D', border: '#2D3139',
+  accent: '#8AB0E6', accentLight: '#B7CDF0', accentBg: 'rgba(138,176,230,0.12)',
+  positive: '#7CC79A', positiveBg: 'rgba(124,199,154,0.13)',
+  negative: '#EF8A7B', negativeBg: 'rgba(239,138,123,0.13)',
+  info: '#E9C46A', purple: '#A99BE0', pink: '#E39AC0', cyan: '#6FC8D6', orange: '#EDA06B',
+  text: '#ECEDEF', textMuted: '#A3A8B1', textDim: '#8A909B',
 };
 
+// Uma cor por ano, em tons harmonizados; o ano em curso (parcial) destaca-se a dourado
 const YEAR_COLORS: Record<string, string> = {
-  '2019': '#9aa0b5', '2020': '#60a5fa', '2021': '#22d3ee',
-  '2022': '#a78bfa', '2023': '#f472b6', '2024': '#fb923c',
-  '2025': '#c9a84c', '2026': '#34d399',
+  '2019': '#6F747D', '2020': '#6FC8D6', '2021': '#A99BE0',
+  '2022': '#E39AC0', '2023': '#7CC79A', '2024': '#EDA06B',
+  '2025': '#8AB0E6', '2026': '#F2C14E',
 };
-const PAL = [C.accent, C.info, C.positive, C.purple, C.pink, C.cyan, C.orange, '#f472b6'];
+
+// Estilos da identidade nova (só aspeto)
+const OBS_CSS = `
+.obs-hero { position: relative; overflow: hidden; min-height: 340px; display: flex; align-items: flex-end; background: linear-gradient(160deg, #262A30 0%, #15171B 100%); }
+.obs-hero-img { position: absolute; inset: -40px; background-size: cover; background-position: center; animation: obsKb 22s ease-in-out infinite alternate; }
+@keyframes obsKb { from { transform: scale(1.04); } to { transform: scale(1.14) translate(-14px, 8px); } }
+.obs-hero-shade { position: absolute; inset: 0; background: linear-gradient(0deg, #15171B 0%, rgba(21,23,27,.66) 45%, rgba(21,23,27,.25) 100%); }
+.obs-hero-in { position: relative; width: 100%; max-width: 1760px; margin: 0 auto; padding: 72px 40px 32px; animation: obsIn .8s cubic-bezier(.2,.7,.2,1) both; }
+.obs-h1 { font-size: clamp(32px, 4.4vw, 52px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.05; margin: 10px 0 14px; text-shadow: 0 2px 24px rgba(0,0,0,.35); }
+.obs-tabs { position: sticky; top: 0; z-index: 6; background: rgba(21,23,27,.88); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid #2D3139; }
+.obs-tabs-in { max-width: 1760px; margin: 0 auto; padding: 10px 40px; display: flex; align-items: flex-start; gap: 12px; }
+.obs-tabs-list { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+.obs-tabs-list::-webkit-scrollbar { display: none; }
+.obs-tab { flex: 0 0 auto; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: #A3A8B1; font: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background .2s ease, color .2s ease, border-color .2s ease; }
+.obs-tab:hover { color: #ECEDEF; background: rgba(255,255,255,.04); }
+.obs-tab.on { background: #22324A; color: #ECEDEF; font-weight: 600; border-color: rgba(138,176,230,.35); }
+.obs-pdf { flex: 0 0 auto; height: 34px; padding: 0 16px; border-radius: 4px; border: 1px solid #8AB0E6; background: #8AB0E6; color: #0F1216; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.obs-pdf:hover { filter: brightness(1.08); }
+.obs-body { max-width: 1760px; margin: 0 auto; padding: 28px 40px 64px; animation: obsIn .6s cubic-bezier(.2,.7,.2,1) both; }
+.obs-card { animation: obsIn .7s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes obsIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.obs h1, .obs h2, .obs h3, .obs .rb-display { font-family: 'Public Sans', system-ui, sans-serif !important; }
+.obs-hero { min-height: 380px; }
+.obs-tab:focus { outline: none; }
+.obs-tab:focus-visible { outline: 2px solid #8AB0E6; outline-offset: 2px; }
+/* Gráficos com mais vida (só aspeto; os dados não mudam) */
+.obs .recharts-cartesian-grid line { stroke: #2D3139; stroke-dasharray: 2 6; }
+.obs .recharts-cartesian-grid-vertical { display: none; }
+.obs .recharts-cartesian-axis-line, .obs .recharts-cartesian-axis-tick-line { display: none; }
+.obs .recharts-cartesian-axis-tick-value { fill: #A3A8B1; font-size: 12px; }
+.obs .recharts-bar-rectangle path { transition: filter .25s ease, opacity .25s ease; }
+.obs .recharts-bar-rectangle:hover path { filter: brightness(1.18) drop-shadow(0 6px 14px rgba(0,0,0,.4)); }
+.obs .recharts-line-curve { stroke-width: 2.6px; filter: drop-shadow(0 5px 10px rgba(0,0,0,.45)); }
+.obs .recharts-line-dots circle, .obs .recharts-line-dot { stroke: #1C1F24; stroke-width: 2px; }
+.obs .recharts-active-dot circle { stroke: #1C1F24; stroke-width: 3px; }
+.obs .recharts-pie-sector path { stroke: #1C1F24; stroke-width: 2px; transition: filter .25s ease; }
+.obs .recharts-pie-sector:hover path { filter: brightness(1.15); }
+.obs .recharts-area-area { fill-opacity: .22; }
+.obs .recharts-tooltip-wrapper { transition: transform .15s ease-out !important; }
+.obs .recharts-legend-item { margin-right: 14px !important; }
+.obs-grow { animation: obsGrow 1.1s cubic-bezier(.2,.7,.2,1) both; transform-origin: left center; }
+@keyframes obsGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.obs .recharts-legend-item-text { color: #A3A8B1 !important; }
+@media (prefers-reduced-motion: reduce) { .obs-hero-img, .obs-hero-in, .obs-body, .obs-card, .obs-grow { animation: none !important; } }
+@media (max-width: 820px) {
+  .obs-hero { min-height: 260px; }
+  .obs-hero-in { padding: 40px 18px 22px; }
+  .obs-tabs-in { padding: 8px 12px; }
+  .obs-tabs-list { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .obs-hero { min-height: 280px; }
+  .obs-body { padding: 18px 14px 48px; }
+}
+@media print { .obs-hero, .obs-tabs { display: none !important; } .obs-body { padding: 0; max-width: none; } }
+`;
+
+const PAL = [C.accent, C.positive, C.orange, C.purple, C.cyan, C.pink, C.info, '#6F747D'];
 
 type Tab = 'geral' | 'procura' | 'economia' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
 
@@ -61,6 +119,49 @@ const fmtE = (n: number | null | undefined) => {
 
 export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, reputacaoReviews }: Props) {
   const [tab, setTab] = useState<Tab>('geral');
+  const [foto, setFoto] = useState<string | null>(null);
+  useEffect(() => { let vivo = true; obterFotoBraga().then((x) => { if (vivo) setFoto(x); }); return () => { vivo = false; }; }, []);
+  // Camada visual: cada barra recebe um degradê da sua própria cor (a cor e os valores não mudam)
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const NS = 'http://www.w3.org/2000/svg';
+    let host = document.getElementById('obs-grad-defs');
+    if (!host) {
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('id', 'obs-grad-defs'); svg.setAttribute('width', '0'); svg.setAttribute('height', '0');
+      svg.setAttribute('style', 'position:absolute;width:0;height:0;overflow:hidden');
+      svg.appendChild(document.createElementNS(NS, 'defs'));
+      document.body.appendChild(svg);
+      host = svg as unknown as HTMLElement;
+    }
+    const defs = host.querySelector('defs')!;
+    const grad = (cor: string) => {
+      const id = 'obsg-' + cor.replace(/[^a-z0-9]/gi, '');
+      if (!document.getElementById(id)) {
+        const g = document.createElementNS(NS, 'linearGradient');
+        g.setAttribute('id', id); g.setAttribute('x1', '0'); g.setAttribute('x2', '0'); g.setAttribute('y1', '0'); g.setAttribute('y2', '1');
+        [['0%', '1'], ['100%', '0.55']].forEach(([o, op]) => { const st = document.createElementNS(NS, 'stop'); st.setAttribute('offset', o); st.setAttribute('stop-color', cor); st.setAttribute('stop-opacity', op); g.appendChild(st); });
+        defs.appendChild(g);
+      }
+      return id;
+    };
+    const aplicar = () => {
+      document.querySelectorAll('.obs .recharts-bar-rectangle path').forEach((n) => {
+        const el = n as SVGPathElement;
+        const cor = el.getAttribute('fill');
+        if (!cor || cor === 'none' || cor.startsWith('url(')) return;
+        if (el.dataset.obsc === cor) return;
+        el.style.fill = `url(#${grad(cor)})`;
+        el.dataset.obsc = cor;
+      });
+    };
+    let raf = 0;
+    const agenda = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(aplicar); };
+    agenda();
+    const mo = new MutationObserver(agenda);
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['fill'] });
+    return () => { mo.disconnect(); cancelAnimationFrame(raf); };
+  }, []);
 
   const TABS: { id: Tab; label: string }[] = [
     { id: 'geral', label: t('Visão Geral', 'Overview') },
@@ -196,7 +297,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         { kind: 'bars', title: t('Nacionalidades no balcão (2026, top 10)', 'Front desk nationalities (2026, top 10)'),
           data: b26.nacionalidades.slice(0, 10).map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#60a5fa' },
         { kind: 'bars', title: t('Cidades de origem dos visitantes (balcão 2026, top 10)', 'Visitor origin cities (front desk 2026, top 10)'),
-          data: b26.cidades.slice(0, 10).map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#c9a84c' },
+          data: b26.cidades.slice(0, 10).map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#8AB0E6' },
         { kind: 'prose', title: 'Leitura', paras: [
           t('O domínio ibérico é claro: Espanha encabeça tanto as dormidas (INE) como o atendimento físico no balcão, reforçada por cidades como Madrid, Vigo, A Coruña e Bilbao no topo das origens.', 'Iberian dominance is clear: Spain leads both overnight stays (INE) and physical front desk visits, reinforced by cities such as Madrid, Vigo, A Coruña and Bilbao at the top of the origins.'),
           t(`Para referência, em 2025 o balcão registou ${dNum(b25.nacionalidades[0][1])} atendimentos a espanhóis; em 2026 (ano em curso) já vai em ${dNum(b26.nacionalidades[0][1])}.`, `For reference, in 2025 the front desk recorded ${dNum(b25.nacionalidades[0][1])} visits by Spaniards; in 2026 (ongoing year) it already stands at ${dNum(b26.nacionalidades[0][1])}.`),
@@ -220,7 +321,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       ],
       sections: [
         { kind: 'bars', title: t('O que procuram (interesses, top 10)', 'What they look for (interests, top 10)'),
-          data: b.interesses.slice(0, 10).map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#c9a84c' },
+          data: b.interesses.slice(0, 10).map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#8AB0E6' },
         { kind: 'bars', title: t('Meio de chegada', 'Means of arrival'),
           data: b.meioChegada.map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#34d399' },
         { kind: 'table', title: t('Nacionalidades (top 10)', 'Nationalities (top 10)'),
@@ -319,7 +420,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       ],
       sections: [
         { kind: 'bars', title: t('Cliques no Google por mês', 'Google clicks by month'),
-          data: SEARCH_CONSOLE.mensal.map(([m, c]) => { const [mm, yy] = m.split('/'); return { label: t(m, `${MES_EN[mm]}/${yy}`), value: c, display: dNum(c) }; }), color: '#c9a84c' },
+          data: SEARCH_CONSOLE.mensal.map(([m, c]) => { const [mm, yy] = m.split('/'); return { label: t(m, `${MES_EN[mm]}/${yy}`), value: c, display: dNum(c) }; }), color: '#8AB0E6' },
         { kind: 'bars', title: t('Canais de aquisição - antes do ataque', 'Acquisition channels - before the attack'),
           data: DIGITAL.canais.map((x) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#34d399' },
         { kind: 'bars', title: t('Canais de aquisição - retoma', 'Acquisition channels - recovery'),
@@ -357,7 +458,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         { kind: 'bars', title: t('Por tipo de necessidade', 'By type of need'),
           data: A.tipos.map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#60a5fa' },
         { kind: 'bars', title: t('Por mês (2026)', 'By month (2026)'),
-          data: A.porMes.map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#c9a84c' },
+          data: A.porMes.map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#8AB0E6' },
       ],
       footerR: t('Acessibilidade no Atendimento', 'Accessibility in Service'),
     });
@@ -473,10 +574,10 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       '<style>' +
       '*{box-sizing:border-box;}' +
       'body{margin:0;font-family:"DM Sans",sans-serif;background:#0c0e14;color:#e2e0db;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
-      '.brand{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:2px solid #c9a84c;}' +
+      '.brand{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:2px solid #8AB0E6;}' +
       '.brand img{height:30px;}' +
       '.brand .meta{text-align:right;}' +
-      '.brand h1{font-size:17px;margin:0;color:#c9a84c;letter-spacing:-0.01em;}' +
+      '.brand h1{font-size:17px;margin:0;color:#8AB0E6;letter-spacing:-0.01em;}' +
       '.brand .sub{font-size:12px;color:#9a99a0;margin-top:2px;}' +
       '.content{padding:18px 24px;}' +
       '.content button{display:none !important;}' +
@@ -495,40 +596,39 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   };
 
   return (
-    <div style={{ padding: '28px 30px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 14, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: '-0.02em', color: C.text }}>{t('Observatório de Turismo de Braga', 'Braga Tourism Observatory')}</h1>
-          <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>{t('Análise integrada de dados reais - INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística', 'Integrated analysis of real data - INE/TravelBI · Front Desk · Municipal Tourist Tax')}</p>
+    <div className="obs" style={{ background: C.bg, minHeight: '100vh', fontFamily: "'Public Sans', system-ui, sans-serif", fontVariantNumeric: 'tabular-nums', color: C.text }}>
+      <style>{OBS_CSS}</style>
+      <div className="obs-hero">
+        {foto && <div className="obs-hero-img" style={{ backgroundImage: `url(${foto})` }} />}
+        <div className="obs-hero-shade" />
+        <div className="obs-hero-in">
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: C.accent }}>Braga</div>
+          <h1 className="obs-h1">{t('Observatório de Turismo de Braga', 'Braga Tourism Observatory')}</h1>
+          <p style={{ color: C.textMuted, fontSize: 15, margin: 0, maxWidth: 760, lineHeight: 1.55 }}>{t('Análise integrada de dados reais - INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística', 'Integrated analysis of real data - INE/TravelBI · Front Desk · Municipal Tourist Tax')}</p>
         </div>
-        {tab !== 'meteo' && (
-          <button onClick={() => {
-            const map: Record<string, () => void> = {
-              geral: exportGeral, procura: exportProcura, economia: exportEconomia, mercados: exportMercados,
-              balcao: exportBalcao, taxa: exportTaxa, sustentabilidade: exportSustentabilidade,
-              digital: exportDigital, acessibilidade: exportAcessibilidade, caminhos: exportCaminhos,
-              cruzamentos: exportCruzamentos,
-            };
-            (map[tab] || exportarPDF)();
-          }} style={{
-            padding: '9px 16px', borderRadius: 8, border: `1px solid ${C.accent}`, background: C.accentBg,
-            color: C.accentLight, cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
-          }}>{t('⬇ Exportar PDF', '⬇ Export PDF')}</button>
-        )}
+      </div>
+      <div className="obs-tabs">
+        <div className="obs-tabs-in">
+          <div className="obs-tabs-list">
+            {TABS.map((t) => (
+              <button key={t.id} onClick={() => setTab(t.id)} className={`obs-tab${tab === t.id ? ' on' : ''}`}>{t.label}</button>
+            ))}
+          </div>
+          {tab !== 'meteo' && (
+            <button className="obs-pdf" onClick={() => {
+              const map: Record<string, () => void> = {
+                geral: exportGeral, procura: exportProcura, economia: exportEconomia, mercados: exportMercados,
+                balcao: exportBalcao, taxa: exportTaxa, sustentabilidade: exportSustentabilidade,
+                digital: exportDigital, acessibilidade: exportAcessibilidade, caminhos: exportCaminhos,
+                cruzamentos: exportCruzamentos,
+              };
+              (map[tab] || exportarPDF)();
+            }}>{t('Exportar PDF', 'Export PDF')}</button>
+          )}
+        </div>
       </div>
 
-      {/* Sub-navegação */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 22, flexWrap: 'wrap', borderBottom: `1px solid ${C.border}`, paddingBottom: 0 }}>
-        {TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            padding: '10px 16px', border: 'none', background: 'transparent', cursor: 'pointer',
-            fontSize: 13, fontWeight: tab === t.id ? 700 : 500,
-            color: tab === t.id ? C.accent : C.textMuted,
-            borderBottom: `2px solid ${tab === t.id ? C.accent : 'transparent'}`, marginBottom: -1,
-          }}>{t.label}</button>
-        ))}
-      </div>
-
+      <div className="obs-body" key={tab}>
       <div id="obs-print-area">
         {tab === 'geral' && <Geral rep={reputacaoMedia} repL={reputacaoLocais} repR={reputacaoReviews} />}
         {tab === 'procura' && <Procura />}
@@ -543,6 +643,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'caminhos' && <Caminhos />}
         {tab === 'cruzamentos' && <Cruzamentos />}
       </div>
+      </div>
     </div>
   );
 }
@@ -550,18 +651,18 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
 // ─── Componentes base ────────────────────────────────────────────────────────
 function KPI({ label, value, sub, color = C.accent }: { label: string; value: string; sub?: string; color?: string }) {
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 18px' }}>
-      <div style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 23, fontWeight: 700, color, lineHeight: 1.1, marginBottom: 4 }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: color, opacity: 0.85 }}>{sub}</div>}
+    <div className="obs-card" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '18px 20px' }}>
+      <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8, lineHeight: 1.35 }}>{label}</div>
+      <div style={{ fontSize: 30, fontWeight: 700, color, lineHeight: 1.1, marginBottom: 6, letterSpacing: '-0.02em' }}>{value}</div>
+      {sub && <div style={{ fontSize: 12.5, color: color, opacity: 0.9, lineHeight: 1.4 }}>{sub}</div>}
     </div>
   );
 }
 function Card({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 22px', marginBottom: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-        <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</div>
+    <div className="obs-card" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '22px 24px', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: C.text, letterSpacing: '-0.01em', lineHeight: 1.35 }}>{title}</div>
         {right}
       </div>
       {children}
@@ -575,7 +676,7 @@ function Chips({ options, sel, toggle, single, label }: { options: string[]; sel
         const on = sel.includes(o);
         return (
           <button key={o} onClick={() => toggle(o)} style={{
-            padding: '4px 11px', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontWeight: on ? 600 : 400,
+            padding: '5px 12px', borderRadius: 999, fontSize: 12.5, cursor: 'pointer', fontWeight: on ? 600 : 500, fontFamily: 'inherit',
             border: `1px solid ${on ? (YEAR_COLORS[o] || C.accent) : C.border}`,
             background: on ? (YEAR_COLORS[o] ? `${YEAR_COLORS[o]}22` : C.accentBg) : 'transparent',
             color: on ? (YEAR_COLORS[o] || C.accentLight) : C.textMuted,
@@ -585,7 +686,7 @@ function Chips({ options, sel, toggle, single, label }: { options: string[]; sel
     </div>
   );
 }
-const tipStyle = { background: C.cardAlt, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 };
+const tipStyle = { background: 'rgba(21,23,27,0.94)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, fontSize: 12.5, boxShadow: '0 10px 30px rgba(0,0,0,0.35)' };
 
 function pearson(xs: number[], ys: number[]): number {
   const n = xs.length;
@@ -615,7 +716,7 @@ function HBars({ data, color }: { data: [string, number][]; color?: string }) {
             <span style={{ color: C.textMuted }}>{fmt(v)}</span>
           </div>
           <div style={{ height: 7, borderRadius: 4, background: C.bg, overflow: 'hidden' }}>
-            <div style={{ width: `${(v / max) * 100}%`, height: '100%', background: color || PAL[i % PAL.length] }} />
+            <div className="obs-grow" style={{ width: `${(v / max) * 100}%`, height: '100%', background: color || PAL[i % PAL.length] }} />
           </div>
         </div>
       ))}
@@ -633,7 +734,7 @@ function CompareBars({ title, vals, unit = '' }: { title: string; vals: Record<s
           <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ width: 64, fontSize: 11, color: C.textMuted }}>{dl(k)}</span>
             <div style={{ flex: 1, height: 18, borderRadius: 5, background: C.card, overflow: 'hidden' }}>
-              <div style={{ width: `${(v / max) * 100}%`, height: '100%', background: cor[k] || C.accent, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6 }}>
+              <div className="obs-grow" style={{ width: `${(v / max) * 100}%`, height: '100%', background: cor[k] || C.accent, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6 }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: C.bg }}>{v}{unit}</span>
               </div>
             </div>
@@ -690,7 +791,7 @@ function Geral({ rep, repL, repR }: { rep?: number | null; repL?: number; repR?:
         </Card>
       </div>
 
-      <Card title={t('◈ Cruzamento Reputação Online × Procura Real', '◈ Online Reputation × Real Demand Cross-analysis')}>
+      <Card title={t('Cruzamento Reputação Online × Procura Real', 'Online Reputation × Real Demand Cross-analysis')}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
           <Cruz label={t('Reputação média (plataforma)', 'Average reputation (platform)')} value={rep != null ? `${rep.toFixed(1)}/10` : '-'} color={C.accent} nota={`${repL ?? 0} ${t('locais', 'places')} · ${fmt(repR ?? 0)} reviews`} />
           <Cruz label={t('Dormidas 2025 (INE)', 'Overnight stays 2025 (INE)')} value={fmt(HEADLINE.dormidas2025)} color={C.info} nota={`+${HEADLINE.dormidasVar}% ${t('homólogo', 'YoY')}`} />
@@ -811,7 +912,7 @@ function Procura() {
               <span>{label}</span><span style={{ color: C.text, fontWeight: 600 }}>{fdec(v)}%</span>
             </div>
             <div style={{ height: 8, borderRadius: 5, background: C.border, overflow: 'hidden' }}>
-              <div style={{ width: `${Math.min(100, (v / 45) * 100)}%`, height: '100%', borderRadius: 5, background: color }} />
+              <div className="obs-grow" style={{ width: `${Math.min(100, (v / 45) * 100)}%`, height: '100%', borderRadius: 5, background: color }} />
             </div>
           </div>
         );
@@ -1232,28 +1333,55 @@ function Balcao() {
 
 // ─── TAXA TURÍSTICA ──────────────────────────────────────────────────────────
 // ─── SUSTENTABILIDADE ────────────────────────────────────────────────────────
-const SUS_PAL = [C.positive, C.info, C.accent, C.purple, C.pink, C.cyan];
+const SUS_PAL = [C.positive, C.accent, C.orange, C.purple, C.info, C.cyan, C.pink];
 
+// Ícones de traço fino para os indicadores (substituem os emojis)
+const BADGE_ICON: Record<string, string> = {
+  '👍': 'M7 11v9H4v-9h3zm0 0l4-8a2 2 0 012 2v4h5.5a2 2 0 012 2.3l-1.2 7A2 2 0 0117.3 20H7',
+  '💶': 'M18 7a7 7 0 100 10M5 10h9M5 14h9',
+  '🎭': 'M4 4h16v6a8 8 0 01-16 0V4zM9 9h.01M15 9h.01M9 13a4 4 0 006 0',
+  '🏠': 'M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1v-9z',
+  '🌍': 'M12 21a9 9 0 100-18 9 9 0 000 18zM3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 010 18M12 3a14 14 0 000 18',
+  '♻': 'M7 19H4.8a1.8 1.8 0 01-1.6-2.7L5 13M8 10L5 13l-3-1M11 5.3l1.2-2a1.8 1.8 0 013.1 0L17 6M16 6l3 1 1-3M19 13l1.8 3.3a1.8 1.8 0 01-1.6 2.7H14M14 16l-3 3 3 3',
+  '📝': 'M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6',
+  '📜': 'M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6',
+  '📅': 'M4 6h16v15H4zM4 10h16M8 3v5M16 3v5',
+  '👥': 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21v-1a6 6 0 0112 0v1M16 3.5a4 4 0 010 7.5M22 21v-1a6 6 0 00-4-5.6',
+  '🚌': 'M5 17V6a2 2 0 012-2h10a2 2 0 012 2v11M5 12h14M5 17h14M7 20v-3M17 20v-3M8 15h.01M16 15h.01',
+  '💡': 'M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9V16h7v-2.1A6 6 0 0012 3z',
+  '🍃': 'M5 21c0-9 6-15 16-16-1 10-7 16-16 16zM5 21l8-8',
+  '🌱': 'M12 21v-9M12 12C12 7 9 4 4 4c0 5 3 8 8 8zM12 14c0-4 3-7 8-7 0 4-3 7-8 7z',
+  '🤝': 'M12 21s-8-4.5-8-11a4.5 4.5 0 018-2.9A4.5 4.5 0 0120 10c0 6.5-8 11-8 11z',
+  '🚶': 'M6 19a2 2 0 100-4 2 2 0 000 4zM18 9a2 2 0 100-4 2 2 0 000 4zM6 15V9a4 4 0 014-4h2M18 9v6a4 4 0 01-4 4h-2',
+  '🥾': 'M6 19a2 2 0 100-4 2 2 0 000 4zM18 9a2 2 0 100-4 2 2 0 000 4zM6 15V9a4 4 0 014-4h2M18 9v6a4 4 0 01-4 4h-2',
+  '🏅': 'M12 15a6 6 0 100-12 6 6 0 000 12zM8.5 14L7 22l5-3 5 3-1.5-8',
+  '🧭': 'M12 21a9 9 0 100-18 9 9 0 000 18zm3.5-12.5l-2 5-5 2 2-5 5-2z',
+};
 function Badge({ icon, value, label, color = C.accent, hint }: { icon: string; value: string; label: string; color?: string; hint?: string }) {
+  const path = BADGE_ICON[icon] || BADGE_ICON[icon.replace(/\uFE0F/g, '')];
   return (
-    <div style={{ background: C.card, border: `1px solid ${color}30`, borderRadius: 12, padding: '14px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 38, height: 38, borderRadius: 10, background: `${color}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, flexShrink: 0 }}>{icon}</div>
+    <div className="obs-card" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '16px 18px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        {path && (
+          <div style={{ width: 42, height: 42, borderRadius: 6, background: `${color}1f`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={path} /></svg>
+          </div>
+        )}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 19, fontWeight: 700, color, lineHeight: 1.1 }}>{value}</div>
-          <div style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.3 }}>{label}</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color, lineHeight: 1.1, letterSpacing: '-0.01em' }}>{value}</div>
+          <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.35, marginTop: 3 }}>{label}</div>
         </div>
       </div>
-      {hint && <div style={{ fontSize: 10, color: C.textDim, marginTop: 6 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 12, color: C.textDim, marginTop: 8, lineHeight: 1.4 }}>{hint}</div>}
     </div>
   );
 }
 
 function SectionTitle({ children, sub }: { children: React.ReactNode; sub?: string }) {
   return (
-    <div style={{ margin: '22px 0 12px' }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: C.accentLight, letterSpacing: '-0.01em' }}>{children}</div>
-      {sub && <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{sub}</div>}
+    <div style={{ margin: '36px 0 16px' }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: '-0.015em', lineHeight: 1.25 }}>{children}</div>
+      {sub && <div style={{ fontSize: 13, color: C.textMuted, marginTop: 6, lineHeight: 1.5 }}>{sub}</div>}
     </div>
   );
 }
@@ -1635,7 +1763,7 @@ function Acessibilidade() {
       </div>
 
       <div style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 12, padding: '16px 18px' }}>
-        <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 6 }}>{t('⚠ Amostra reduzida - leitura cautelosa', '⚠ Small sample - read with caution')}</div>
+        <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 6 }}>{t('Amostra reduzida - leitura cautelosa', 'Small sample - read with caution')}</div>
         <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
           {t('O registo de necessidades especiais só começou em 2026 e está fortemente subutilizado', 'Recording of special needs only began in 2026 and is heavily underused')} ({A.total} {t('em', 'of')} {fmt(A.totalAtendimentos)} {t('atendimentos', 'visits')}){t('. Os números abaixo são um ponto de partida e não refletem a procura real. O valor deste módulo cresce com o registo sistemático no balcão - vale a pena reforçar essa prática junto da equipa de atendimento.', '. The numbers below are a starting point and do not reflect real demand. The value of this module grows with systematic recording at the front desk - it is worth reinforcing this practice with the service team.')}
         </div>
@@ -1741,20 +1869,20 @@ function Meteorologia() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                    <span style={{ color: C.text }}>☀ {t('Dias secos', 'Dry days')} ({y.dryN})</span>
+                    <span style={{ color: C.text }}>{t('Dias secos', 'Dry days')} ({y.dryN})</span>
                     <span style={{ color: C.textMuted }}>{y.dryAvg.toFixed(1)} {t('atend./dia', 'visits/day')}</span>
                   </div>
                   <div style={{ height: 8, borderRadius: 4, background: C.bg, overflow: 'hidden' }}>
-                    <div style={{ width: `${(y.dryAvg / mx) * 100}%`, height: '100%', background: C.accent }} />
+                    <div className="obs-grow" style={{ width: `${(y.dryAvg / mx) * 100}%`, height: '100%', background: C.accent }} />
                   </div>
                 </div>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                    <span style={{ color: C.text }}>🌧 {t('Dias de chuva', 'Rainy days')} ({y.rainyN})</span>
+                    <span style={{ color: C.text }}>{t('Dias de chuva', 'Rainy days')} ({y.rainyN})</span>
                     <span style={{ color: C.textMuted }}>{y.rainyAvg.toFixed(1)} {t('atend./dia', 'visits/day')}</span>
                   </div>
                   <div style={{ height: 8, borderRadius: 4, background: C.bg, overflow: 'hidden' }}>
-                    <div style={{ width: `${(y.rainyAvg / mx) * 100}%`, height: '100%', background: C.info }} />
+                    <div className="obs-grow" style={{ width: `${(y.rainyAvg / mx) * 100}%`, height: '100%', background: C.info }} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 18, fontSize: 11.5, color: C.textMuted, marginTop: 4 }}>
@@ -1833,10 +1961,10 @@ function Cruzamentos() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ height: 7, borderRadius: 4, background: C.bg, overflow: 'hidden' }}>
-                  <div style={{ width: `${(r.bal / maxShare) * 100}%`, height: '100%', background: C.accent }} />
+                  <div className="obs-grow" style={{ width: `${(r.bal / maxShare) * 100}%`, height: '100%', background: C.accent }} />
                 </div>
                 <div style={{ height: 7, borderRadius: 4, background: C.bg, overflow: 'hidden' }}>
-                  <div style={{ width: `${(r.dig / maxShare) * 100}%`, height: '100%', background: C.info }} />
+                  <div className="obs-grow" style={{ width: `${(r.dig / maxShare) * 100}%`, height: '100%', background: C.info }} />
                 </div>
               </div>
               <div style={{ fontSize: 11, textAlign: 'right' }}>

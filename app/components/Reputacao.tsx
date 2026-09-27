@@ -12,6 +12,7 @@ import { doc, getDoc, setDoc, getDocs, collection } from 'firebase/firestore';
 import { db } from '../firebase';
 import { t } from '@/app/lib/i18n';
 import { dispAnalysis } from '@/app/lib/ai-translate';
+import { limparFotoBraga } from '@/app/lib/foto-braga';
 import { windowStats, langName, cutoffDate, loadWindowReviews, type StoredReview } from '@/app/lib/reviews';
 import {
   TEMAS, temaNome, estadoNome, numeros, ranking, alerta, numerosCoerentes, numerosPermitidos, resumoModelo,
@@ -1076,6 +1077,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
       if (data.length > 900000) data = await reduzir(url, 1800, 0.66);
       URL.revokeObjectURL(url);
       await setDoc(doc(db, 'locationPhotos', '__braga'), { data, updatedAt: new Date().toISOString() });
+      limparFotoBraga();
       setFundo(data);
     } catch { alert(t('Não foi possível carregar a fotografia.', 'Could not upload the photo.')); } finally { setACarregarF(false); }
   };

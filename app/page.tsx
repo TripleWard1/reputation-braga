@@ -15,7 +15,8 @@ import {
   parseReviewFile, groupByPlace, suggestMatch, importIntoLocation, loadWindowReviews, deleteLocationReviews,
   windowStats, sampleForAI, langName, langNamePT, rebuildStats, saveTags, type ReviewStats, type ImportGroup, type StoredReview,
 } from '@/app/lib/reviews';
-import { TEMAS, temaStats, excertos, numeros, ranking, numerosCoerentes, numerosPermitidos, resumoModelo, tagValida } from '@/app/lib/temas';
+import { TEMAS, temaStats, excertos, numeros, ranking, numerosCoerentes, numerosPermitidos, resumoModelo, tagValida, indiceDestino } from '@/app/lib/temas';
+import { obterFotoBraga } from '@/app/lib/foto-braga';
 import { VisaoGeral, LocaisLista, FichaLocal, type Intervencao } from '@/app/components/Reputacao';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -609,6 +610,17 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
   );
 }
 
+// Ícones da barra lateral (traço fino, por secção)
+const NAV_ICON: Record<string, string> = {
+  overview: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z',
+  observatorio: 'M4 20V10M10 20V4M16 20v-7M2 20h20',
+  locais: 'M12 21s-7-6.2-7-11a7 7 0 1114 0c0 4.8-7 11-7 11zm0-8.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',
+  mapa: 'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14',
+  comparar: 'M4 5h6v14H4zM14 5h6v14h-6z',
+  problemas: 'M12 9v4m0 4h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z',
+  relatorio: 'M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6',
+};
+
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -634,6 +646,8 @@ export default function Home() {
   const [impBusy, setImpBusy] = useState(false);
   const [impMsg, setImpMsg] = useState<string | null>(null);
   const [batchRun, setBatchRun] = useState<{ i: number; total: number; name: string } | null>(null);
+  const [fotoBraga, setFotoBraga] = useState<string | null>(null);
+  useEffect(() => { let vivo = true; obterFotoBraga().then((f) => { if (vivo) setFotoBraga(f); }); return () => { vivo = false; }; }, []);
   // Ao abrir um local ou mudar de vista, a página começa sempre no topo
   useEffect(() => {
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -666,12 +680,12 @@ export default function Home() {
     if (document.getElementById('rb-premium-style')) return;
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap';
+    link.href = 'https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap';
     document.head.appendChild(link);
     const style = document.createElement('style');
     style.id = 'rb-premium-style';
     style.textContent = `
-      :root { --rb-display: 'Fraunces', Georgia, 'Times New Roman', serif; --rb-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+      :root { --rb-display: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; --rb-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; }
       body { font-family: var(--rb-body); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; letter-spacing: -0.005em; }
       h1, .rb-display { font-family: var(--rb-display); font-optical-sizing: auto; }
       h1 { letter-spacing: -0.02em !important; }
@@ -681,7 +695,15 @@ export default function Home() {
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: #2a2e3d; border-radius: 8px; border: 2px solid #0c0e14; }
       ::-webkit-scrollbar-thumb:hover { background: #3a3f52; }
-      .rb-nav { transition: background .15s ease, color .15s ease; }
+      .rb-nav { transition: background .2s ease, color .2s ease; }
+      .rbs-foto { position: absolute; inset: -30px; background-size: cover; background-position: center; opacity: .38; animation: rbsKb 24s ease-in-out infinite alternate; }
+      @keyframes rbsKb { from { transform: scale(1.05); } to { transform: scale(1.18) translate(-12px, 8px); } }
+      .rbs-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(16,18,21,.35) 0%, rgba(16,18,21,.78) 60%, #101215 100%); }
+      .rbs-indice { transition: transform .2s ease, border-color .2s ease, background .2s ease; }
+      .rbs-indice:hover { transform: translateY(-1px); border-color: rgba(138,176,230,.45) !important; background: rgba(28,31,36,.72) !important; }
+      .rbs-arco { animation: rbsArco 1.6s cubic-bezier(.2,.7,.2,1) .3s both; filter: drop-shadow(0 0 6px rgba(138,176,230,.45)); }
+      @keyframes rbsArco { from { stroke-dasharray: 0 100; } }
+      .rb-splash-foto { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .5; animation: rbsKb 18s ease-in-out infinite alternate; }
       .rb-nav:hover { background: rgba(255,255,255,0.04) !important; color: #d8d7d2 !important; }
       .rb-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
       .rb-card:hover { border-color: rgba(201,168,76,0.35) !important; box-shadow: 0 18px 50px -22px rgba(0,0,0,0.75); }
@@ -696,12 +718,30 @@ export default function Home() {
         .rb-sidebar > div:first-child > img { height: 44px !important; }
         .rb-sidebar nav { display: flex !important; flex-direction: row !important; overflow-x: auto !important; gap: 4px !important; padding: 8px !important; -webkit-overflow-scrolling: touch; }
         .rb-nav { width: auto !important; flex: 0 0 auto !important; white-space: nowrap !important; margin-bottom: 0 !important; }
-        .rb-side-score { display: none !important; }
+        .rbs-top { padding: 12px 16px 12px !important; }
+        .rbs-inner { display: grid !important; grid-template-columns: 1fr auto; align-items: center; gap: 10px 14px; }
+        .rbs-inner > img { height: 30px !important; }
+        .rbs-sub { display: none !important; }
+        .rbs-indice { margin: 0 !important; padding: 8px 12px !important; width: auto !important; }
+        .rbs-indice > div { gap: 10px !important; }
+        .rbs-indice .rbs-anel { width: 48px !important; height: 48px !important; }
+        .rbs-indice .rbs-big { font-size: 15px !important; }
+        .rbs-indice .rbs-de10, .rbs-indice .rbs-det { display: none !important; }
+        .rbs-indice .rbs-lab { font-size: 10px !important; }
+        .rbs-indice .rbs-media { font-size: 15px !important; margin-top: 2px !important; }
+        .rbs-lang { grid-column: 1 / -1; margin-top: 0 !important; }
+        .rbs-foot { display: none !important; }
         .rb-main { margin-left: 0 !important; }
-        .rb-main [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+        .rb-main > :not(.rbx) [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
         .rb-main [style*="padding: 28px 30px"] { padding: 18px 16px !important; }
       }
     `;
+    if (!document.getElementById('rb-public-sans')) {
+      const lk = document.createElement('link');
+      lk.id = 'rb-public-sans'; lk.rel = 'stylesheet';
+      lk.href = 'https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap';
+      document.head.appendChild(lk);
+    }
     document.head.appendChild(style);
   }, []);
 
@@ -997,7 +1037,7 @@ RULES:
     const html = `<!DOCTYPE html><html lang="${t('pt', 'en')}"><head><meta charset="utf-8">
 <title>${t('Relatório de Reputação Turística', 'Tourism Reputation Report')} - ${mesAno}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   :root{--ink:#1f232c;--ink2:#3a3f4b;--muted:#7c8190;--gold:#9c7d28;--goldL:#c9a84c;--paper:#ffffff;--band:#14171d;--line:#e7e3d8;--tint:#faf8f3;}
@@ -1008,14 +1048,14 @@ RULES:
   .band img{height:36px;width:auto;}
   .band .t{text-align:right;}
   .band .eyebrow{font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--goldL);margin-bottom:7px;}
-  .band h1{font-family:'Fraunces',serif;font-weight:600;font-size:22px;color:#fff;letter-spacing:-.01em;line-height:1.1;}
+  .band h1{font-family:'Public Sans',system-ui,sans-serif;font-weight:600;font-size:22px;color:#fff;letter-spacing:-.01em;line-height:1.1;}
   .band .sub{font-size:11px;color:#9aa0ad;margin-top:6px;}
   .kpis{display:flex;gap:10px;padding:22px 32px 6px;}
   .kpi{flex:1;background:var(--tint);border:1px solid var(--line);border-radius:10px;padding:14px 15px;}
-  .kv{font-family:'Fraunces',serif;font-weight:600;font-size:20px;color:var(--ink);line-height:1;}
+  .kv{font-family:'Public Sans',system-ui,sans-serif;font-weight:600;font-size:20px;color:var(--ink);line-height:1;}
   .kl{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:8px;}
   .content{flex:1;padding:18px 36px 30px;}
-  .content h2{font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--ink);margin:24px 0 6px;padding-bottom:7px;position:relative;break-after:avoid;}
+  .content h2{font-family:'Public Sans',system-ui,sans-serif;font-weight:600;font-size:15px;color:var(--ink);margin:24px 0 6px;padding-bottom:7px;position:relative;break-after:avoid;}
   .content h2:after{content:'';position:absolute;left:0;bottom:0;width:34px;height:2px;background:var(--goldL);}
   .content h2:first-child{margin-top:6px;}
   .content p{font-size:11pt;line-height:1.62;color:var(--ink2);margin:9px 0;}
@@ -1555,9 +1595,10 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
   // ── Derived ──
   const analyzed = locations.filter((l) => l.analysis);
   const sortedAnalyzed = [...analyzed].sort((a, b) => (b.analysis?.sentimentScore || 0) - (a.analysis?.sentimentScore || 0));
-  const avgScore = analyzed.length > 0
-    ? analyzed.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / analyzed.length
-    : null;
+  // Índice do destino: a MESMA conta da Visão Geral (média ponderada, só locais com dados suficientes).
+  const destino = indiceDestino(locations);
+  const avgScore = destino ? destino.idx
+    : analyzed.length > 0 ? analyzed.reduce((s, l) => s + (l.analysis?.sentimentScore || 0), 0) / analyzed.length : null;
 
   const allPos = analyzed.flatMap((l) => dispAnalysis(l)?.topThemesPositive || []);
   const allNeg = analyzed.flatMap((l) => dispAnalysis(l)?.topThemesNegative || []);
@@ -1696,16 +1737,19 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
   if (loading) {
     return (
-      <div style={{ background: C.appGrad, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', animation: 'rbFadeUp 0.6s ease both' }}>
-          <img src={LOGO_URL} alt="Visit Braga" style={{ width: 230, height: 'auto', marginBottom: 26 }} />
-          <div className="rb-display" style={{ fontSize: 15, color: C.accentLight, letterSpacing: '0.04em', marginBottom: 24 }}>
-            {t('Observatório de Reputação Turística', 'Tourism Reputation Observatory')}
+      <div style={{ position: 'relative', overflow: 'hidden', background: 'radial-gradient(900px 520px at 50% 30%, rgba(138,176,230,0.10), transparent), #15171B', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Public Sans', system-ui, sans-serif" }}>
+        {fotoBraga && <div className="rb-splash-foto" style={{ backgroundImage: `url(${fotoBraga})` }} />}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(21,23,27,.55) 0%, rgba(21,23,27,.9) 70%, #15171B 100%)' }} />
+        <div style={{ position: 'relative', textAlign: 'center', animation: 'rbFadeUp 0.8s ease both', padding: 24 }}>
+          <img src={LOGO_URL} alt="Visit Braga" style={{ width: 210, height: 'auto', marginBottom: 28 }} />
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#8AB0E6', marginBottom: 10 }}>Braga</div>
+          <div style={{ fontSize: 'clamp(24px, 4vw, 34px)', fontWeight: 700, color: '#ECEDEF', letterSpacing: '-0.02em', marginBottom: 28 }}>
+            {t('Observatório de Turismo e Reputação', 'Tourism and Reputation Observatory')}
           </div>
-          <div style={{ width: 180, height: 3, borderRadius: 3, background: C.border, overflow: 'hidden', margin: '0 auto', position: 'relative' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '40%', height: '100%', borderRadius: 3, background: `linear-gradient(90deg, transparent, ${C.accent}, transparent)`, animation: 'rbShimmer 1.3s ease-in-out infinite' }} />
+          <div style={{ width: 200, height: 3, borderRadius: 3, background: 'rgba(255,255,255,.1)', overflow: 'hidden', margin: '0 auto', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '40%', height: '100%', borderRadius: 3, background: 'linear-gradient(90deg, transparent, #8AB0E6, transparent)', animation: 'rbShimmer 1.3s ease-in-out infinite' }} />
           </div>
-          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 18, letterSpacing: '0.02em' }}>{t('A carregar dados…', 'Loading data…')}</div>
+          <div style={{ fontSize: 13, color: '#A3A8B1', marginTop: 18 }}>{t('A carregar dados…', 'Loading data…')}</div>
         </div>
       </div>
     );
@@ -1737,60 +1781,97 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
   // ─── NORMAL APP VIEW ───
   return (
-    <div className="rb-app" style={{ background: C.appGrad, minHeight: '100vh', display: 'flex', color: C.text }}>
+    <div className="rb-app" style={{ background: '#15171B', minHeight: '100vh', display: 'flex', color: C.text }}>
 
-      {/* ═══ SIDEBAR ═══ */}
+      {/* ═══ SIDEBAR (nova identidade: fotografia de Braga, índice do destino em destaque) ═══ */}
       <aside className="rb-sidebar" style={{
-        width: 232, flexShrink: 0, background: C.sidebarGrad,
-        borderRight: `1px solid ${C.sidebarBorder}`,
-        display: 'flex', flexDirection: 'column',
-        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 20,
+        width: 232, flexShrink: 0, background: '#101215', borderRight: '1px solid #23262C',
+        display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 20,
+        fontFamily: "'Public Sans', system-ui, sans-serif", overflowY: 'auto',
       }}>
-        <div style={{ padding: '28px 20px 22px', borderBottom: `1px solid ${C.sidebarBorder}`, textAlign: 'center' }}>
-          <img src={LOGO_URL} alt="Visit Braga" style={{ height: 32, width: 'auto', marginBottom: 12 }} />
-          <div className="rb-display" style={{ fontSize: 11.5, color: C.accentLight, letterSpacing: '0.03em' }}>{t('Observatório de Reputação', 'Reputation Observatory')}</div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginTop: 13 }}>
-            {(['pt', 'en'] as Lang[]).map((l) => (
-              <button key={l} onClick={() => changeLang(l)} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                padding: '4px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                border: `1px solid ${lang === l ? C.accent : C.border}`,
-                background: lang === l ? C.accentBg : 'transparent',
-                color: lang === l ? C.accentLight : C.textMuted, letterSpacing: '0.06em',
-                transition: 'all 0.2s',
+        <div className="rbs-top" style={{ position: 'relative', overflow: 'hidden', padding: '26px 16px 18px', borderBottom: '1px solid #23262C' }}>
+          {fotoBraga && <div className="rbs-foto" style={{ backgroundImage: `url(${fotoBraga})` }} />}
+          <div className="rbs-shade" />
+          <div className="rbs-inner" style={{ position: 'relative' }}>
+            <img src={LOGO_URL} alt="Visit Braga" style={{ height: 34, width: 'auto', display: 'block' }} />
+            <div className="rbs-sub" style={{ fontSize: 12.5, color: '#A3A8B1', marginTop: 10, lineHeight: 1.4 }}>{t('Observatório de Turismo e Reputação', 'Tourism and Reputation Observatory')}</div>
+            {avgScore !== null && (
+              <button className="rbs-indice" onClick={() => setView('overview')} title={t('Ver a Visão Geral', 'See the Overview')} style={{
+                display: 'block', width: '100%', textAlign: 'left', marginTop: 18, padding: '14px', borderRadius: 8, cursor: 'pointer',
+                background: 'linear-gradient(135deg, rgba(34,50,74,.62) 0%, rgba(21,23,27,.55) 100%)', border: '1px solid rgba(138,176,230,.22)', color: '#ECEDEF',
+                backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', fontFamily: 'inherit', boxShadow: '0 12px 30px -12px rgba(0,0,0,.6)',
               }}>
-                <span
-                  aria-hidden="true"
-                  style={{
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div className="rbs-anel" style={{ position: 'relative', width: 70, height: 70, flexShrink: 0 }}>
+                    <svg width="100%" height="100%" viewBox="0 0 70 70" aria-hidden="true">
+                      <defs>
+                        <linearGradient id="rbsAnelGrad" x1="0" x2="1" y1="0" y2="1">
+                          <stop offset="0%" stopColor="#CFE0F7" />
+                          <stop offset="100%" stopColor="#6FA0DC" />
+                        </linearGradient>
+                      </defs>
+                      <circle cx="35" cy="35" r="30" fill="none" stroke="rgba(255,255,255,.09)" strokeWidth="5" />
+                      <circle className="rbs-arco" cx="35" cy="35" r="30" fill="none" stroke="url(#rbsAnelGrad)" strokeWidth="5" strokeLinecap="round"
+                        pathLength={100} strokeDasharray={`${Math.min(100, avgScore * 10)} 100`} transform="rotate(-90 35 35)" />
+                    </svg>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                      <span className="rbs-big" style={{ fontSize: 21, fontWeight: 700, letterSpacing: '-0.02em' }}>{avgScore.toLocaleString(lang === 'en' ? 'en-GB' : 'pt-PT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
+                      <span className="rbs-de10" style={{ fontSize: 10, color: '#A3A8B1', marginTop: 3 }}>/10</span>
+                    </div>
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="rbs-lab" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: '#8AB0E6' }}>{t('Índice do destino', 'Destination index')}</div>
+                    {destino && (
+                      <div className="rbs-media" style={{ fontSize: 19, fontWeight: 700, marginTop: 6, letterSpacing: '-0.01em' }}>
+                        {destino.avg.toLocaleString(lang === 'en' ? 'en-GB' : 'pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ color: '#F2C14E', filter: 'drop-shadow(0 0 8px rgba(242,193,78,.4))' }}>★</span>
+                      </div>
+                    )}
+                    <div className="rbs-det" style={{ fontSize: 12, color: '#A3A8B1', marginTop: 3 }}>{destino ? destino.locais : analyzed.length} {t('locais avaliados', 'places rated')}</div>
+                  </div>
+                </div>
+              </button>
+            )}
+            <div className="rbs-lang" style={{ display: 'flex', gap: 6, marginTop: 14 }}>
+              {(['pt', 'en'] as Lang[]).map((l) => (
+                <button key={l} onClick={() => changeLang(l)} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  border: `1px solid ${lang === l ? '#8AB0E6' : 'rgba(255,255,255,.12)'}`,
+                  background: lang === l ? 'rgba(138,176,230,.16)' : 'rgba(21,23,27,.4)',
+                  color: lang === l ? '#ECEDEF' : '#A3A8B1', letterSpacing: '0.04em', transition: 'all 0.2s', fontFamily: 'inherit',
+                }}>
+                  <span aria-hidden="true" style={{
                     width: 20, height: 14, flexShrink: 0, borderRadius: 2, display: 'block',
                     backgroundImage: `url(https://flagcdn.com/${l === 'pt' ? 'pt' : 'gb'}.svg)`,
                     backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-                  }}
-                />
-                {l.toUpperCase()}
-              </button>
-            ))}
+                  }} />
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <nav style={{ padding: '14px 10px', flex: 1 }}>
+        <nav style={{ padding: '12px 10px', flex: 1 }}>
           {NAV.map((item) => {
-            const isActive = view === item.id || (item.id === 'overview' && view === 'detalhe');
+            const isActive = view === item.id || (item.id === 'locais' && view === 'detalhe');
+            const ic = NAV_ICON[item.id];
             return (
               <button key={item.id} onClick={() => setView(item.id)} className="rb-nav"
                 style={{
-                  position: 'relative', display: 'flex', alignItems: 'center', gap: 11, width: '100%',
-                  padding: '10px 13px', borderRadius: 9, border: 'none',
-                  background: isActive ? C.accentBg : 'transparent',
-                  color: isActive ? C.accentLight : C.textMuted,
-                  cursor: 'pointer', fontSize: 13, fontWeight: isActive ? 600 : 400,
-                  marginBottom: 3, textAlign: 'left',
+                  position: 'relative', display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                  padding: '10px 12px', borderRadius: 6, border: 'none',
+                  background: isActive ? '#22324A' : 'transparent',
+                  color: isActive ? '#ECEDEF' : '#A3A8B1',
+                  cursor: 'pointer', fontSize: 14, fontWeight: isActive ? 600 : 500,
+                  marginBottom: 2, textAlign: 'left', fontFamily: 'inherit',
                 }}>
-                {isActive && <span style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: 3, height: 20, borderRadius: 3, background: C.accent, boxShadow: `0 0 10px ${C.accentGlow}` }} />}
-                <span style={{ fontSize: 15, lineHeight: 1, width: 18, textAlign: 'center' }}>{item.icon}</span>
+                {isActive && <span style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: 3, height: 20, borderRadius: 3, background: '#8AB0E6' }} />}
+                {ic ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isActive ? '#8AB0E6' : 'currentColor'} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}><path d={ic} /></svg>
+                ) : <span style={{ fontSize: 15, lineHeight: 1, width: 18, textAlign: 'center' }}>{item.icon}</span>}
                 {item.label}
                 {item.id === 'locais' && locations.length > 0 && (
-                  <span style={{ marginLeft: 'auto', fontSize: 10, background: C.border, color: C.textDim, padding: '1px 6px', borderRadius: 8 }}>
+                  <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 600, background: isActive ? 'rgba(138,176,230,.2)' : '#23262C', color: isActive ? '#ECEDEF' : '#A3A8B1', padding: '2px 8px', borderRadius: 999 }}>
                     {locations.length}
                   </span>
                 )}
@@ -1799,20 +1880,9 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           })}
         </nav>
 
-        {avgScore !== null && (
-          <div className="rb-side-score" style={{ margin: '0 12px 14px', padding: '16px 18px', borderRadius: 12, background: C.cardGrad, border: `1px solid ${C.border}`, boxShadow: C.shadow }}>
-            <div style={{ fontSize: 9.5, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 7 }}>{t('Score Global', 'Overall Score')}</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-              <span style={{ fontSize: 32, fontWeight: 700, color: scoreColor(avgScore), lineHeight: 1 }}>{avgScore.toFixed(1)}</span>
-              <span style={{ fontSize: 13, color: C.textDim }}>/10</span>
-            </div>
-            <div style={{ fontSize: 11, color: scoreColor(avgScore), marginTop: 3 }}>{scoreLabel(avgScore)}</div>
-            <div style={{ height: 4, borderRadius: 2, background: C.border, overflow: 'hidden', marginTop: 9 }}>
-              <div style={{ width: `${(avgScore / 10) * 100}%`, height: '100%', background: scoreColor(avgScore), borderRadius: 2 }} />
-            </div>
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 7 }}>{analyzed.length} {t('locais', 'places')} · {totalReviews} reviews</div>
-          </div>
-        )}
+        <div className="rbs-foot" style={{ padding: '14px 18px 18px', borderTop: '1px solid #23262C', fontSize: 11.5, color: '#6F747D', lineHeight: 1.5 }}>
+          {t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}
+        </div>
       </aside>
 
       {/* ═══ MAIN ═══ */}

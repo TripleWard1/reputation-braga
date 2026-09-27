@@ -71,6 +71,17 @@ export function numeros(loc: LocMin): Numeros | null {
   };
 }
 
+
+// ─── Índice do destino (fonte única: Visão Geral, barra lateral, Observatório, relatório) ───
+// Média de estrelas ponderada pelo n.º de avaliações, só com locais com dados suficientes.
+export function indiceDestino(locs: LocMin[]): { idx: number; avg: number; n: number; locais: number } | null {
+  const rob = locs.map((l) => numeros(l)).filter((x): x is Numeros => !!x && x.robustez !== 'insuficiente');
+  const n = rob.reduce((s, x) => s + x.n, 0);
+  if (!n) return null;
+  const avg = rob.reduce((s, x) => s + x.avg * x.n, 0) / n;
+  return { idx: Math.round(avg * 20) / 10, avg: Math.round(avg * 100) / 100, n, locais: rob.length };
+}
+
 export function ranking(locs: LocMin[]): { id: string; name: string; n: number; idx: number }[] {
   return locs.map((l) => ({ l, x: numeros(l) }))
     .filter((o) => o.x && o.x.robustez !== 'insuficiente')
