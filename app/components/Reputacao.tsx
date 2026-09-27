@@ -101,7 +101,7 @@ function useRevelar(_dep?: unknown) {
 }
 
 /** Fotografia grande com zoom de entrada e parallax ao descer a página. */
-function HeroFoto({ src, altura, children }: { src: string | null; altura: number; children: ReactNode }) {
+function HeroFoto({ src, altura, children, mini }: { src: string | null; altura: number; children: ReactNode; mini?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!src || semMovimento()) return;
@@ -121,7 +121,7 @@ function HeroFoto({ src, altura, children }: { src: string | null; altura: numbe
   }, [src]);
   return (
     <div className="rb-hero-foto" style={{ height: altura }}>
-      {src && <div ref={ref} className="rb-hero-img"><div className="rb-kb" style={{ backgroundImage: `url(${src})` }} /></div>}
+      {src && <div ref={ref} className="rb-hero-img"><div className="rb-kb" style={{ backgroundImage: mini ? `url(${src}), url(${mini})` : `url(${src})` }} /></div>}
       <div className="rb-hero-shade" />
       <div className="rb-hero-in">{children}</div>
     </div>
@@ -1039,10 +1039,14 @@ export function LocaisLista(props: {
 const MES_LONGO_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const MES_LONGO_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+// Fotografia da Visão Geral: Avenida da Liberdade (public/visao-geral.jpg) + miniatura instantânea
+const FOTO_VISAO = '/visao-geral.jpg';
+const FOTO_VISAO_MINI = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA4KCw0LCQ4NDA0QDw4RFiQXFhQUFiwgIRokNC43NjMuMjI6QVNGOj1OPjIySGJJTlZYXV5dOEVmbWVabFNbXVn/2wBDAQ8QEBYTFioXFypZOzI7WVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVn/wAARCAARACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCZJVlMbpGY1Y8DOc1sGWC7tWijRiqnnADHP1rkbIagpj+UBVx94D15rThtryJi6XioTknC5qlWaepLpJrQTUoreDCQMXlZcndxtOeuPzrFe2mkVpPtO3H8AJBP0q9Jb3LtMftG+QMc7h9446/SqUltc4wJSvIwBnp/n+dROrKT3KhTjFbGzF0px70UVkaFQ/8AH4f+uY/nT3oooA//2Q==';
+
 export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => void; onOpenList: () => void; onImport: () => void }) {
   const { locations } = props;
   const mini = useMiniaturas();
-  const [fundo, setFundo] = useState<string | null>(null);
+  const [fundo, setFundo] = useState<string | null>(FOTO_VISAO);
   const [aCarregarF, setACarregarF] = useState(false);
   const fundoRef = useRef<HTMLInputElement>(null);
   const carrosselRef = useRef<HTMLDivElement>(null);
@@ -1052,22 +1056,6 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
   const dados = locations.map((l) => ({ l, x: numeros(l), al: alerta(l.reviewStats), a: l.analysis ? (dispAnalysis(l) as any) : null }));
   const robustos = dados.filter((d) => d.x && d.x.robustez !== 'insuficiente');
 
-  useEffect(() => {
-    let vivo = true;
-    (async () => {
-      try {
-        const d = await getDoc(doc(db, 'locationPhotos', '__braga'));
-        if (d.exists()) { if (vivo) setFundo((d.data() as any).data || null); return; }
-        const comFoto = [...dados].filter((z) => mini[z.l.id]).sort((p, q) => (q.x?.n ?? 0) - (p.x?.n ?? 0))[0];
-        if (comFoto) {
-          const d2 = await getDoc(doc(db, 'locationPhotos', comFoto.l.id));
-          if (vivo && d2.exists()) setFundo((d2.data() as any).data || null);
-        }
-      } catch { /* sem fotografia de fundo */ }
-    })();
-    return () => { vivo = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locations.length, nMini]);
 
   const carregarFundo = async (f: File) => {
     setACarregarF(true);
@@ -1085,17 +1073,13 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
   const topoFoto = (
     <div className="rb-hero-top">
       <div style={{ fontSize: 14, color: 'var(--rb-text2)' }}>{t('Reputação · Visão geral', 'Reputation · Overview')}</div>
-      <div className="rb-noprint">
-        <button className="rb-chip ghost" style={{ background: 'rgba(21,23,27,.5)' }} disabled={aCarregarF} onClick={() => fundoRef.current?.click()}>{aCarregarF ? t('A carregar…', 'Uploading…') : t('Fotografia de fundo', 'Background photo')}</button>
-        <input ref={fundoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const fl = e.target.files?.[0]; e.target.value = ''; if (fl) carregarFundo(fl); }} />
-      </div>
     </div>
   );
 
   if (!robustos.length) {
     return (
       <div className="rbx"><style>{ESTILO}</style>
-        <HeroFoto src={fundo} altura={fundo ? 560 : 380}>
+        <HeroFoto src={fundo} mini={FOTO_VISAO_MINI} altura={fundo ? 560 : 380}>
           {topoFoto}
           <div className="rb-enter" style={{ maxWidth: 760 }}>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>Braga</div>
@@ -1185,7 +1169,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
       <style>{ESTILO}</style>
 
       {/* Fotografia de Braga + números do destino em vidro */}
-      <HeroFoto src={fundo} altura={fundo ? 660 : 460}>
+      <HeroFoto src={fundo} mini={FOTO_VISAO_MINI} altura={fundo ? 660 : 460}>
         {topoFoto}
         <div className="rb-enter" style={{ maxWidth: 880 }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>Braga</div>
@@ -1340,6 +1324,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
 const ESTILO_EXTRA = `
 .rbx .leaflet-container { background: #15171B; font-family: 'Public Sans', system-ui, sans-serif; border-radius: 6px; }
 .rbx .leaflet-control-zoom a { background: #1C1F24; color: #ECEDEF; border-color: #2D3139; }
+.rbx .rb-osm-escuro { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.4); }
 .rbx .leaflet-control-attribution { background: rgba(21,23,27,.7) !important; color: #6F747D !important; }
 .rbx .leaflet-control-attribution a { color: #A3A8B1 !important; }
 .rbm-pin { position: relative; width: 44px; height: 44px; border-radius: 50%; background: rgba(21,23,27,.9); border: 2px solid var(--c); box-shadow: 0 0 0 4px rgba(0,0,0,.25), 0 0 18px var(--c); display: flex; align-items: center; justify-content: center; color: #ECEDEF; font: 700 13px 'Public Sans', system-ui, sans-serif; transition: transform .2s ease; }
@@ -1429,7 +1414,11 @@ export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => st
       if (cancelado || !caixa.current || !L) return;
       if (mapa.current) { mapa.current.remove(); mapa.current = null; }
       const m = L.map(caixa.current, { center: [41.548, -8.426], zoom: 13 });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 }).addTo(m);
+      // A CARTO passou a exigir chave (desde o fim de agosto de 2026). Com NEXT_PUBLIC_CARTO_KEY na Vercel usa o mapa escuro
+      // da CARTO; sem chave usa o OpenStreetMap (gratuito, sem chave) com um filtro que o escurece.
+      const chaveCarto = process.env.NEXT_PUBLIC_CARTO_KEY;
+      if (chaveCarto) L.tileLayer(`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${chaveCarto}`, { attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 }).addTo(m);
+      else L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19, className: 'rb-osm-escuro' }).addTo(m);
       const lista: any[] = [];
       marcadores.current = {};
       comCoords.forEach((d) => {
