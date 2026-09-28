@@ -93,6 +93,10 @@ const OBS_CSS = `
 .obs .recharts-area-area { fill-opacity: .22; }
 .obs .recharts-tooltip-wrapper { transition: transform .15s ease-out !important; }
 .obs .recharts-legend-item { margin-right: 14px !important; }
+.obs .obs-osm-escuro { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.4); }
+.obs .leaflet-container { background: #15171B; font-family: 'Public Sans', system-ui, sans-serif; }
+.obs .leaflet-control-zoom a { background: #1C1F24; color: #ECEDEF; border-color: #2D3139; }
+.obs .leaflet-control-attribution { background: rgba(21,23,27,.7) !important; color: #6F747D !important; }
 .obs-grow { animation: obsGrow 1.1s cubic-bezier(.2,.7,.2,1) both; transform-origin: left center; }
 @keyframes obsGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .obs .recharts-legend-item-text { color: #A3A8B1 !important; }
@@ -742,6 +746,32 @@ function ContaTexto({ texto }: { texto: string }) {
 
 
 
+
+// Mapa verdadeiro do Alojamento Local (Leaflet; OpenStreetMap escurecido, ou CARTO se houver chave)
+function MapaAL({ pontos }: { pontos: number[][] }) {
+  const caixa = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let mapa: any = null; let cancelado = false;
+    const w = window as any;
+    if (!document.getElementById('leaflet-css')) { const lk = document.createElement('link'); lk.id = 'leaflet-css'; lk.rel = 'stylesheet'; lk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(lk); }
+    const pronto = new Promise<any>((ok) => { if (w.L) return ok(w.L); const sc = document.createElement('script'); sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; sc.onload = () => ok(w.L); document.head.appendChild(sc); });
+    pronto.then((L: any) => {
+      if (cancelado || !caixa.current || !L) return;
+      mapa = L.map(caixa.current, { center: [41.55, -8.42], zoom: 13, scrollWheelZoom: false });
+      const chave = process.env.NEXT_PUBLIC_CARTO_KEY;
+      if (chave) L.tileLayer(`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${chave}`, { attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 }).addTo(mapa);
+      else L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19, className: 'obs-osm-escuro' }).addTo(mapa);
+      const grupo = L.featureGroup();
+      pontos.forEach((p) => L.circleMarker([p[0], p[1]], { radius: 5, color: '#EDA06B', weight: 1, fillColor: '#EDA06B', fillOpacity: 0.45 }).addTo(grupo));
+      grupo.addTo(mapa);
+      const b = grupo.getBounds(); if (b.isValid()) mapa.fitBounds(b, { padding: [24, 24], maxZoom: 15 });
+      setTimeout(() => mapa && mapa.invalidateSize(), 250);
+    });
+    return () => { cancelado = true; if (mapa) mapa.remove(); };
+  }, [pontos]);
+  return <div ref={caixa} className="obs-mapa-al" style={{ height: 420, borderRadius: 6, overflow: 'hidden', border: `1px solid ${C.border}` }} />;
+}
+
 // ═══ Alojamento Local (TravelBI / RNAL) — só leitura ═══
 function AlojamentoLocal() {
   const A: any = AL_BRAGA;
@@ -757,11 +787,6 @@ function AlojamentoLocal() {
   const pico = [...anos].sort((a, b) => b.n - a.n)[0];
   // mapa de pontos (projeção simples)
   const pts: number[][] = A.pontos.filter((p: number[]) => p[0] > 41.4 && p[0] < 41.7 && p[1] > -8.6 && p[1] < -8.2);
-  const la = pts.map((p) => p[0]), lo = pts.map((p) => p[1]);
-  const [minLa, maxLa, minLo, maxLo] = [Math.min(...la), Math.max(...la), Math.min(...lo), Math.max(...lo)];
-  const W = 560, H = 420;
-  const X = (v: number) => 20 + ((v - minLo) / (maxLo - minLo || 1)) * (W - 40);
-  const Y = (v: number) => 20 + ((maxLa - v) / (maxLa - minLa || 1)) * (H - 40);
   return (
     <>
       <SectionTitle sub={A.fonte}>{t(`${Math.round((nCentro / A.total) * 100)}% do Alojamento Local de Braga está nas quatro freguesias do centro`, `${Math.round((nCentro / A.total) * 100)}% of Braga’s short-term rentals are in the four central parishes`)}</SectionTitle>
@@ -774,10 +799,8 @@ function AlojamentoLocal() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <Card title={t('Onde estão: cada ponto é um estabelecimento', 'Where they are: each dot is an establishment')}>
-          <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', background: '#15171B', borderRadius: 6 }}>
-            {pts.map((p, i) => <circle key={i} cx={X(p[1])} cy={Y(p[0])} r={3.2} fill={C.orange} fillOpacity={0.35} />)}
-          </svg>
-          <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t('Coordenadas do registo; algumas são aproximadas (fiabilidade indicada pelo próprio registo).', 'Registry coordinates; some are approximate (reliability flagged by the registry).')}</div>
+          <MapaAL pontos={pts} />
+          <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t('Aproxima com os botões + e − ou com dois dedos. Algumas coordenadas do registo são aproximadas (ao código postal), por isso vários alojamentos podem aparecer no mesmo ponto.', 'Zoom with + and − or pinch. Some registry coordinates are approximate (postcode level), so several establishments may share the same dot.')}</div>
         </Card>
         <Card title={t('Por freguesia (estabelecimentos)', 'By parish (establishments)')}>
           <ResponsiveContainer width="100%" height={420}>
@@ -839,7 +862,7 @@ function Aeroporto() {
         <KPI label={t(`Último mês · ${rot(ult.mes)}`, `Latest month · ${rot(ult.mes)}`)} value={fmt(ult.n)} sub={ult.varHom != null ? t(`${ult.varHom >= 0 ? '+' : ''}${ult.varHom.toLocaleString('pt-PT')}% face ao ano anterior`, `${ult.varHom >= 0 ? '+' : ''}${ult.varHom.toLocaleString('en-GB')}% year on year`) : ''} color={C.accent} />
         <KPI label={t('Últimos 12 meses', 'Last 12 months')} value={`${(ult12 / 1e6).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 2 })} M`} sub={t('passageiros desembarcados', 'passengers landed')} color={C.positive} />
         <KPI label={t('Mês com mais movimento', 'Busiest month')} value={rot(pico.mes)} sub={`${fmt(pico.n)} ${t('passageiros', 'passengers')}`} color={C.orange} />
-        {comAmbos.length > 0 && <KPI label={t('Aeroporto e Braga na mesma direção', 'Airport and Braga moving together')} value={`${acordo}/${comAmbos.length}`} sub={t('meses em que ambos sobem ou ambos descem face ao ano anterior', 'months in which both rise or both fall year on year')} color={C.purple} />}
+        {comAmbos.length > 0 && <KPI label={t('Aeroporto e Braga em sintonia', 'Airport and Braga in step')} value={`${acordo} ${t('de', 'of')} ${comAmbos.length}`} sub={t(`meses em que os passageiros no Porto e as dormidas em Braga subiram ou desceram ao mesmo tempo (${Math.round((acordo / comAmbos.length) * 100)}%)`, `months in which Porto passengers and Braga overnight stays rose or fell together (${Math.round((acordo / comAmbos.length) * 100)}%)`)} color={C.purple} />}
       </div>
       <Card title={t('Passageiros desembarcados por mês (milhares) · últimos 3 anos', 'Passengers landed per month (thousands) · last 3 years')}>
         <ResponsiveContainer width="100%" height={300}>
