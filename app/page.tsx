@@ -560,7 +560,7 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
   return (
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px', marginBottom: 14 }}>
       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
-        {t('Evolução da reputação - últimos 3 anos (estrelas reais do Google)', 'Reputation trend - last 3 years (real Google stars)')}
+        {t('Evolução da reputação — últimos 3 anos (estrelas reais do Google)', 'Reputation trend — last 3 years (real Google stars)')}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 14 }}>
         {kpis.map(([l, v, sub]) => (
@@ -598,10 +598,10 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
       </div>
       {(recent.length > 0 || previous.length > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-          {([[t('Problemas - últimos 12 meses', 'Issues - last 12 months'), recent, C.negative], [t('Problemas - período anterior (12–36 meses)', 'Issues - previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
+          {([[t('Problemas — últimos 12 meses', 'Issues — last 12 months'), recent, C.negative], [t('Problemas — período anterior (12–36 meses)', 'Issues — previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
             <div key={title} style={{ background: C.bg, borderRadius: 8, padding: '12px 14px' }}>
               <div style={{ fontSize: 11, color, fontWeight: 600, marginBottom: 6 }}>{title}</div>
-              {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>-</div>}
+              {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>—</div>}
             </div>
           ))}
         </div>
@@ -1175,7 +1175,7 @@ RULES:
       }
       setImpGroups([]);
       setImpMsg('✓ ' + lines.join(' · '));
-      showToast(todo.some((g) => g.reviews.length) ? t('✓ Comentários importados - falta analisar com IA', '✓ Reviews imported - now run the AI analysis') : t('✓ Informação do local atualizada', '✓ Place information updated'));
+      showToast(todo.some((g) => g.reviews.length) ? t('✓ Comentários importados — falta analisar com IA', '✓ Reviews imported — now run the AI analysis') : t('✓ Informação do local atualizada', '✓ Place information updated'));
     } catch (err: any) {
       setImpMsg(t('Erro na importação: ', 'Import error: ') + (err?.message || '') + (lines.length ? ` · ${t('já gravado', 'already saved')}: ${lines.join(' · ')}` : ''));
     } finally {
@@ -1188,7 +1188,7 @@ RULES:
     setAnalyzing(loc.id);
     setError(null);
     try {
-      // 1) Estatísticas reconstruídas (regra "Sem texto") - fonte única de todos os números
+      // 1) Estatísticas reconstruídas (regra "Sem texto") — fonte única de todos os números
       showToast(t(`A preparar ${loc.name}…`, `Preparing ${loc.name}…`));
       const st0 = loc.reviewStats!;
       const stats = semIndefinidos(await rebuildStats(loc.id, { placeId: st0.placeId, placeTitle: st0.placeTitle, source: st0.source })) as ReviewStats;
@@ -1211,7 +1211,7 @@ Para cada comentário, indica de 0 a 3 temas referidos, cada um seguido de + (el
 Temas:
 ${listaTemas}
 
-Responde APENAS com JSON: {"r":[{"i":0,"t":["paisagem+","acesso-"]}]} - um item por comentário, com o mesmo número "i".
+Responde APENAS com JSON: {"r":[{"i":0,"t":["paisagem+","acesso-"]}]} — um item por comentário, com o mesmo número "i".
 
 Comentários:
 ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)}`).join('\n')}` }], true);
@@ -1229,7 +1229,7 @@ ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)
         all = all.map((r) => (tags[r.id] ? { ...r, tg: tags[r.id], c: 1 } : r));
       }
 
-      // 3) Estado de cada tema - calculado, não escrito pela IA
+      // 3) Estado de cada tema — calculado, não escrito pela IA
       const { temas, textRec, textPrev } = temaStats(all);
       const ativos = temas.filter((z) => z.estado);
 
@@ -1245,7 +1245,7 @@ ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)
       ].filter(Boolean).join('\n');
       const temasTxt = ativos.map((z) => {
         const ex = excertos(all, z.id, z.estado === 'forte' ? '+' : '-');
-        return `- ${z.id} (${TEMAS.find((y) => y.id === z.id)!.pt}) - estado: ${z.estado}${ex.length ? `\n  excertos: ${ex.map((e) => `"${e}"`).join(' | ')}` : ''}`;
+        return `- ${z.id} (${TEMAS.find((y) => y.id === z.id)!.pt}) — estado: ${z.estado}${ex.length ? `\n  excertos: ${ex.map((e) => `"${e}"`).join(' | ')}` : ''}`;
       }).join('\n') || '(nenhum tema com expressão suficiente)';
 
       // Leitura por blocos (como na versão original): ~150 comentários equilibrados, separados por período,
@@ -1278,7 +1278,7 @@ ${b.items.map((r) => `[${r.s}★ · ${r.d.slice(0, 7)}] ${r.t.replace(/\s+/g, ' 
       const raw2 = await groqChat([{ role: 'user', content:
 `És analista de reputação turística do Município de Braga. Local: "${loc.name}" (${loc.category}).
 
-NÚMEROS (já calculados - usa-os exatamente assim; não calcules nem escrevas outros números; não compares com outros locais nem fales de rankings ou de respostas aos comentários):
+NÚMEROS (já calculados — usa-os exatamente assim; não calcules nem escrevas outros números; não compares com outros locais nem fales de rankings ou de respostas aos comentários):
 ${numerosTxt}
 
 TEMAS (estado calculado comparando os últimos 12 meses com os 12–36 meses anteriores: persistente = crítica nos dois períodos; novo = só no recente; deixou = só no anterior; forte = elogio frequente):
@@ -1317,7 +1317,7 @@ Em problemasRecentes e problemasAnteriores, indica até 6 problemas em cada, do 
       const perRec = periodo(ai.problemasRecentes, ['novo', 'persiste']);
       const perAnt = periodo(ai.problemasAnteriores, ['deixou', 'persiste']);
 
-      // 6) Análise - mantém os campos antigos para Comparar, Problemas, Relatório e Mapa
+      // 6) Análise — mantém os campos antigos para Comparar, Problemas, Relatório e Mapa
       const nomeTema = (id: string) => TEMAS.find((y) => y.id === id)!.pt;
       const comEstado = (e: string[]) => temasV2.filter((z) => e.includes(String(z.estado)));
       const ws = windowStats(stats)!;
@@ -1385,13 +1385,24 @@ Em problemasRecentes e problemasAnteriores, indica até 6 problemas em cada, do 
   };
 
   const pararLote = useRef(false);
-  const analyzeAll = async () => {
-    const targets = locations.filter((l) => l.reviewStats && revCount(l) > 0);
-    if (!targets.length || analyzing || batchRun) return;
-    if (!window.confirm(t(
-      `Vão ser reanalisados ${targets.length} locais. Cada um demora cerca de 1 a 3 minutos (no total, 30 a 60 minutos): mantém esta página aberta.\n\nO plano gratuito do Groq tem um limite diário; se for atingido, os locais seguintes falham e podes retomar noutro dia. Podes parar a qualquer momento: o que já foi analisado fica guardado.\n\nContinuar?`,
-      `${targets.length} places will be re-analysed. Each takes about 1 to 3 minutes (30 to 60 minutes in total): keep this page open.\n\nGroq's free plan has a daily limit; if it is reached, the remaining places fail and you can resume another day. You can stop at any time: what has been analysed is kept.\n\nContinue?`))) return;
+  // Manter o ecrã acordado durante a reanálise (Screen Wake Lock; se o browser não suportar, segue sem ele)
+  const wakeRef = useRef<any>(null);
+  const pedirEcraAcordado = async () => { try { wakeRef.current = await (navigator as any).wakeLock?.request('screen'); } catch { /* sem suporte ou recusado */ } };
+  const largarEcraAcordado = () => { try { wakeRef.current?.release?.(); } catch { /* */ } wakeRef.current = null; };
+  useEffect(() => {
+    const volta = () => { if (document.visibilityState === 'visible' && batchRun && !wakeRef.current) pedirEcraAcordado(); };
+    document.addEventListener('visibilitychange', volta);
+    return () => document.removeEventListener('visibilitychange', volta);
+  }, [batchRun]);
+  // Lote interrompido: quais locais ainda não foram reanalisados desde o início do lote
+  const [loteGuardado, setLoteGuardado] = useState<{ inicio: string; ids: string[] } | null>(null);
+  useEffect(() => { try { const x = localStorage.getItem('rb-lote'); if (x) setLoteGuardado(JSON.parse(x)); } catch { /* */ } }, []);
+  const pendentesLote = loteGuardado ? locations.filter((l) => loteGuardado.ids.includes(l.id) && (!l.lastAnalyzed || l.lastAnalyzed < loteGuardado.inicio)) : [];
+  const correrLote = async (targets: Location[], inicio: string, ids: string[]) => {
     pararLote.current = false;
+    try { localStorage.setItem('rb-lote', JSON.stringify({ inicio, ids })); } catch { /* */ }
+    setLoteGuardado({ inicio, ids });
+    await pedirEcraAcordado();
     let ok = 0;
     for (let i = 0; i < targets.length; i++) {
       if (pararLote.current) break;
@@ -1399,8 +1410,23 @@ Em problemasRecentes e problemasAnteriores, indica até 6 problemas em cada, do 
       if (await analyzeImported(targets[i])) ok++;
     }
     setBatchRun(null);
-    showToast(pararLote.current ? t(`Parado: ${ok} locais analisados`, `Stopped: ${ok} places analysed`) : t(`✓ ${ok}/${targets.length} locais analisados`, `✓ ${ok}/${targets.length} places analysed`));
+    largarEcraAcordado();
+    const completo = !pararLote.current && ok === targets.length;
+    if (completo) { try { localStorage.removeItem('rb-lote'); } catch { /* */ } setLoteGuardado(null); }
+    showToast(completo ? t(`✓ ${ok}/${targets.length} locais analisados`, `✓ ${ok}/${targets.length} places analysed`) : t(`${ok} de ${targets.length} locais analisados. Usa "Continuar" para os que faltam.`, `${ok} of ${targets.length} places analysed. Use "Continue" for the rest.`));
     pararLote.current = false;
+  };
+  const continuarLote = async () => {
+    if (!loteGuardado || !pendentesLote.length || analyzing || batchRun) return;
+    await correrLote(pendentesLote, loteGuardado.inicio, loteGuardado.ids);
+  };
+  const analyzeAll = async () => {
+    const targets = locations.filter((l) => l.reviewStats && revCount(l) > 0);
+    if (!targets.length || analyzing || batchRun) return;
+    if (!window.confirm(t(
+      `Vão ser reanalisados ${targets.length} locais. Cada um demora cerca de 1 a 3 minutos (no total, 30 a 60 minutos): mantém esta página aberta. A app pede ao computador para não desligar o ecrã; se mesmo assim bloquear, a análise continua (mais devagar). Se o computador adormecer, depois podes continuar de onde parou.\n\nO plano gratuito do Groq tem um limite diário; se for atingido, os locais seguintes falham e podes retomar noutro dia. Podes parar a qualquer momento: o que já foi analisado fica guardado.\n\nContinuar?`,
+      `${targets.length} places will be re-analysed. Each takes about 1 to 3 minutes (30 to 60 minutes in total): keep this page open.\n\nGroq's free plan has a daily limit; if it is reached, the remaining places fail and you can resume another day. You can stop at any time: what has been analysed is kept.\n\nContinue?`))) return;
+    await correrLote(targets, new Date().toISOString(), targets.map((x) => x.id));
   };
 
   const analyze = async (id: string) => {
@@ -1946,7 +1972,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         {/* ── LOCAIS ── */}
         {view === 'locais' && (
           <LocaisLista locations={locations} analyzing={analyzing} batchRun={batchRun} catLabel={catLabel}
-            onOpen={(id) => { setDetailId(id); setView('detalhe'); }} onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} onStopBatch={() => { pararLote.current = true; showToast(t('Vai parar no fim do local em curso…', 'Will stop after the current place…')); }} onAnalyzeAll={analyzeAll} onAdd={() => setShowAdd(true)} />
+            onOpen={(id) => { setDetailId(id); setView('detalhe'); }} onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} onStopBatch={() => { pararLote.current = true; showToast(t('Vai parar no fim do local em curso…', 'Will stop after the current place…')); }} pendentesLote={pendentesLote.length} onContinueBatch={continuarLote} onAnalyzeAll={analyzeAll} onAdd={() => setShowAdd(true)} />
         )}
 
         {/* ── MAPA ── */}
@@ -2030,8 +2056,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>{t('Importar comentários do Google Maps', 'Import Google Maps reviews')}</h3>
             <p style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.6, margin: '0 0 16px' }}>
-              {t('Ficheiro JSON ou CSV exportado (ex.: Apify - Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.',
-                 'Exported JSON or CSV file (e.g. Apify - Google Maps Reviews Scraper). Only reviews under 3 years old are kept, duplicates are ignored and author names are not stored. A file may contain several places. Manually pasted reviews for those places are replaced.')}
+              {t('Ficheiro JSON ou CSV exportado (ex.: Apify — Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.',
+                 'Exported JSON or CSV file (e.g. Apify — Google Maps Reviews Scraper). Only reviews under 3 years old are kept, duplicates are ignored and author names are not stored. A file may contain several places. Manually pasted reviews for those places are replaced.')}
             </p>
             <input type="file" accept=".json,.csv,.jsonl,.txt" onChange={onImportFile} disabled={impBusy}
               style={{ fontSize: 13, color: C.text }} />
@@ -2050,7 +2076,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     <select value={g.target} disabled={impBusy}
                       onChange={(e) => { const v = e.target.value; setImpGroups((prev) => prev.map((x, i) => (i === gi ? { ...x, target: v } : x))); }}
                       style={{ flex: '0 1 260px', padding: '8px 10px', borderRadius: 8, border: `1px solid ${g.target ? C.accent : C.border}`, background: C.card, color: C.text, fontSize: 12.5 }}>
-                      <option value="">{t('- Ignorar -', '- Skip -')}</option>
+                      <option value="">{t('— Ignorar —', '— Skip —')}</option>
                       <option value="__new__">{t('+ Criar novo local', '+ Create new place')}</option>
                       {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
