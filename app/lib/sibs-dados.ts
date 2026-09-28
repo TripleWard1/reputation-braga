@@ -1,4 +1,4 @@
-// SIBS Analytics — pagamentos no concelho de Braga (jan 2025 a jan 2026). Gerado a partir dos ficheiros exportados.
+// SIBS Analytics - pagamentos no concelho de Braga (jan 2025 a jan 2026). Gerado a partir dos ficheiros exportados.
 // Valores arredondados pela própria SIBS. Não editar à mão.
 export const SIBS_PERIODO = "janeiro de 2025 a janeiro de 2026";
 export const SIBS_AMBITO = "Operações efetuadas no concelho de Braga, com cartões de todos os países, em todos os setores";
