@@ -22,6 +22,9 @@ import { CAMINHOS } from '@/app/lib/caminhos-santiago-dados';
 import { openPremiumDoc, Section } from '@/app/lib/premium-doc';
 import { t, dl } from '@/app/lib/i18n';
 import { obterFotoBraga } from '@/app/lib/foto-braga';
+import { SIBS_PAISES, SIBS_MENSAL, SIBS_SETORES, SIBS_CONCELHOS, SIBS_PERIODO } from '@/app/lib/sibs-dados';
+import { BILHETEIRA, BILHETEIRA_FONTE } from '@/app/lib/bilheteira-dados';
+import { AL_BRAGA, AEROPORTO_PORTO } from '@/app/lib/alojamento-aeroporto-dados';
 
 const LOGO = 'https://i.imgur.com/Vij12Qd.png';
 
@@ -110,7 +113,7 @@ const OBS_CSS = `
 
 const PAL = [C.accent, C.positive, C.orange, C.purple, C.cyan, C.pink, C.info, '#6F747D'];
 
-type Tab = 'geral' | 'procura' | 'economia' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
+type Tab = 'geral' | 'procura' | 'economia' | 'cartoes' | 'cultura' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; }
 
@@ -182,6 +185,10 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'geral', label: t('Visão Geral', 'Overview') },
     { id: 'procura', label: t('Procura (INE)', 'Demand (INE)') },
     { id: 'economia', label: t('Economia', 'Economy') },
+    { id: 'cartoes', label: t('Gastos com cartão', 'Card spending') },
+    { id: 'cultura', label: t('Cultura', 'Culture') },
+    { id: 'alojamento', label: t('Alojamento Local', 'Short-term rentals') },
+    { id: 'aeroporto', label: t('Aeroporto', 'Airport') },
     { id: 'mercados', label: t('Mercados', 'Markets') },
     { id: 'balcao', label: t('Atendimento Balcão', 'Front Desk') },
     { id: 'taxa', label: t('Taxa Turística', 'Tourist Tax') },
@@ -667,6 +674,10 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'taxa' && <Taxa />}
         {tab === 'sustentabilidade' && <Sustentabilidade />}
         {tab === 'digital' && <Digital />}
+        {tab === 'cartoes' && <Cartoes />}
+        {tab === 'cultura' && <Cultura />}
+        {tab === 'alojamento' && <AlojamentoLocal />}
+        {tab === 'aeroporto' && <Aeroporto />}
         {tab === 'acessibilidade' && <Acessibilidade />}
         {tab === 'meteo' && <Meteorologia />}
         {tab === 'caminhos' && <Caminhos />}
@@ -726,6 +737,333 @@ function ContaTexto({ texto }: { texto: string }) {
   const inteiro = sepMil ? ip.replace(/\B(?=(\d{3})+(?!\d))/g, sepMil) : ip;
   const num = dp ? `${inteiro}${sepDec}${dp}` : inteiro;
   return <span ref={ref}>{texto.slice(0, m.index)}{num}{texto.slice((m.index || 0) + tok.length)}</span>;
+}
+
+
+
+
+// ═══ Alojamento Local (TravelBI / RNAL) — só leitura ═══
+function AlojamentoLocal() {
+  const A: any = AL_BRAGA;
+  const MOD: Record<string, string> = { Apartamento: t('Apartamento', 'Apartment'), EstabelecimentoHospedagem: t('Hospedagem', 'Guesthouse'), Moradia: t('Moradia', 'House'), Quartos: t('Quartos', 'Rooms'), EstabelecimentoHospedagemHostel: 'Hostel' };
+  const centro = (f: string) => /^União das freguesias de Braga \(|^Braga \(/.test(f);
+  const fr: any[] = A.freguesias;
+  const nCentro = fr.filter((x) => centro(x.freguesia)).reduce((a, x) => a + x.n, 0);
+  const uCentro = fr.filter((x) => centro(x.freguesia)).reduce((a, x) => a + x.utentes, 0);
+  const curto = (f: string) => f.replace('União das freguesias de ', '').replace('Braga (São José de São Lázaro e São João do Souto)', 'Braga (S. José S. Lázaro e S. João Souto)');
+  const freg = fr.slice(0, 10).map((x) => ({ freguesia: curto(x.freguesia), n: x.n, utentes: x.utentes }));
+  const anos = (A.porAno as any[]).map((x) => ({ ano: x.ano, n: x.n }));
+  const mods = Object.entries(A.modalidades as Record<string, number>).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ mod: MOD[k] || k, v }));
+  const pico = [...anos].sort((a, b) => b.n - a.n)[0];
+  // mapa de pontos (projeção simples)
+  const pts: number[][] = A.pontos.filter((p: number[]) => p[0] > 41.4 && p[0] < 41.7 && p[1] > -8.6 && p[1] < -8.2);
+  const la = pts.map((p) => p[0]), lo = pts.map((p) => p[1]);
+  const [minLa, maxLa, minLo, maxLo] = [Math.min(...la), Math.max(...la), Math.min(...lo), Math.max(...lo)];
+  const W = 560, H = 420;
+  const X = (v: number) => 20 + ((v - minLo) / (maxLo - minLo || 1)) * (W - 40);
+  const Y = (v: number) => 20 + ((maxLa - v) / (maxLa - minLa || 1)) * (H - 40);
+  return (
+    <>
+      <SectionTitle sub={A.fonte}>{t(`${Math.round((nCentro / A.total) * 100)}% do Alojamento Local de Braga está nas quatro freguesias do centro`, `${Math.round((nCentro / A.total) * 100)}% of Braga’s short-term rentals are in the four central parishes`)}</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <KPI label={t('Estabelecimentos ativos', 'Active establishments')} value={fmt(A.total)} sub={t(`${fmt(A.utentes)} utentes (capacidade)`, `${fmt(A.utentes)} guests (capacity)`)} color={C.accent} />
+        <KPI label={t('No centro da cidade', 'In the city centre')} value={fmt(nCentro)} sub={t(`${fmt(uCentro)} utentes · ${Math.round((uCentro / Math.max(1, A.utentes)) * 100)}% da capacidade`, `${fmt(uCentro)} guests · ${Math.round((uCentro / Math.max(1, A.utentes)) * 100)}% of capacity`)} color={C.orange} />
+        <KPI label={t('Apartamentos', 'Apartments')} value={`${Math.round(((A.modalidades.Apartamento || 0) / A.total) * 100)}%`} sub={t(`${fmt(A.modalidades.Apartamento || 0)} estabelecimentos`, `${fmt(A.modalidades.Apartamento || 0)} establishments`)} color={C.purple} />
+        <KPI label={t('Capacidade média', 'Average capacity')} value={(A.utentes / Math.max(1, A.comUtentes)).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} sub={t('utentes por estabelecimento', 'guests per establishment')} color={C.cyan} />
+        <KPI label={t('Selo Clean & Safe', 'Clean & Safe label')} value={fmt(A.seloCleanSafe)} sub={t(`${Math.round((A.seloCleanSafe / A.total) * 100)}% dos estabelecimentos`, `${Math.round((A.seloCleanSafe / A.total) * 100)}% of establishments`)} color={C.positive} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('Onde estão: cada ponto é um estabelecimento', 'Where they are: each dot is an establishment')}>
+          <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', background: '#15171B', borderRadius: 6 }}>
+            {pts.map((p, i) => <circle key={i} cx={X(p[1])} cy={Y(p[0])} r={3.2} fill={C.orange} fillOpacity={0.35} />)}
+          </svg>
+          <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t('Coordenadas do registo; algumas são aproximadas (fiabilidade indicada pelo próprio registo).', 'Registry coordinates; some are approximate (reliability flagged by the registry).')}</div>
+        </Card>
+        <Card title={t('Por freguesia (estabelecimentos)', 'By parish (establishments)')}>
+          <ResponsiveContainer width="100%" height={420}>
+            <BarChart data={freg} layout="vertical" margin={{ top: 4, right: 20, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+              <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+              <YAxis type="category" dataKey="freguesia" width={180} stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any, it: any) => [`${fmt(v)} · ${fmt(it?.payload?.utentes)} ${t('utentes', 'guests')}`, t('Estabelecimentos', 'Establishments')]} />
+              <Bar dataKey="n" name={t('Estabelecimentos', 'Establishments')} fill={C.orange} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('Ano de registo dos estabelecimentos ativos', 'Registration year of active establishments')}>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={anos} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+              <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Registos', 'Registrations')]} />
+              <Bar dataKey="n" name={t('Registos', 'Registrations')} fill={C.accent} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Só conta os estabelecimentos ainda ativos. O ano com mais registos foi ${pico?.ano} (${pico?.n}); 2024 teve apenas ${anos.find((x) => x.ano === '2024')?.n ?? '—'}, o que coincide com as restrições ao Alojamento Local de 2023–2024.`, `Only active establishments are counted. The year with most registrations was ${pico?.ano} (${pico?.n}); 2024 had only ${anos.find((x) => x.ano === '2024')?.n ?? '—'}, coinciding with the 2023–2024 restrictions on short-term rentals.`)}</div>
+        </Card>
+        <Card title={t('Por modalidade', 'By type')}>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={mods} layout="vertical" margin={{ top: 4, right: 20, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+              <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+              <YAxis type="category" dataKey="mod" width={110} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Estabelecimentos', 'Establishments')]} />
+              <Bar dataKey="v" name={t('Estabelecimentos', 'Establishments')} fill={C.purple} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+    </>
+  );
+}
+
+// ═══ Aeroporto do Porto (INE) — só leitura; cruzado com as dormidas de Braga ═══
+function Aeroporto() {
+  const M = AEROPORTO_PORTO.meses;
+  const MC = [t('jan', 'Jan'), t('fev', 'Feb'), t('mar', 'Mar'), t('abr', 'Apr'), t('mai', 'May'), t('jun', 'Jun'), t('jul', 'Jul'), t('ago', 'Aug'), t('set', 'Sep'), t('out', 'Oct'), t('nov', 'Nov'), t('dez', 'Dec')];
+  const rot = (m: string) => `${MC[+m.slice(5, 7) - 1]} ${m.slice(2, 4)}`;
+  const ult = M[M.length - 1];
+  const ult12 = M.slice(-12).reduce((a, x) => a + x.n, 0), ant12 = M.slice(-24, -12).reduce((a, x) => a + x.n, 0);
+  const pico = [...M].sort((a, b) => b.n - a.n)[0];
+  const dormHom = (m: string) => { const nome = (MESES as string[])[+m.slice(5, 7) - 1]; const y = m.slice(0, 4); const a = (DORMIDAS_BRAGA as any)[nome]?.[y]; const b = (DORMIDAS_BRAGA as any)[nome]?.[String(+y - 1)]; return a && b ? Math.round((a / b - 1) * 1000) / 10 : null; };
+  const dados = M.map((x) => ({ mes: rot(x.mes), passageiros: Math.round(x.n / 1000), aeroporto: x.varHom, braga: dormHom(x.mes) }));
+  const comAmbos = M.filter((x) => x.varHom != null && dormHom(x.mes) != null);
+  const acordo = comAmbos.filter((x) => Math.sign(x.varHom!) === Math.sign(dormHom(x.mes)!)).length;
+  return (
+    <>
+      <SectionTitle sub={`${AEROPORTO_PORTO.fonte} · ${t('atualizado a', 'updated')} ${AEROPORTO_PORTO.atualizado}`}>{t(`${fmt(ult12)} passageiros desembarcaram no Porto nos últimos 12 meses (${ult12 >= ant12 ? '+' : ''}${(((ult12 - ant12) / ant12) * 100).toLocaleString('pt-PT', { maximumFractionDigits: 1 })}%)`, `${fmt(ult12)} passengers landed in Porto in the last 12 months (${ult12 >= ant12 ? '+' : ''}${(((ult12 - ant12) / ant12) * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}%)`)}</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <KPI label={t(`Último mês · ${rot(ult.mes)}`, `Latest month · ${rot(ult.mes)}`)} value={fmt(ult.n)} sub={ult.varHom != null ? t(`${ult.varHom >= 0 ? '+' : ''}${ult.varHom.toLocaleString('pt-PT')}% face ao ano anterior`, `${ult.varHom >= 0 ? '+' : ''}${ult.varHom.toLocaleString('en-GB')}% year on year`) : ''} color={C.accent} />
+        <KPI label={t('Últimos 12 meses', 'Last 12 months')} value={`${(ult12 / 1e6).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 2 })} M`} sub={t('passageiros desembarcados', 'passengers landed')} color={C.positive} />
+        <KPI label={t('Mês com mais movimento', 'Busiest month')} value={rot(pico.mes)} sub={`${fmt(pico.n)} ${t('passageiros', 'passengers')}`} color={C.orange} />
+        {comAmbos.length > 0 && <KPI label={t('Aeroporto e Braga na mesma direção', 'Airport and Braga moving together')} value={`${acordo}/${comAmbos.length}`} sub={t('meses em que ambos sobem ou ambos descem face ao ano anterior', 'months in which both rise or both fall year on year')} color={C.purple} />}
+      </div>
+      <Card title={t('Passageiros desembarcados por mês (milhares) · últimos 3 anos', 'Passengers landed per month (thousands) · last 3 years')}>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={dados} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+            <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} interval={2} />
+            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [`${fmt(v)} mil`, t('Passageiros', 'Passengers')]} />
+            <Bar dataKey="passageiros" name={t('Passageiros', 'Passengers')} fill={C.accent} radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+      <Card title={t('Variação face ao ano anterior: aeroporto do Porto vs dormidas em Braga (%)', 'Year-on-year change: Porto airport vs Braga overnight stays (%)')}>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={dados} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+            <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} interval={2} />
+            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '—' : `${String(v).replace('.', ',')}%`, n]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Line type="monotone" dataKey="aeroporto" name={t('Aeroporto do Porto', 'Porto airport')} stroke={C.accent} strokeWidth={2} dot={false} connectNulls />
+            <Line type="monotone" dataKey="braga" name={t('Dormidas em Braga', 'Braga overnight stays')} stroke={C.orange} strokeWidth={2} dot={false} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+        <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t('Quando as duas linhas andam juntas, o aeroporto serve de sinal antecipado: os dados do aeroporto saem antes das dormidas do INE. Este ficheiro traz só o total de passageiros; o país de origem do voo não está incluído.', 'When both lines move together, the airport works as an early signal: airport data is released before INE overnight stays. This file only has total passengers; the flight’s country of origin is not included.')}</div>
+      </Card>
+    </>
+  );
+}
+
+// ═══ Cultura: bilheteira do Theatro Circo, gnration e BMA (FazCultura) — só leitura ═══
+function Cultura() {
+  const ents = ['theatro circo', 'gnration', 'bma'].filter((k) => BILHETEIRA[k]);
+  const CORES_E: Record<string, string> = { 'theatro circo': C.accent, gnration: C.positive, bma: C.orange };
+  const MC = [t('jan', 'Jan'), t('fev', 'Feb'), t('mar', 'Mar'), t('abr', 'Apr'), t('mai', 'May'), t('jun', 'Jun'), t('jul', 'Jul'), t('ago', 'Aug'), t('set', 'Sep'), t('out', 'Oct'), t('nov', 'Nov'), t('dez', 'Dec')];
+  const meses = Array.from(new Set(ents.flatMap((k) => Object.keys(BILHETEIRA[k].meses)))).sort();
+  const mensal = meses.map((m) => { const o: any = { mes: `${MC[+m.slice(5, 7) - 1]} ${m.slice(2, 4)}` }; ents.forEach((k) => { o[k] = BILHETEIRA[k].meses[m]?.bilhetes || 0; }); return o; });
+  const resumo = ents.map((k) => {
+    const b = BILHETEIRA[k]; const ms = Object.values(b.meses);
+    const bil = ms.reduce((a, x) => a + x.bilhetes, 0), ses = ms.reduce((a, x) => a + x.sessoes, 0), rec = ms.reduce((a, x) => a + x.receita, 0), conv = ms.reduce((a, x) => a + x.convites, 0);
+    const lot = ms.filter((x) => x.lotacao); const ocup = lot.length ? (lot.reduce((a, x) => a + (x.ocupados || 0), 0) / lot.reduce((a, x) => a + (x.lotacao || 0), 0)) * 100 : null;
+    return { k, nome: b.entidade, bil, ses, rec, conv, ocup };
+  });
+  const tc = BILHETEIRA['theatro circo'];
+  // 1.º quadrimestre: 2026 vs 2025 (meses comparáveis)
+  const q = (k: string, y: string) => ['01', '02', '03', '04'].reduce((a, mm) => a + (BILHETEIRA[k]?.meses[`${y}-${mm}`]?.bilhetes || 0), 0);
+  const tc25 = q('theatro circo', '2025'), tc26 = q('theatro circo', '2026');
+  const tipos = tc ? Object.entries(tc.tipos).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([tipo, v]) => ({ tipo, v })) : [];
+  const eur = (v: number) => `${(v / 1000).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} mil €`;
+  return (
+    <>
+      <SectionTitle sub={BILHETEIRA_FONTE}>{tc25 ? t(`Theatro Circo: ${fmt(tc26)} bilhetes de janeiro a abril de 2026 (${tc26 >= tc25 ? '+' : ''}${(((tc26 - tc25) / tc25) * 100).toLocaleString('pt-PT', { maximumFractionDigits: 1 })}% face a 2025)`, `Theatro Circo: ${fmt(tc26)} tickets from January to April 2026 (${tc26 >= tc25 ? '+' : ''}${(((tc26 - tc25) / tc25) * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}% vs 2025)`) : t('Bilheteira cultural', 'Cultural box office')}</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
+        {resumo.map((r) => (
+          <KPI key={r.k} label={`${r.nome} · ${t('jan 2025 a abr 2026', 'Jan 2025 to Apr 2026')}`} value={fmt(r.bil)} color={CORES_E[r.k]}
+            sub={t(`bilhetes · ${fmt(r.ses)} sessões · ${eur(r.rec)}${r.ocup != null ? ` · ocupação ${r.ocup.toLocaleString('pt-PT', { maximumFractionDigits: 0 })}% (2026)` : ''}`, `tickets · ${fmt(r.ses)} sessions · ${eur(r.rec)}${r.ocup != null ? ` · occupancy ${r.ocup.toLocaleString('en-GB', { maximumFractionDigits: 0 })}% (2026)` : ''}`)} />
+        ))}
+      </div>
+      <Card title={t('Bilhetes por mês', 'Tickets per month')}>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={mensal} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+            <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(v), n]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            {ents.map((k) => <Bar key={k} dataKey={k} name={BILHETEIRA[k].entidade} stackId="a" fill={CORES_E[k]} />)}
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+      {tc && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <Card title={t('Theatro Circo: bilhetes por tipo de espetáculo', 'Theatro Circo: tickets by type of show')}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={tipos} layout="vertical" margin={{ top: 4, right: 20, left: 8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+                <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+                <YAxis type="category" dataKey="tipo" width={120} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+                <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Bilhetes', 'Tickets')]} />
+                <Bar dataKey="v" name={t('Bilhetes', 'Tickets')} fill={C.accent} radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+          <Card title={t('Theatro Circo: espetáculos com mais público', 'Theatro Circo: shows with the largest audiences')}>
+            {tc.topEventos.slice(0, 10).map((e, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderTop: i ? `1px solid ${C.border}` : 'none', fontSize: 13.5 }}>
+                <span style={{ minWidth: 0 }}>{e.evento} <span style={{ color: C.textDim, fontSize: 12 }}>· {e.periodo}</span></span>
+                <strong style={{ whiteSpace: 'nowrap' }}>{fmt(e.bilhetes)}</strong>
+              </div>
+            ))}
+          </Card>
+        </div>
+      )}
+      <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, marginTop: 4 }}>{t('Bilhetes emitidos (inclui convites), sem sessões online. A ocupação só existe nos ficheiros de 2026, que trazem a lotação. O cruzamento com os comentários do Google aparece na ficha do local Theatro Circo.', 'Tickets issued (including complimentary), excluding online sessions. Occupancy only exists in 2026 files, which include capacity. The cross-analysis with Google reviews appears in the Theatro Circo place profile.')}</div>
+    </>
+  );
+}
+
+// ═══ Gastos com cartão (SIBS Analytics) — só leitura dos dados exportados ═══
+function Cartoes() {
+  const me = (v: number) => `${(v / 1e6).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} M€`;
+  const pct = (v: number | null | undefined) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })}%`);
+  const paises = [...SIBS_PAISES].filter((p) => p.valor > 0).sort((a, b) => b.valor - a.valor);
+  const totEst = paises.reduce((s2, p) => s2 + p.valor, 0);
+  const nEst = paises.reduce((s2, p) => s2 + (p.n || 0), 0);
+  const braga = SIBS_CONCELHOS.find((c) => c.concelho.trim().toLowerCase() === 'braga');
+  const rank = [...SIBS_CONCELHOS].sort((a, b) => b.valor - a.valor);
+  const posBraga = rank.findIndex((c) => c.concelho.trim().toLowerCase() === 'braga') + 1;
+  const DIASPORA = ['França', 'Suíça', 'Luxemburgo', 'Alemanha', 'Bélgica', 'Andorra', 'Reino Unido'];
+  const diaspora = paises.filter((p) => DIASPORA.includes(p.pais)).reduce((s2, p) => s2 + p.valor, 0);
+  const top12 = paises.slice(0, 12).map((p) => ({ pais: dl(p.pais), valor: Math.round(p.valor / 1e5) / 10, var: p.varValor }));
+  const medios = paises.filter((p) => (p.n || 0) >= 5000 && p.medio).sort((a, b) => (b.medio || 0) - (a.medio || 0)).slice(0, 10).map((p) => ({ pais: dl(p.pais), medio: p.medio }));
+  const MESES_C = [t('jan', 'Jan'), t('fev', 'Feb'), t('mar', 'Mar'), t('abr', 'Apr'), t('mai', 'May'), t('jun', 'Jun'), t('jul', 'Jul'), t('ago', 'Aug'), t('set', 'Sep'), t('out', 'Oct'), t('nov', 'Nov'), t('dez', 'Dec')];
+  const mesesTodos: string[] = [];
+  for (let y = 2025; y <= 2026; y++) for (let m = 1; m <= 12; m++) { const k = `${y}-${String(m).padStart(2, '0')}`; if (k <= '2026-01') mesesTodos.push(k); }
+  const mensal = mesesTodos.map((k) => {
+    const el = SIBS_MENSAL.find((x) => x.mes === k && /eletr/i.test(x.indicador));
+    const nu = SIBS_MENSAL.find((x) => x.mes === k && /numer/i.test(x.indicador));
+    return { mes: `${MESES_C[+k.slice(5, 7) - 1]} ${k.slice(2, 4)}`, eletronico: el?.valor != null ? Math.round(el.valor / 1e6) : null, numerario: nu?.valor != null ? Math.round(nu.valor / 1e6) : null };
+  });
+  const semDados = mensal.filter((m) => m.eletronico == null).map((m) => m.mes);
+  const setores = (SIBS_SETORES.valor || []).map((x) => ({ setor: x.setor.length > 34 ? x.setor.slice(0, 32) + '…' : x.setor, valor: Math.round(x.v / 1e6), var: x.var }));
+  // Cruzamento: peso no gasto com cartão vs peso nas dormidas (INE, 1.º semestre)
+  const S: any = SEMESTRE_2026 as any;
+  const estDorm = Number(S?.residencia?.dormidas?.Estrangeiro) || 0;
+  const alias: Record<string, string> = { 'Estados Unidos': 'Estados Unidos da América' };
+  const cruz = (Array.isArray(S?.mercadosDormidas) ? S.mercadosDormidas : []).slice(0, 8).map((r: any[]) => {
+    const nome = String(r[0]); const card = paises.find((p) => p.pais === nome || p.pais === alias[nome]);
+    return { pais: dl(nome), dormidas: estDorm ? Math.round((Number(r[2]) / estDorm) * 1000) / 10 : 0, gasto: card && totEst ? Math.round((card.valor / totEst) * 1000) / 10 : 0 };
+  });
+  const COMP = ['Braga', 'Guimarães', 'Porto', 'Viana do Castelo', 'Barcelos', 'Vila Nova de Famalicão', 'Vila Nova De Famalicão'];
+  const comp = SIBS_CONCELHOS.filter((c) => COMP.map((x) => x.toLowerCase()).includes(c.concelho.trim().toLowerCase())).sort((a, b) => b.valor - a.valor);
+  return (
+    <>
+      <SectionTitle sub={`SIBS Analytics · ${SIBS_PERIODO} · ${t('operações no concelho de Braga', 'transactions in the municipality of Braga')}`}>{t(`Cartões estrangeiros gastaram ${me(totEst)} em Braga`, `Foreign cards spent ${me(totEst)} in Braga`)}</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <KPI label={t('Gasto com cartões estrangeiros', 'Foreign card spending')} value={me(totEst)} sub={braga ? t(`${((totEst / braga.valor) * 100).toLocaleString('pt-PT', { maximumFractionDigits: 1 })}% de todo o gasto com cartão em Braga`, `${((totEst / braga.valor) * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}% of all card spending in Braga`) : ''} color={C.accent} />
+        <KPI label={t('Operações', 'Transactions')} value={fmt(nEst)} sub={t(`valor médio ${(totEst / Math.max(1, nEst)).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} €`, `average ${(totEst / Math.max(1, nEst)).toLocaleString('en-GB', { maximumFractionDigits: 1 })} €`)} color={C.info} />
+        <KPI label={t('Maior país', 'Top country')} value={dl(paises[0]?.pais || '—')} sub={paises[0] ? `${me(paises[0].valor)} · ${pct(paises[0].varValor)} ${t('homólogo', 'YoY')}` : ''} color={C.positive} />
+        <KPI label={t('Países com forte emigração portuguesa', 'Countries with large Portuguese diaspora')} value={`${Math.round((diaspora / Math.max(1, totEst)) * 100)}%`} sub={t('do gasto estrangeiro (França, Suíça, Luxemburgo, Alemanha, Bélgica, Andorra, Reino Unido)', 'of foreign spending (France, Switzerland, Luxembourg, Germany, Belgium, Andorra, UK)')} color={C.orange} />
+        {braga && <KPI label={t('Braga entre os concelhos', 'Braga among municipalities')} value={`${posBraga}.º`} sub={t(`${me(braga.valor)} com todos os cartões · ${pct(braga.varValor)} homólogo`, `${me(braga.valor)} with all cards · ${pct(braga.varValor)} YoY`)} color={C.purple} />}
+      </div>
+      <div style={{ fontSize: 13.5, color: C.textMuted, lineHeight: 1.6, margin: '0 0 16px', padding: '12px 16px', background: C.accentBg, borderRadius: 6 }}>
+        {t('Leitura: os cartões franceses, suíços e luxemburgueses pesam muito mais no gasto do que nas dormidas. Grande parte deste gasto é da diáspora bracarense, que visita a família e não fica em alojamento turístico. Os pagamentos com cartão mostram por isso um visitante que o INE não apanha.', 'Reading: French, Swiss and Luxembourg cards weigh far more in spending than in overnight stays. Much of this is Braga’s diaspora visiting family and not staying in tourist accommodation, so card payments reveal a visitor INE does not capture.')}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('Gasto por país do cartão (M€)', 'Spending by card country (M€)')}>
+          <ResponsiveContainer width="100%" height={380}>
+            <BarChart data={top12} layout="vertical" margin={{ top: 4, right: 20, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+              <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+              <YAxis type="category" dataKey="pais" width={120} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any, it: any) => [`${String(v).replace('.', ',')} M€ · ${pct(it?.payload?.var)} ${t('homólogo', 'YoY')}`, t('Gasto', 'Spending')]} />
+              <Bar dataKey="valor" name={t('Gasto', 'Spending')} fill={C.accent} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card title={t('Peso no gasto vs peso nas dormidas (%)', 'Share of spending vs share of stays (%)')}>
+          <ResponsiveContainer width="100%" height={380}>
+            <BarChart data={cruz} layout="vertical" margin={{ top: 4, right: 20, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+              <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
+              <YAxis type="category" dataKey="pais" width={110} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [`${String(v).replace('.', ',')}%`, n]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="dormidas" name={t('Dormidas de estrangeiros (INE, jan–jun 2026)', 'Foreign stays (INE, Jan–Jun 2026)')} fill={C.textDim} radius={[0, 3, 3, 0]} />
+              <Bar dataKey="gasto" name={t('Gasto com cartões estrangeiros', 'Foreign card spending')} fill={C.accent} radius={[0, 3, 3, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('Valor médio por compra (€) · países com 5 000 ou mais operações', 'Average purchase (€) · countries with 5,000+ transactions')}>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={medios} layout="vertical" margin={{ top: 4, right: 20, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+              <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="€" />
+              <YAxis type="category" dataKey="pais" width={120} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [`${String(v).replace('.', ',')} €`, t('Valor médio', 'Average')]} />
+              <Bar dataKey="medio" name={t('Valor médio', 'Average')} fill={C.orange} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card title={t('Setores com mais gasto em Braga (M€, todos os cartões)', 'Sectors with most spending in Braga (M€, all cards)')}>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={setores} layout="vertical" margin={{ top: 4, right: 20, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+              <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+              <YAxis type="category" dataKey="setor" width={170} stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any, it: any) => [`${v} M€ · ${pct(it?.payload?.var)} ${t('homólogo', 'YoY')}`, t('Gasto', 'Spending')]} />
+              <Bar dataKey="valor" name={t('Gasto', 'Spending')} fill={C.positive} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+      <Card title={t('Gasto mensal em Braga (M€, todos os cartões)', 'Monthly spending in Braga (M€, all cards)')}>
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={mensal} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+            <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+            <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [v == null ? t('sem dados', 'no data') : `${v} M€`, n]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar dataKey="eletronico" name={t('Pagamentos eletrónicos', 'Electronic payments')} fill={C.accent} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="numerario" name={t('Levantamentos em numerário', 'Cash withdrawals')} fill={C.textDim} radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+        {semDados.length > 0 && <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t(`A exportação da SIBS não trouxe dados de pagamentos eletrónicos para ${semDados.join(', ')}.`, `The SIBS export has no electronic payment data for ${semDados.join(', ')}.`)}</div>}
+      </Card>
+      <Card title={t('Braga e concelhos vizinhos (todos os cartões)', 'Braga and neighbouring municipalities (all cards)')}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5, minWidth: 520 }}>
+            <thead><tr style={{ color: C.textMuted, textAlign: 'left' }}><th style={{ padding: '8px 6px' }}>{t('Concelho', 'Municipality')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Gasto', 'Spending')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Operações', 'Transactions')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Valor médio', 'Average')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Homólogo', 'YoY')}</th></tr></thead>
+            <tbody>{comp.map((c) => (
+              <tr key={c.concelho} style={{ borderTop: `1px solid ${C.border}`, fontWeight: c.concelho.trim().toLowerCase() === 'braga' ? 700 : 400, color: c.concelho.trim().toLowerCase() === 'braga' ? C.accentLight : C.text }}>
+                <td style={{ padding: '9px 6px' }}>{c.concelho.trim()}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{me(c.valor)}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.n ? fmt(c.n) : '—'}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.medio ? `${String(c.medio).replace('.', ',')} €` : '—'}</td><td style={{ padding: '9px 6px', textAlign: 'right', color: (c.varValor || 0) >= 0 ? C.positive : C.negative }}>{pct(c.varValor)}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </Card>
+      <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, marginTop: 4 }}>{t('Fonte: SIBS Analytics (exportação de 28/09/2026). Valores arredondados pela SIBS. O país é o do emissor do cartão, não a nacionalidade de quem paga. Os setores e o gasto mensal incluem cartões portugueses.', 'Source: SIBS Analytics (exported 28/09/2026). Values rounded by SIBS. Country is the card issuer’s, not the payer’s nationality. Sectors and monthly spending include Portuguese cards.')}</div>
+    </>
+  );
 }
 
 function KPI({ label, value, sub, color = C.accent }: { label: string; value: string; sub?: string; color?: string }) {

@@ -14,7 +14,8 @@ import { t } from '@/app/lib/i18n';
 import { dispAnalysis } from '@/app/lib/ai-translate';
 import { limparFotoBraga } from '@/app/lib/foto-braga';
 import { windowStats, langName, cutoffDate, loadWindowReviews, parseReviewFile, groupByPlace, buildStats, type StoredReview, type ReviewStats } from '@/app/lib/reviews';
-import { SEMESTRE_2026, BALCAO } from '@/app/lib/observatorio-dados';
+import { SEMESTRE_2026, BALCAO, DORMIDAS_BRAGA, DORMIDAS_PORTUGAL, MESES } from '@/app/lib/observatorio-dados';
+import { BILHETEIRA, BILHETEIRA_FONTE, type Bilheteira } from '@/app/lib/bilheteira-dados';
 import {
   TEMAS, temaNome, estadoNome, numeros, ranking, alerta, numerosCoerentes, numerosPermitidos, resumoModelo,
   MIN_ROBUSTO, type Estado, type LocMin, type Numeros,
@@ -23,7 +24,8 @@ import {
 export interface Intervencao { id: string; date: string; desc: string }
 export interface Afluencia { dias: (number | null)[][]; ordem?: string; fonte?: string; recolhidoEm?: string }
 export interface Atributos { secoes: { titulo: string; itens: { texto: string; sim: boolean }[] }[]; horario?: string[] | null; recolhidoEm?: string }
-export interface LocV extends LocMin { coords?: [number, number]; interventions?: Intervencao[]; afluencia?: Afluencia; atributos?: Atributos }
+export interface WikiDados { titulo: string; idiomas: { lang: string; titulo: string }[]; vistas: Record<string, Record<string, number>>; atualizadoEm: string }
+export interface LocV extends LocMin { coords?: [number, number]; interventions?: Intervencao[]; afluencia?: Afluencia; atributos?: Atributos; wiki?: WikiDados }
 
 // ─── Formatação (formato português único) ───────────────────────────────────
 const fmt = (n: number, d = 0) => {
@@ -617,6 +619,189 @@ function AfluenciaMapa({ a }: { a: Afluencia }) {
   );
 }
 
+
+// ─── ENTRADAS E BILHETEIRA (dados enviados pelas entidades) ────────────────
+const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const MES_CURTO_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const mesRot = (m: string) => `${t(MES_CURTO[+m.slice(5, 7) - 1], MES_CURTO_EN[+m.slice(5, 7) - 1])} ${m.slice(2, 4)}`;
+function bilheteiraDe(nome: string): Bilheteira | null {
+  const n = nome.toLowerCase();
+  if (/theatro circo/.test(n)) return BILHETEIRA['theatro circo'] || null;
+  if (/gnration/.test(n)) return BILHETEIRA['gnration'] || null;
+  if (/\bbma\b|braga media arts/.test(n)) return BILHETEIRA['bma'] || null;
+  return null;
+}
+function SecaoBilheteira({ b, stats }: { b: Bilheteira; stats: any }) {
+  const meses = Object.keys(b.meses).sort();
+  const tot = meses.reduce((s2, m) => s2 + b.meses[m].bilhetes, 0);
+  const sess = meses.reduce((s2, m) => s2 + b.meses[m].sessoes, 0);
+  const rec = meses.reduce((s2, m) => s2 + b.meses[m].receita, 0);
+  const conv = meses.reduce((s2, m) => s2 + b.meses[m].convites, 0);
+  const comLot = meses.filter((m) => b.meses[m].lotacao);
+  const ocup = comLot.length ? (comLot.reduce((s2, m) => s2 + (b.meses[m].ocupados || 0), 0) / comLot.reduce((s2, m) => s2 + (b.meses[m].lotacao || 0), 0)) * 100 : null;
+  const max = Math.max(1, ...meses.map((m) => b.meses[m].bilhetes));
+  const pico = meses.reduce((p, m) => (b.meses[m].bilhetes > b.meses[p].bilhetes ? m : p), meses[0]);
+  // cruzamento com os comentários: estrelas do mês (só meses com 3 ou mais avaliações)
+  const est = (m: string) => { const z = stats?.byMonth?.[m]; return z && z.n >= 3 ? { avg: z.sum / z.n, n: z.n } : null; };
+  const comEst = meses.filter((m) => est(m));
+  let cruz: string | null = null;
+  if (comEst.length >= 6) {
+    const ord = [...comEst].sort((p, q) => b.meses[q].bilhetes - b.meses[p].bilhetes);
+    const terco = Math.max(2, Math.floor(ord.length / 3));
+    const media = (ms: string[]) => { const n = ms.reduce((s2, m) => s2 + est(m)!.n, 0); return ms.reduce((s2, m) => s2 + est(m)!.avg * est(m)!.n, 0) / n; };
+    const alto = media(ord.slice(0, terco)), baixo = media(ord.slice(-terco));
+    const d = alto - baixo;
+    cruz = Math.abs(d) < 0.05
+      ? t(`A satisfação não muda com a afluência: ${fmt(alto, 2)} estrelas nos meses com mais público e ${fmt(baixo, 2)} nos meses com menos.`, `Satisfaction does not change with attendance: ${fmt(alto, 2)} stars in the busiest months and ${fmt(baixo, 2)} in the quietest.`)
+      : d < 0 ? t(`A satisfação desce quando há mais gente: ${fmt(alto, 2)} estrelas nos meses com mais público, contra ${fmt(baixo, 2)} nos meses com menos.`, `Satisfaction drops when it is busier: ${fmt(alto, 2)} stars in the busiest months vs ${fmt(baixo, 2)} in the quietest.`)
+        : t(`A satisfação até sobe quando há mais gente: ${fmt(alto, 2)} estrelas nos meses com mais público, contra ${fmt(baixo, 2)} nos meses com menos.`, `Satisfaction even rises when it is busier: ${fmt(alto, 2)} stars in the busiest months vs ${fmt(baixo, 2)} in the quietest.`);
+  }
+  const tipos = Object.entries(b.tipos).sort((p, q) => q[1] - p[1]).slice(0, 6);
+  const maxT = Math.max(1, ...tipos.map((x) => x[1]));
+  return (
+    <section id="rb-bilheteira" className="rb-sec">
+      <Titulo h={t(`${fmt(tot)} bilhetes em ${meses.length} meses; o mês mais forte foi ${mesRot(pico)}`, `${fmt(tot)} tickets in ${meses.length} months; the strongest month was ${mesRot(pico)}`)} cap={`${b.entidade} · ${BILHETEIRA_FONTE}`} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 22 }}>
+        {[
+          { l: t('Bilhetes', 'Tickets'), v: <Conta v={tot} />, s: t(`${fmt((conv / Math.max(1, tot)) * 100, 0)}% convites`, `${fmt((conv / Math.max(1, tot)) * 100, 0)}% complimentary`) },
+          { l: t('Sessões', 'Sessions'), v: <Conta v={sess} />, s: t(`${fmt(tot / Math.max(1, sess), 0)} bilhetes por sessão`, `${fmt(tot / Math.max(1, sess), 0)} tickets per session`) },
+          { l: t('Receita', 'Revenue'), v: <><Conta v={Math.round(rec / 100) / 10} d={1} /><small>mil €</small></>, s: t('montante total de bilheteira', 'total box office') },
+          ...(ocup != null ? [{ l: t('Ocupação média', 'Average occupancy'), v: <><Conta v={Math.round(ocup * 10) / 10} d={1} /><small>%</small></>, s: t('meses com lotação registada (2026)', 'months with recorded capacity (2026)') }] : []),
+        ].map((k, i) => (
+          <div key={i} className="rb-rise" style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '16px 18px', transitionDelay: `${i * 70}ms` }}>
+            <div className="rb-lab">{k.l}</div><div className="rb-big" style={{ fontSize: 30 }}>{k.v}</div><div className="rb-sub">{k.s}</div>
+          </div>
+        ))}
+      </div>
+      <div className="rb-scroll-x">
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${meses.length}, minmax(34px, 1fr))`, gap: 6, alignItems: 'end', height: 230, minWidth: meses.length * 40 }}>
+          {meses.map((m, i) => { const e = est(m); return (
+            <div key={m} title={`${mesRot(m)} · ${fmt(b.meses[m].bilhetes)} ${t('bilhetes', 'tickets')}${e ? ` · ${fmt(e.avg, 2)} ★ (${e.n})` : ''}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, height: '100%', justifyContent: 'flex-end' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: e ? (e.avg >= 4.5 ? 'var(--rb-star)' : 'var(--rb-warn)') : 'transparent' }}>{e ? fmt(e.avg, 1) : '·'}</span>
+              <div className="rb-vbar" style={{ width: '100%', height: `${Math.max(3, (b.meses[m].bilhetes / max) * 150)}px`, background: m === pico ? 'var(--rb-accent)' : 'rgba(138,176,230,.5)', borderRadius: '3px 3px 0 0', transitionDelay: `${i * 45}ms` }} />
+              <span style={{ fontSize: 10.5, color: 'var(--rb-text2)', whiteSpace: 'nowrap' }}>{mesRot(m)}</span>
+            </div>
+          ); })}
+        </div>
+      </div>
+      <p className="rb-sub">{t('Barras: bilhetes por mês · número por cima: média de estrelas dos comentários do Google nesse mês (só meses com 3 ou mais avaliações)', 'Bars: tickets per month · number on top: average Google review stars that month (only months with 3+ reviews)')}</p>
+      {cruz && <p style={{ fontSize: 15, lineHeight: 1.6, margin: '12px 0 0', padding: '12px 16px', background: 'var(--rb-accent-bg)', borderRadius: 4 }}>{cruz}</p>}
+      <div className="rb-2" style={{ marginTop: 26, gap: '20px 48px' }}>
+        <div>
+          <div className="rb-lab" style={{ marginBottom: 8 }}>{t('Bilhetes por tipo de espetáculo', 'Tickets by type of show')}</div>
+          {tipos.map(([tp, v], i) => (
+            <div key={tp} style={{ margin: '8px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}><span>{tp}</span><strong>{fmt(v)}</strong></div>
+              <div style={{ height: 7, background: 'var(--rb-muted)', borderRadius: 999, marginTop: 4, overflow: 'hidden' }}><div className="rb-bar" style={{ width: `${(v / maxT) * 100}%`, height: '100%', background: 'var(--rb-accent)', borderRadius: 999, transitionDelay: `${i * 80}ms` }} /></div>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div className="rb-lab" style={{ marginBottom: 8 }}>{t('Espetáculos com mais público', 'Shows with the largest audiences')}</div>
+          {b.topEventos.slice(0, 8).map((e, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderTop: i ? '1px solid var(--rb-line)' : 'none', fontSize: 14 }}>
+              <span style={{ minWidth: 0 }}>{e.evento}<span style={{ color: 'var(--rb-text2)', fontSize: 12 }}> · {e.periodo.split(' a ').map(mesRot).join(' a ')}</span></span><strong style={{ whiteSpace: 'nowrap' }}>{fmt(e.bilhetes)}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── INTERESSE ONLINE (visualizações da Wikipédia por língua) ──────────────
+const WIKI_LINGUAS = ['pt', 'en', 'es', 'fr', 'de', 'it', 'nl', 'pl'];
+async function recolherWiki(nome: string, tituloPt?: string): Promise<WikiDados | null> {
+  let titulo = tituloPt;
+  if (!titulo) {
+    const r = await fetch(`https://pt.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(nome)}&limit=1&namespace=0&format=json&origin=*`).then((x) => x.json());
+    titulo = r?.[1]?.[0];
+    if (!titulo) return null;
+  }
+  const ll = await fetch(`https://pt.wikipedia.org/w/api.php?action=query&prop=langlinks&titles=${encodeURIComponent(titulo)}&lllimit=500&redirects=1&format=json&origin=*`).then((x) => x.json());
+  const pag: any = Object.values(ll?.query?.pages || {})[0];
+  if (!pag || pag.missing !== undefined) return null;
+  const idiomas = [{ lang: 'pt', titulo: pag.title as string }, ...((pag.langlinks || []) as any[]).filter((l) => WIKI_LINGUAS.includes(l.lang)).map((l) => ({ lang: l.lang as string, titulo: l['*'] as string }))];
+  const fim = new Date(); fim.setDate(1); fim.setDate(0); // último dia do mês passado
+  const ini = new Date(fim.getFullYear() - 3, fim.getMonth() + 1, 1);
+  const d8 = (d: Date) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}00`;
+  const vistas: Record<string, Record<string, number>> = {};
+  for (const i of idiomas) {
+    try {
+      const r = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/${i.lang}.wikipedia/all-access/user/${encodeURIComponent(i.titulo.replace(/ /g, '_'))}/monthly/${d8(ini)}/${d8(fim)}`).then((x) => (x.ok ? x.json() : null));
+      const o: Record<string, number> = {};
+      (r?.items || []).forEach((it: any) => { o[`${String(it.timestamp).slice(0, 4)}-${String(it.timestamp).slice(4, 6)}`] = it.views; });
+      if (Object.keys(o).length) vistas[i.lang] = o;
+    } catch { /* língua sem dados */ }
+  }
+  return { titulo: pag.title, idiomas, vistas, atualizadoEm: new Date().toISOString() };
+}
+const CORES_LINGUA: Record<string, string> = { pt: '#8AB0E6', en: '#7CC79A', es: '#EDA06B', fr: '#C9A0E6', de: '#E9C46A', it: '#E39AC0', nl: '#6FC8D6', pl: '#A3A8B1' };
+function SecaoWiki({ loc, readOnly, onSave }: { loc: LocV; readOnly?: boolean; onSave?: (w: WikiDados) => Promise<void> | void }) {
+  const [aCarregar, setACarregar] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const w = loc.wiki;
+  const ligar = async (atualizar: boolean) => {
+    setErro(null);
+    let tit = atualizar ? w?.titulo : undefined;
+    if (!atualizar) {
+      const sug = await fetch(`https://pt.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(loc.name)}&limit=1&namespace=0&format=json&origin=*`).then((x) => x.json()).catch(() => null);
+      const r = window.prompt(t('Título do artigo na Wikipédia em português (confirma ou corrige):', 'Article title on the Portuguese Wikipedia (confirm or correct):'), sug?.[1]?.[0] || loc.name);
+      if (!r) return;
+      tit = r.trim();
+    }
+    setACarregar(true);
+    try {
+      const d = await recolherWiki(loc.name, tit);
+      if (!d) { setErro(t('Não encontrei esse artigo na Wikipédia em português.', 'Article not found on the Portuguese Wikipedia.')); return; }
+      await onSave?.(d);
+    } catch (e: any) { setErro(t('Não foi possível ligar à Wikipédia: ', 'Could not reach Wikipedia: ') + (e?.message || '')); } finally { setACarregar(false); }
+  };
+  if (!w) {
+    if (readOnly) return null;
+    return (
+      <section id="rb-wiki" className="rb-sec">
+        <Titulo h={t('Interesse online', 'Online interest')} cap={t('Visualizações mensais do artigo na Wikipédia, por língua · gratuito e automático', 'Monthly article views on Wikipedia, by language · free and automatic')} />
+        <button className="rb-btn p" disabled={aCarregar} onClick={() => ligar(false)}>{aCarregar ? t('A recolher…', 'Collecting…') : t('Ligar à Wikipédia', 'Connect to Wikipedia')}</button>
+        {erro && <p className="rb-sub" style={{ color: 'var(--rb-warn)' }}>{erro}</p>}
+      </section>
+    );
+  }
+  const todosMeses = Array.from(new Set(Object.values(w.vistas).flatMap((o) => Object.keys(o)))).sort();
+  const ult12 = todosMeses.slice(-12), ant12 = todosMeses.slice(-24, -12);
+  const linhas = Object.entries(w.vistas).map(([lg, o]) => {
+    const a = ult12.reduce((s2, m) => s2 + (o[m] || 0), 0), b = ant12.reduce((s2, m) => s2 + (o[m] || 0), 0);
+    return { lg, a, b, v: b ? ((a - b) / b) * 100 : null };
+  }).sort((p, q) => q.a - p.a);
+  const totA = linhas.reduce((s2, z) => s2 + z.a, 0);
+  const estr = linhas.filter((z) => z.lg !== 'pt' && z.v != null && z.b >= 300).sort((p, q) => (q.v || 0) - (p.v || 0));
+  const top = estr[0];
+  const titulo = top && top.v! > 5 ? t(`O interesse em ${langName(top.lg).toLowerCase()} subiu ${fmt(top.v!, 0)}% no último ano`, `Interest in ${langName(top.lg)} rose ${fmt(top.v!, 0)}% in the last year`)
+    : t(`${fmt(totA)} visualizações na Wikipédia nos últimos 12 meses`, `${fmt(totA)} Wikipedia views in the last 12 months`);
+  const series = linhas.slice(0, 5).map((z) => ({ nome: langName(z.lg), cor: CORES_LINGUA[z.lg] || '#A3A8B1', q: todosMeses.map((m) => ({ q: m, avg: w.vistas[z.lg]?.[m] || 0, n: 1 })) }));
+  return (
+    <section id="rb-wiki" className="rb-sec">
+      <Titulo h={titulo} cap={t(`Visualizações mensais do artigo "${w.titulo}" na Wikipédia, por língua · atualizado a ${dataCurta(w.atualizadoEm)}`, `Monthly views of the "${w.titulo}" article on Wikipedia, by language · updated ${dataCurta(w.atualizadoEm)}`)}
+        right={!readOnly ? <button className="rb-chip ghost" disabled={aCarregar} onClick={() => ligar(true)}>{aCarregar ? t('A atualizar…', 'Updating…') : t('Atualizar', 'Update')}</button> : undefined} />
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13.5, marginBottom: 12 }}>
+        {series.map((sr) => <span key={sr.nome} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 3, borderRadius: 2, background: sr.cor }} />{sr.nome}</span>)}
+      </div>
+      <LinhasComparadas series={series} rotulo={mesRot} casas={0} zero />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10, marginTop: 20 }}>
+        {linhas.map((z, i) => (
+          <div key={z.lg} className="rb-rise" style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '12px 14px', transitionDelay: `${i * 50}ms` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14 }}><span style={{ width: 8, height: 8, borderRadius: 999, background: CORES_LINGUA[z.lg] || '#A3A8B1' }} />{langName(z.lg)}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6 }}>{fmt(z.a)}</div>
+            <div className="rb-sub" style={{ marginTop: 2 }}>{fmt(totA ? (z.a / totA) * 100 : 0, 0)}% · {z.v == null ? t('sem ano anterior', 'no previous year') : <span style={{ color: z.v >= 0 ? 'var(--rb-good)' : 'var(--rb-bad)', fontWeight: 700 }}>{z.v >= 0 ? '+' : ''}{fmt(z.v, 0)}% {t('vs ano anterior', 'vs previous year')}</span>}</div>
+          </div>
+        ))}
+      </div>
+      {erro && <p className="rb-sub" style={{ color: 'var(--rb-warn)' }}>{erro}</p>}
+      <p className="rb-sub">{t('Só pessoas (sem robôs), todos os dispositivos · Fonte: Wikimedia (API pública)', 'People only (no bots), all devices · Source: Wikimedia (public API)')}</p>
+    </section>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // FICHA DO LOCAL
 // ═══════════════════════════════════════════════════════════════════════════
@@ -625,6 +810,7 @@ export function FichaLocal(props: {
   onReanalyze?: (id: string) => void; onShare?: (id: string) => void; onOpenList?: () => void; onOpen?: (id: string) => void;
   onImport?: () => void; onPaste?: (id: string) => void; onEdit?: (id: string) => void; onDelete?: (id: string) => void;
   onSaveInterventions?: (id: string, list: Intervencao[]) => void;
+  onSaveWiki?: (id: string, w: WikiDados) => Promise<void> | void;
 }) {
   const { loc, locations, readOnly } = props;
   const x = numeros(loc);
@@ -770,7 +956,7 @@ export function FichaLocal(props: {
 
         {/* 5. Âncoras */}
         <nav className="rb-noprint rb-anc" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginTop: 28, paddingBottom: 12, borderBottom: '1px solid var(--rb-line)', fontSize: 14.5 }}>
-          {[['rb-resumo', t('Resumo', 'Summary')], ['rb-temas', t('Temas', 'Themes')], ['rb-comentarios', t('Pontos fortes e problemas', 'Strengths and issues')], ['rb-periodos', t('Problemas por período', 'Issues by period')], ['rb-dimensoes', t('Dimensões', 'Dimensions')], ['rb-evolucao', t('Evolução', 'Trend')], ['rb-estrelas', t('Estrelas', 'Stars')], ...(loc.afluencia?.dias?.length ? [['rb-afluencia', t('Afluência', 'Busyness')]] : []), ...(loc.atributos ? [['rb-google', t('Google', 'Google')]] : []), ['rb-mercados', t('Mercados', 'Markets')], ['rb-recomendacoes', t('Sugestões', 'Suggestions')]].map(([id, lb], i) => (
+          {[['rb-resumo', t('Resumo', 'Summary')], ['rb-temas', t('Temas', 'Themes')], ['rb-comentarios', t('Pontos fortes e problemas', 'Strengths and issues')], ['rb-periodos', t('Problemas por período', 'Issues by period')], ['rb-dimensoes', t('Dimensões', 'Dimensions')], ['rb-evolucao', t('Evolução', 'Trend')], ['rb-estrelas', t('Estrelas', 'Stars')], ...(loc.afluencia?.dias?.length ? [['rb-afluencia', t('Afluência', 'Busyness')]] : []), ...(bilheteiraDe(loc.name) ? [['rb-bilheteira', t('Bilheteira', 'Box office')]] : []), ['rb-wiki', t('Interesse online', 'Online interest')], ...(loc.atributos ? [['rb-google', t('Google', 'Google')]] : []), ['rb-mercados', t('Mercados', 'Markets')], ['rb-recomendacoes', t('Sugestões', 'Suggestions')]].map(([id, lb], i) => (
             <button key={id} onClick={() => ir(id)} style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', color: i === 0 ? 'var(--rb-text)' : 'var(--rb-text2)', fontWeight: i === 0 ? 700 : 400, fontSize: 14.5 }}>{lb}</button>
           ))}
         </nav>
@@ -971,10 +1157,18 @@ export function FichaLocal(props: {
           );
         })()}
 
+        {bilheteiraDe(loc.name) && <SecaoBilheteira b={bilheteiraDe(loc.name)!} stats={loc.reviewStats} />}
+
+        <SecaoWiki loc={loc} readOnly={readOnly} onSave={props.onSaveWiki ? (w) => props.onSaveWiki!(loc.id, w) : undefined} />
+
         {/* O que o Google diz sobre o local ("Acerca de" e horário) */}
         {loc.atributos && ((loc.atributos.secoes || []).length > 0 || (loc.atributos.horario || []).length > 0) && (() => {
-          const at = loc.atributos!;
-          const todos = (at.secoes || []).flatMap((sc) => sc.itens);
+          const limpa = (x: string) => x.replace(/[\uE000-\uF8FF\u2713\u2714\u2715\u2716\u2717\u2718\u00D7\u25A1\u25AF\uFFFD]/g, '').replace(/\s+/g, ' ').trim();
+          const MENUS_MAPA = /map tools|map type|ferramentas do mapa|tipo de mapa|camadas|layers|map details|detalhes do mapa/i;
+          const TIT: Record<string, string> = { accessibility: 'Acessibilidade', 'service options': 'Opções de serviço', amenities: 'Comodidades', parking: 'Estacionamento', children: 'Crianças', payments: 'Pagamentos', planning: 'Planeamento', highlights: 'Destaques', crowd: 'Público', offerings: 'Oferta', atmosphere: 'Ambiente', 'from the business': 'Da entidade', pets: 'Animais' };
+          const at0 = loc.atributos!;
+          const at = { ...at0, horario: (at0.horario || []).map(limpa).filter(Boolean), secoes: (at0.secoes || []).filter((sc) => !MENUS_MAPA.test(sc.titulo)).map((sc) => ({ titulo: t(TIT[limpa(sc.titulo).toLowerCase()] || limpa(sc.titulo), limpa(sc.titulo)), itens: sc.itens.map((i) => ({ ...i, texto: limpa(i.texto) })).filter((i) => i.texto) })).filter((sc) => sc.itens.length) };
+          const todos = at.secoes.flatMap((sc) => sc.itens);
           const tem = (re: RegExp) => todos.some((i) => i.sim && re.test(i.texto));
           const prob = (id: string) => temas.some((z) => z.id === id && (z.estado === 'persistente' || z.estado === 'novo'));
           const notas: string[] = [];
@@ -1070,7 +1264,7 @@ export function FichaLocal(props: {
 // ═══════════════════════════════════════════════════════════════════════════
 export function LocaisLista(props: {
   locations: LocV[]; analyzing: string | null; batchRun: { i: number; total: number; name: string } | null; catLabel: (c: string) => string;
-  onOpen: (id: string) => void; onImport: () => void; onAnalyzeAll: () => void; onAdd: () => void;
+  onOpen: (id: string) => void; onImport: () => void; onAnalyzeAll: () => void; onAdd: () => void; onStopBatch?: () => void;
 }) {
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('');
@@ -1081,7 +1275,10 @@ export function LocaisLista(props: {
   const linhas = props.locations
     .filter((l) => (!cat || l.category === cat) && (!q || norm(l.name).includes(norm(q))))
     .map((l) => ({ l, x: numeros(l), al: alerta(l.reviewStats) }))
-    .sort((a, b) => a.l.name.localeCompare(b.l.name, 'pt'));
+    .sort((a, b) => {
+      const ra = a.x && a.x.robustez !== 'insuficiente' ? 1 : 0, rb = b.x && b.x.robustez !== 'insuficiente' ? 1 : 0;
+      return rb - ra || (b.x?.idx ?? -1) - (a.x?.idx ?? -1) || (b.x?.n ?? 0) - (a.x?.n ?? 0) || a.l.name.localeCompare(b.l.name, 'pt');
+    });
   const temImportados = props.locations.some((l) => l.reviewStats);
   const situacao = (o: { l: LocV; x: Numeros | null; al: string | null }): ReactNode => {
     if (!o.x) return <span style={{ color: 'var(--rb-text2)' }}>{t('Sem avaliações', 'No reviews')}</span>;
@@ -1098,11 +1295,15 @@ export function LocaisLista(props: {
           <div>
             <div style={{ fontSize: 14, color: 'var(--rb-text2)' }}>{t('Reputação', 'Reputation')}</div>
             <h1 className="rb-h1-m" style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.02em', margin: '8px 0 0' }}>{t('Locais', 'Places')}</h1>
-            <p className="rb-cap" style={{ fontSize: 14 }}>{t(`${props.locations.length} locais monitorizados · por ordem alfabética · locais com menos de ${MIN_ROBUSTO} avaliações não têm índice`, `${props.locations.length} places monitored · alphabetical order · places with fewer than ${MIN_ROBUSTO} reviews have no index`)}</p>
+            <p className="rb-cap" style={{ fontSize: 14 }}>{t(`${props.locations.length} locais monitorizados · do índice mais alto para o mais baixo · locais com menos de ${MIN_ROBUSTO} avaliações ficam no fim, sem índice`, `${props.locations.length} places monitored · highest to lowest index · places with fewer than ${MIN_ROBUSTO} reviews are listed last, without an index`)}</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="rb-btn" onClick={props.onImport}>{t('Importar comentários', 'Import reviews')}</button>
-            <button className="rb-btn" disabled={!!props.analyzing || !!props.batchRun || !temImportados} onClick={props.onAnalyzeAll}>{t('Analisar todos', 'Analyse all')}</button>
+            {props.batchRun ? (
+              <button className="rb-btn" onClick={props.onStopBatch} style={{ borderColor: 'var(--rb-warn)', color: 'var(--rb-warn)' }}>{t(`Parar (${props.batchRun.i}/${props.batchRun.total})`, `Stop (${props.batchRun.i}/${props.batchRun.total})`)}</button>
+            ) : (
+              <button className="rb-btn" disabled={!!props.analyzing || !temImportados} onClick={props.onAnalyzeAll}>{t('Reanalisar todos', 'Re-analyse all')}</button>
+            )}
             <button className="rb-btn p" onClick={props.onAdd}>{t('Adicionar local', 'Add place')}</button>
           </div>
         </div>
@@ -1154,13 +1355,14 @@ const MES_LONGO_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'J
 const FOTO_VISAO = '/visao-geral.jpg';
 const FOTO_VISAO_MINI = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA4KCw0LCQ4NDA0QDw4RFiQXFhQUFiwgIRokNC43NjMuMjI6QVNGOj1OPjIySGJJTlZYXV5dOEVmbWVabFNbXVn/2wBDAQ8QEBYTFioXFypZOzI7WVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVn/wAARCAARACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCZJVlMbpGY1Y8DOc1sGWC7tWijRiqnnADHP1rkbIagpj+UBVx94D15rThtryJi6XioTknC5qlWaepLpJrQTUoreDCQMXlZcndxtOeuPzrFe2mkVpPtO3H8AJBP0q9Jb3LtMftG+QMc7h9446/SqUltc4wJSvIwBnp/n+dROrKT3KhTjFbGzF0px70UVkaFQ/8AH4f+uY/nT3oooA//2Q==';
 
-export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => void; onOpenList: () => void; onImport: () => void }) {
+export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => void; onOpenList: () => void; onImport: () => void; onObservatorio?: () => void }) {
   const { locations } = props;
   const mini = useMiniaturas();
   const [fundo, setFundo] = useState<string | null>(FOTO_VISAO);
   const [aCarregarF, setACarregarF] = useState(false);
   const fundoRef = useRef<HTMLInputElement>(null);
   const carrosselRef = useRef<HTMLDivElement>(null);
+  const alertasRef = useRef<HTMLDivElement>(null);
   useRevelar(locations.length);
   const nMini = Object.keys(mini).length;
 
@@ -1304,14 +1506,59 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
       </HeroFoto>
 
       <div className="rb-wrap" style={{ paddingTop: 20 }}>
+        {/* Turismo em Braga — o essencial do Observatório (mesmas contas; os dados não são alterados) */}
+        {(() => {
+          const S: any = SEMESTRE_2026 as any;
+          const H1 = (MESES as any[]).slice(0, 6);
+          const somaH1 = (serie: any, y: string) => H1.reduce((acc: number, m: any) => acc + (serie?.[m]?.[y] ?? 0), 0);
+          const soma = (v: number[]) => v.reduce((a2, b2) => a2 + b2, 0);
+          const media = (v: number[]) => soma(v) / v.length;
+          const varP = (a2: number, b2: number) => Math.round((b2 / a2 - 1) * 1000) / 10;
+          const dorm = somaH1(DORMIDAS_BRAGA, '2026'), dormV = varP(somaH1(DORMIDAS_BRAGA, '2025'), dorm), dormPT = varP(somaH1(DORMIDAS_PORTUGAL, '2025'), somaH1(DORMIDAS_PORTUGAL, '2026'));
+          const prov = soma(S.proveitos.Braga['2026']), provV = varP(soma(S.proveitos.Braga['2025']), prov);
+          const revpar = media(S.revpar.Braga['2026']), revparV = varP(media(S.revpar.Braga['2025']), revpar);
+          const est = S.residencia.dormidas.Estrangeiro, res = S.residencia.dormidas.Portugal;
+          const topM = [...S.mercadosDormidas].sort((x: any[], y: any[]) => y[2] - x[2])[0];
+          const anosB = Object.keys(BALCAO as any).sort(); const anoB = anosB[anosB.length - 1]; const balc = (BALCAO as any)[anoB];
+          if (!dorm) return null;
+          const sinal = (v: number) => `${v >= 0 ? '+' : ''}${fmt(v, 1)}%`;
+          const cartoes = [
+            { l: t('Dormidas · jan–jun 2026', 'Overnight stays · Jan–Jun 2026'), v: <Conta v={dorm} />, s: t(`${sinal(dormV)} face a 2025 · Portugal ${sinal(dormPT)}`, `${sinal(dormV)} vs 2025 · Portugal ${sinal(dormPT)}`), c: dormV >= dormPT ? 'var(--rb-good)' : 'var(--rb-text2)' },
+            { l: t('Proveitos do alojamento', 'Accommodation revenue'), v: <><Conta v={Math.round(prov / 10000) / 100} d={2} /><small>M€</small></>, s: t(`${sinal(provV)} face a 2025`, `${sinal(provV)} vs 2025`), c: provV >= 0 ? 'var(--rb-good)' : 'var(--rb-bad)' },
+            { l: 'RevPAR', v: <><Conta v={Math.round(revpar * 10) / 10} d={1} /><small>€</small></>, s: t(`${sinal(revparV)} face a 2025 · média dos 6 meses`, `${sinal(revparV)} vs 2025 · 6-month average`), c: revparV >= 0 ? 'var(--rb-good)' : 'var(--rb-bad)' },
+            { l: t('Dormidas de estrangeiros', 'Foreign overnight stays'), v: <><Conta v={Math.round((est / (est + res)) * 1000) / 10} d={1} /><small>%</small></>, s: topM ? t(`Maior mercado: ${topM[0]} (${fmt((topM[2] / est) * 100, 1)}%)`, `Largest market: ${topM[0]} (${fmt((topM[2] / est) * 100, 1)}%)`) : '', c: 'var(--rb-text2)' },
+            ...(balc ? [{ l: t(`Atendimentos no Posto · ${anoB}`, `Tourist Office visits · ${anoB}`), v: <Conta v={balc.atendimentos} />, s: t(`${fmt(balc.pax)} pessoas atendidas`, `${fmt(balc.pax)} people served`), c: 'var(--rb-text2)' }] : []),
+          ];
+          return (
+            <section className="rb-sec" style={{ paddingTop: 28 }}>
+              <Titulo h={dormV >= dormPT ? t(`As dormidas em Braga crescem ${sinal(dormV)}, acima do país (${sinal(dormPT)})`, `Overnight stays in Braga grow ${sinal(dormV)}, above the country (${sinal(dormPT)})`) : t(`As dormidas em Braga variam ${sinal(dormV)} (país: ${sinal(dormPT)})`, `Overnight stays in Braga change ${sinal(dormV)} (country: ${sinal(dormPT)})`)}
+                cap={t('O essencial do Observatório de Turismo · INE/TravelBI, 1.º semestre de 2026 · Posto de Turismo', 'The essentials from the Tourism Observatory · INE/TravelBI, 1st half 2026 · Tourist Office')}
+                right={props.onObservatorio ? <button className="rb-chip" onClick={props.onObservatorio}>{t('Abrir Observatório', 'Open Observatory')} <Seta /></button> : undefined} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                {cartoes.map((k, i) => (
+                  <div key={i} className="rb-rise" style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '18px 20px', transitionDelay: `${i * 70}ms` }}>
+                    <div className="rb-lab">{k.l}</div>
+                    <div className="rb-big" style={{ fontSize: 32 }}>{k.v}</div>
+                    <div className="rb-sub" style={{ color: k.c }}>{k.s}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
         {/* O que mudou */}
         {alertas.length > 0 && (
           <section className="rb-sec" style={{ paddingTop: 28 }}>
-            <Titulo h={t('O que mudou no último trimestre', 'What changed last quarter')} cap={t('Mudanças relevantes face ao trimestre anterior, detetadas automaticamente', 'Relevant changes versus the previous quarter, detected automatically')} />
-            <div className="rb-3">
+            <Titulo h={t(`O que mudou no último trimestre · ${alertas.length} ${alertas.length === 1 ? 'local' : 'locais'}`, `What changed last quarter · ${alertas.length} ${alertas.length === 1 ? 'place' : 'places'}`)} cap={t('Mudanças relevantes face ao trimestre anterior, detetadas automaticamente · desliza para ver todas', 'Relevant changes versus the previous quarter, detected automatically · scroll to see them all')}
+              right={alertas.length > 3 ? <div className="rb-noprint" style={{ display: 'flex', gap: 8 }}>
+                <button className="rb-chip ghost" aria-label={t('Anteriores', 'Previous')} onClick={() => alertasRef.current?.scrollBy({ left: -620, behavior: 'smooth' })} style={{ width: 38, padding: 0, justifyContent: 'center' }}><span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}><Seta /></span></button>
+                <button className="rb-chip ghost" aria-label={t('Seguintes', 'Next')} onClick={() => alertasRef.current?.scrollBy({ left: 620, behavior: 'smooth' })} style={{ width: 38, padding: 0, justifyContent: 'center' }}><Seta /></button>
+              </div> : undefined} />
+            <div ref={alertasRef} className="rb-carrossel">
               {alertas.map((d, i) => (
-                <div key={d.l.id} className="rb-rise" style={{ background: 'var(--rb-warn-bg)', borderRadius: 6, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12, transitionDelay: `${i * 100}ms` }}>
-                  <div style={{ fontSize: 16.5, fontWeight: 700 }}>{d.l.name}</div>
+                <div key={d.l.id} className="rb-rise" style={{ flex: '0 0 300px', scrollSnapAlign: 'start', background: 'var(--rb-warn-bg)', borderRadius: 6, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12, transitionDelay: `${Math.min(i, 5) * 80}ms` }}>
+                  <div style={{ fontSize: 16.5, fontWeight: 700, lineHeight: 1.3 }}>{d.l.name}</div>
                   <div style={{ fontSize: 14.5, lineHeight: 1.5, flex: 1 }}>{d.al}</div>
                   <div><button className="rb-chip warn" onClick={() => props.onOpen(d.l.id)}>{t('Abrir ficha', 'Open profile')} <Seta /></button></div>
                 </div>
@@ -1624,7 +1871,7 @@ export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => st
 
 // ─── COMPARAR ───────────────────────────────────────────────────────────────
 const CORES_CMP = ['#8AB0E6', '#7CC79A', '#EDA06B', '#C9A0E6'];
-function LinhasComparadas({ series }: { series: { nome: string; cor: string; q: { q: string; avg: number; n: number }[] }[] }) {
+function LinhasComparadas({ series, rotulo, casas = 2, zero = false }: { series: { nome: string; cor: string; q: { q: string; avg: number; n: number }[] }[]; rotulo?: (q: string) => string; casas?: number; zero?: boolean }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [larg, setLarg] = useState(900);
   const [hover, setHover] = useState<number | null>(null);
@@ -1639,18 +1886,18 @@ function LinhasComparadas({ series }: { series: { nome: string; cor: string; q: 
   if (qs.length < 2) return <p className="rb-sub">{t('Ainda não há trimestres suficientes para comparar.', 'Not enough quarters to compare yet.')}</p>;
   const W = Math.max(300, larg), H = W < 520 ? 240 : 300, L = 40, R = 16, T = 18, B = 30;
   const vals = series.flatMap((s) => s.q.map((z) => z.avg));
-  const lo = Math.max(1, Math.floor((Math.min(...vals) - 0.15) * 10) / 10), hi = Math.min(5, Math.ceil((Math.max(...vals) + 0.1) * 10) / 10);
+  const lo = zero ? 0 : Math.max(1, Math.floor((Math.min(...vals) - 0.15) * 10) / 10), hi = zero ? Math.max(1, Math.max(...vals) * 1.08) : Math.min(5, Math.ceil((Math.max(...vals) + 0.1) * 10) / 10);
   const X = (i: number) => L + (i * (W - L - R)) / (qs.length - 1);
   const Y = (v: number) => T + ((hi - v) / (hi - lo || 1)) * (H - T - B);
   const step = Math.ceil(qs.length / (W < 520 ? 4 : 8));
-  const lab = (s2: string) => { const [y, tq] = s2.split('-T'); return `T${tq} ${y.slice(2)}`; };
+  const lab = rotulo || ((s2: string) => { const [y, tq] = s2.split('-T'); return `T${tq} ${y.slice(2)}`; });
   const mexe = (cx: number, el: SVGSVGElement) => { const r = el.getBoundingClientRect(); const px = ((cx - r.left) / r.width) * W; setHover(Math.max(0, Math.min(qs.length - 1, Math.round(((px - L) / (W - L - R)) * (qs.length - 1))))); };
   return (
     <div ref={boxRef} style={{ position: 'relative' }}>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible', cursor: 'crosshair', touchAction: 'pan-y' }}
         onMouseMove={(e) => mexe(e.clientX, e.currentTarget)} onMouseLeave={() => setHover(null)} onTouchStart={(e) => mexe(e.touches[0].clientX, e.currentTarget)} onTouchMove={(e) => mexe(e.touches[0].clientX, e.currentTarget)}>
         {[lo, (lo + hi) / 2, hi].map((v) => (
-          <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="var(--rb-line)" strokeDasharray="2 6" /><text x={L - 8} y={Y(v) + 4} textAnchor="end" fontSize="11" fill="var(--rb-text2)">{fmt(v, 1)}</text></g>
+          <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="var(--rb-line)" strokeDasharray="2 6" /><text x={L - 8} y={Y(v) + 4} textAnchor="end" fontSize="11" fill="var(--rb-text2)">{zero ? (v >= 1000 ? `${fmt(v / 1000, 1)}k` : fmt(v, 0)) : fmt(v, 1)}</text></g>
         ))}
         {series.map((s) => {
           const pts = s.q.map((z) => `${X(qs.indexOf(z.q))},${Y(z.avg)}`).join(' ');
@@ -1667,7 +1914,7 @@ function LinhasComparadas({ series }: { series: { nome: string; cor: string; q: 
       {hover != null && (
         <div className="rb-tip" style={{ left: `${(X(hover) / W) * 100}%`, top: 0, transform: `translate(${hover > qs.length / 2 ? '-105%' : '5%'}, 0)` }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>{lab(qs[hover])}</div>
-          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, 2) : '—'}</strong></div>; })}
+          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, casas) : '—'}</strong></div>; })}
         </div>
       )}
     </div>
@@ -1986,279 +2233,6 @@ export function RelatorioView(props: {
                   <button className="rb-chip ghost" onClick={() => setVerTexto((v) => !v)}>{verTexto ? t('Esconder texto', 'Hide text') : t('Pré-visualizar', 'Preview')}</button>
                 </div>
                 {verTexto && <div style={{ marginTop: 16, maxHeight: 420, overflowY: 'auto', background: 'var(--rb-bg)', border: '1px solid var(--rb-line)', borderRadius: 4, padding: '16px 18px' }}><pre className="rb-pre">{props.textoConsolidado(consId)}</pre></div>}
-              </div>
-            </section>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DESTINOS COMPARÁVEIS — comparação justa: cada destino só é comparado com os
-// equivalentes de Braga (escolhidos) ou, na falta deles, com os locais de Braga
-// das mesmas categorias. Só estrelas, sem IA. Coleção própria: 'benchmark'.
-// ═══════════════════════════════════════════════════════════════════════════
-interface LocBench { id: string; nome: string; destino: string; categoria: string; equivalente?: string; reviewStats: ReviewStats; importadoEm: string }
-const DESTINOS_SUGERIDOS = ['Guimarães', 'Porto', 'Viana do Castelo', 'Ponte de Lima', 'Barcelos', 'Aveiro', 'Coimbra', 'Évora', 'Santiago de Compostela'];
-
-function agregarDestino(locs: LocMin[]) {
-  const xs = locs.map((l) => ({ l, x: numeros(l), ws: windowStats(l.reviewStats) })).filter((z) => z.x && z.x.robustez !== 'insuficiente');
-  const n = xs.reduce((s, z) => s + z.x!.n, 0);
-  if (!n) return null;
-  const w = (f: (x: Numeros) => number) => xs.reduce((s, z) => s + f(z.x!) * z.x!.n, 0) / n;
-  const avg = w((x) => x.avg);
-  let est = 0, comTexto = 0;
-  const qa: Record<string, { n: number; s: number }> = {};
-  xs.forEach((z) => {
-    z.ws?.langs.forEach((lg) => { if (lg.code !== 'none' && lg.code !== 'und') { comTexto += lg.n; if (lg.code !== 'pt') est += lg.n; } });
-    z.ws?.quarters.forEach((q) => { if (!qa[q.q]) qa[q.q] = { n: 0, s: 0 }; qa[q.q].n += q.n; qa[q.q].s += q.avg * q.n; });
-  });
-  return {
-    idx: Math.round(avg * 20) / 10, avg, n, pos: w((x) => x.pos), neg: w((x) => x.neg), locais: xs.length,
-    estrangeiro: comTexto ? (est / comTexto) * 100 : 0,
-    q: Object.keys(qa).sort().map((q) => ({ q, avg: qa[q].s / qa[q].n, n: qa[q].n })).filter((z) => z.n >= 5),
-  };
-}
-
-export function BenchmarkView(props: { locations: LocV[]; catLabel: (c: string) => string }) {
-  const [bench, setBench] = useState<LocBench[]>([]);
-  const [carregado, setCarregado] = useState(false);
-  const [novos, setNovos] = useState<{ key: string; nome: string; n: number; stats: ReviewStats; destino: string; categoria: string; equivalente: string; incluir: boolean }[]>([]);
-  const [editar, setEditar] = useState<string | null>(null);
-  const [rasc, setRasc] = useState<Partial<LocBench>>({});
-  const [msg, setMsg] = useState<string | null>(null);
-  const [aGravar, setAGravar] = useState(false);
-  const [destSel, setDestSel] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  useRevelar(bench.length + (destSel || ''));
-
-  const carregar = () => getDocs(collection(db, 'benchmark')).then((snap) => {
-    const o: LocBench[] = [];
-    snap.forEach((d) => o.push({ id: d.id, ...(d.data() as any) }));
-    setBench(o); setCarregado(true);
-  }).catch(() => setCarregado(true));
-  useEffect(() => { carregar(); }, []);
-
-  const bragaOrd = [...props.locations].sort((p, q) => p.name.localeCompare(q.name, 'pt'));
-  const catsBraga: string[] = Array.from(new Set<string>(props.locations.map((l) => l.category))).sort();
-  const catsTodas: string[] = Array.from(new Set<string>([...catsBraga, ...bench.map((b: LocBench) => b.categoria)])).sort();
-  const nomeBraga = (id?: string) => props.locations.find((l) => l.id === id)?.name || '';
-
-  const lerFicheiro = async (fl: File) => {
-    setMsg(null);
-    try {
-      const { reviews } = parseReviewFile(await fl.text());
-      if (!reviews.length) { setMsg(t('Não encontrei comentários válidos no ficheiro.', 'No valid reviews found in the file.')); return; }
-      const corte = cutoffDate().toISOString();
-      setNovos(groupByPlace(reviews).map((g) => {
-        const months: Record<string, StoredReview[]> = {};
-        g.reviews.filter((r) => r.d >= corte).forEach((r) => { const m = r.d.slice(0, 7); (months[m] = months[m] || []).push({ id: r.id, d: r.d, s: r.s, l: r.t && r.t.trim() ? r.l : 'none', t: '' }); });
-        const stats = buildStats(months, { placeId: g.key, placeTitle: g.title, source: 'Google Maps (ficheiro exportado)' });
-        return { key: g.key, nome: g.title, n: g.inWindow, stats: JSON.parse(JSON.stringify(stats)) as ReviewStats, destino: '', categoria: catsBraga[0] || 'Monumento', equivalente: '', incluir: true };
-      }));
-    } catch (e: any) { setMsg(t('Erro ao ler o ficheiro: ', 'Error reading the file: ') + (e?.message || '')); }
-  };
-  const idDe = (destino: string, nome: string) => `${destino}-${nome}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 120);
-  const gravarNovos = async () => {
-    const todo = novos.filter((g) => g.incluir && g.destino.trim() && g.nome.trim());
-    if (!todo.length) { setMsg(t('Indica o nome e o destino de pelo menos um local.', 'Enter the name and destination of at least one place.')); return; }
-    setAGravar(true);
-    try {
-      for (const g of todo) {
-        await setDoc(doc(db, 'benchmark', idDe(g.destino.trim(), g.nome.trim())), { nome: g.nome.trim(), destino: g.destino.trim(), categoria: g.categoria, equivalente: g.equivalente || '', reviewStats: g.stats, importadoEm: new Date().toISOString() });
-      }
-      setNovos([]); setMsg(t(`✓ ${todo.length} ${todo.length === 1 ? 'local importado' : 'locais importados'}.`, `✓ ${todo.length} ${todo.length === 1 ? 'place imported' : 'places imported'}.`));
-      await carregar();
-    } catch (e: any) { setMsg(t('Erro ao gravar: ', 'Error saving: ') + (e?.message || '')); } finally { setAGravar(false); }
-  };
-  const gravarEdicao = async (b: LocBench) => {
-    const upd = { nome: (rasc.nome ?? b.nome).trim() || b.nome, destino: (rasc.destino ?? b.destino).trim() || b.destino, categoria: rasc.categoria ?? b.categoria, equivalente: rasc.equivalente ?? b.equivalente ?? '' };
-    await setDoc(doc(db, 'benchmark', b.id), upd, { merge: true }).catch(() => {});
-    setBench((p) => p.map((x) => (x.id === b.id ? { ...x, ...upd } : x)));
-    setEditar(null); setRasc({});
-  };
-  const apagar = async (b: LocBench) => {
-    if (!window.confirm(t(`Retirar "${b.nome}" (${b.destino}) da comparação?`, `Remove "${b.nome}" (${b.destino}) from the comparison?`))) return;
-    await deleteDoc(doc(db, 'benchmark', b.id)).catch(() => {});
-    setBench((p) => p.filter((x) => x.id !== b.id));
-  };
-
-  const comoLoc = (b: LocBench): LocMin => ({ id: b.id, name: b.nome, category: b.categoria, reviews: [], analysis: null, reviewStats: b.reviewStats });
-  const destinos: string[] = Array.from(new Set<string>(bench.map((b: LocBench) => b.destino))).sort((p: string, q: string) => p.localeCompare(q, 'pt'));
-  // Para cada destino, o "lado de Braga" justo: equivalentes escolhidos; senão, locais de Braga das mesmas categorias
-  const comparacoes = destinos.map((d) => {
-    const seus = bench.filter((b) => b.destino === d);
-    const eqIds = Array.from(new Set(seus.map((b) => b.equivalente).filter((x): x is string => !!x)));
-    const cats = new Set(seus.map((b) => b.categoria));
-    const ladoBraga = eqIds.length ? props.locations.filter((l) => eqIds.includes(l.id)) : props.locations.filter((l) => cats.has(l.category));
-    return { destino: d, seus, modo: eqIds.length ? 'equivalentes' : 'categorias', outro: agregarDestino(seus.map(comoLoc)), braga: agregarDestino(ladoBraga), nBraga: ladoBraga.length };
-  }).filter((c) => c.outro && c.braga);
-  const aFrente = comparacoes.filter((c) => c.braga!.idx > c.outro!.idx).length;
-  const titulo = !comparacoes.length ? t('Braga face a outros destinos', 'Braga compared with other destinations')
-    : t(`Braga está à frente em ${aFrente} de ${comparacoes.length} ${comparacoes.length === 1 ? 'comparação' : 'comparações'} com locais equivalentes`, `Braga is ahead in ${aFrente} of ${comparacoes.length} ${comparacoes.length === 1 ? 'comparison' : 'comparisons'} with equivalent places`);
-  const selecionada = comparacoes.find((c) => c.destino === (destSel || comparacoes[0]?.destino));
-  const pares = bench.filter((b) => b.equivalente).map((b) => ({ b, x: numeros(comoLoc(b)), eq: props.locations.find((l) => l.id === b.equivalente) })).filter((p) => p.eq);
-
-  return (
-    <div className="rbx">
-      <style>{ESTILO + ESTILO_EXTRA}</style>
-      <div className="rb-wrap" style={{ maxWidth: 1400 }}>
-        <Cabecalho kicker={t('Reputação', 'Reputation')} titulo={titulo}
-          sub={t('Cada monumento de outro destino é comparado com o seu equivalente em Braga (ou, se não escolheres um, com os locais de Braga da mesma categoria). Mesmo método: últimos 3 anos, mínimo de 30 avaliações, médias ponderadas. Não usa o Groq.', 'Each monument from another destination is compared with its equivalent in Braga (or, if you choose none, with Braga places in the same category). Same method: last 3 years, minimum 30 reviews, weighted averages. Does not use Groq.')}
-          direita={<button className="rb-btn p" onClick={() => fileRef.current?.click()}>{t('Importar outro destino', 'Import another destination')}</button>} />
-        <input ref={fileRef} type="file" accept=".json,.csv,.jsonl,.txt" style={{ display: 'none' }} onChange={(e) => { const fl = e.target.files?.[0]; e.target.value = ''; if (fl) lerFicheiro(fl); }} />
-        <datalist id="rb-destinos">{DESTINOS_SUGERIDOS.map((d) => <option key={d} value={d} />)}</datalist>
-        {msg && <p className="rb-sub" style={{ color: msg.startsWith('✓') ? 'var(--rb-good)' : 'var(--rb-warn)' }}>{msg}</p>}
-
-        {novos.length > 0 && (
-          <section className="rb-sec" style={{ paddingTop: 20 }}>
-            <div style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-accent)', borderRadius: 6, padding: '20px 22px' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{t('Confirma cada local', 'Confirm each place')}</div>
-              <p className="rb-sub" style={{ marginTop: 0 }}>{t('Nome, destino, categoria e o equivalente em Braga com que deve ser comparado.', 'Name, destination, category and the Braga equivalent it should be compared with.')}</p>
-              {novos.map((g, i) => {
-                const upd = (c: Partial<typeof g>) => setNovos((p) => p.map((x, j) => (j === i ? { ...x, ...c } : x)));
-                return (
-                  <div key={g.key} style={{ display: 'grid', gridTemplateColumns: 'auto repeat(auto-fit, minmax(170px, 1fr))', gap: 8, alignItems: 'center', padding: '12px 0', borderTop: '1px solid var(--rb-line)' }}>
-                    <input type="checkbox" checked={g.incluir} onChange={(e) => upd({ incluir: e.target.checked })} aria-label={t('Incluir', 'Include')} />
-                    <input className="rb-field" value={g.nome} onChange={(e) => upd({ nome: e.target.value })} placeholder={t('Nome do monumento', 'Monument name')} aria-label={t('Nome do monumento', 'Monument name')} />
-                    <input className="rb-field" list="rb-destinos" value={g.destino} onChange={(e) => upd({ destino: e.target.value })} placeholder={t('Destino (ex.: Guimarães)', 'Destination (e.g. Guimarães)')} aria-label={t('Destino', 'Destination')} />
-                    <select className="rb-field" value={g.categoria} onChange={(e) => upd({ categoria: e.target.value })} aria-label={t('Categoria', 'Category')}>{catsTodas.map((c) => <option key={c} value={c}>{props.catLabel(c)}</option>)}</select>
-                    <select className="rb-field" value={g.equivalente} onChange={(e) => upd({ equivalente: e.target.value })} aria-label={t('Equivalente em Braga', 'Braga equivalent')}>
-                      <option value="">{t('Equivalente em Braga: mesma categoria', 'Braga equivalent: same category')}</option>
-                      {bragaOrd.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
-                    <span className="rb-sub" style={{ marginTop: 0, gridColumn: '2 / -1' }}>{fmt(g.n)} {t('avaliações nos últimos 3 anos', 'reviews in the last 3 years')}</span>
-                  </div>
-                );
-              })}
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button className="rb-btn p" disabled={aGravar} onClick={gravarNovos}>{aGravar ? t('A gravar…', 'Saving…') : t('Gravar', 'Save')}</button>
-                <button className="rb-btn" onClick={() => setNovos([])}>{t('Cancelar', 'Cancel')}</button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {!carregado ? <p className="rb-sub">{t('A carregar…', 'Loading…')}</p> : !bench.length ? (
-          <section className="rb-sec" style={{ paddingTop: 24 }}>
-            <div style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '24px 26px', maxWidth: 820 }}>
-              <div style={{ fontSize: 17, fontWeight: 700 }}>{t('Como começar', 'How to start')}</div>
-              <ol style={{ fontSize: 14.5, lineHeight: 1.7, color: 'var(--rb-text2)', paddingLeft: 20, marginBottom: 0 }}>
-                <li>{t('Escolhe em cada destino os monumentos equivalentes aos de Braga (ex.: Castelo de Guimarães ↔ um monumento histórico de Braga).', 'Pick monuments in each destination equivalent to Braga’s.')}</li>
-                <li>{t('Corre o extrator em cada um e importa aqui os ficheiros.', 'Run the extractor on each one and import the files here.')}</li>
-                <li>{t('Indica o nome, o destino, a categoria e o equivalente em Braga.', 'Enter the name, destination, category and Braga equivalent.')}</li>
-              </ol>
-            </div>
-          </section>
-        ) : (
-          <>
-            {comparacoes.length > 0 && (
-              <section className="rb-sec" style={{ paddingTop: 28 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-                  {comparacoes.map((c, i) => {
-                    const dif = c.braga!.idx - c.outro!.idx;
-                    const bloco = (nome: string, sub: string, ag: NonNullable<typeof c.outro>, cor: string) => (
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: cor }}>{nome}</div>
-                        <div style={{ fontSize: 12, color: 'var(--rb-text2)' }}>{sub}</div>
-                        <div className="rb-big" style={{ fontSize: 34, marginTop: 8 }}><Conta v={ag.idx} d={1} /><small>/10</small></div>
-                        <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}><Conta v={Math.round(ag.avg * 100) / 100} d={2} /> <span style={{ color: 'var(--rb-star)' }}>★</span> <span style={{ color: 'var(--rb-text2)', fontWeight: 400 }}>· {fmt(ag.n)}</span></div>
-                        <div className="rb-sub">{fmt(ag.estrangeiro, 0)}% {t('noutras línguas', 'in other languages')}</div>
-                      </div>
-                    );
-                    return (
-                      <button key={c.destino} className={`rb-card-tema rb-rise${selecionada?.destino === c.destino ? ' on' : ''}`} style={{ transitionDelay: `${i * 80}ms` }} onClick={() => setDestSel(c.destino)}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline', marginBottom: 12 }}>
-                          <span style={{ fontSize: 17, fontWeight: 700 }}>{c.destino}</span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: dif > 0 ? 'var(--rb-good)' : dif < 0 ? 'var(--rb-bad)' : 'var(--rb-text2)' }}>{t('Braga', 'Braga')} {dif > 0 ? '+' : ''}{fmt(dif, 1)}</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: 16 }}>
-                          {bloco(c.destino, t(`${c.outro!.locais} ${c.outro!.locais === 1 ? 'local' : 'locais'}`, `${c.outro!.locais} ${c.outro!.locais === 1 ? 'place' : 'places'}`), c.outro!, '#EDA06B')}
-                          <div style={{ width: 1, background: 'var(--rb-line)' }} />
-                          {bloco('Braga', c.modo === 'equivalentes' ? t(`${c.braga!.locais} equivalentes`, `${c.braga!.locais} equivalents`) : t(`${c.braga!.locais} da mesma categoria`, `${c.braga!.locais} in same category`), c.braga!, '#8AB0E6')}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {selecionada && (
-              <section className="rb-sec">
-                <Titulo h={t(`Evolução: ${selecionada.destino} e Braga`, `Trend: ${selecionada.destino} and Braga`)} cap={t('Média de estrelas por trimestre · clica noutro cartão para mudar de destino', 'Average stars per quarter · click another card to change destination')} />
-                <LinhasComparadas series={[
-                  { nome: selecionada.destino, cor: '#EDA06B', q: selecionada.outro!.q },
-                  { nome: selecionada.modo === 'equivalentes' ? t('Braga (equivalentes)', 'Braga (equivalents)') : t('Braga (mesma categoria)', 'Braga (same category)'), cor: '#8AB0E6', q: selecionada.braga!.q },
-                ]} />
-              </section>
-            )}
-
-            {pares.length > 0 && (
-              <section className="rb-sec">
-                <Titulo h={t('Monumento a monumento', 'Monument by monument')} cap={t('Cada monumento comparado com o equivalente que escolheste em Braga', 'Each monument compared with the equivalent you chose in Braga')} />
-                <div className="rb-scroll-x">
-                  <table className="rb-table rb-stack" style={{ fontSize: 14.5, minWidth: 640 }}>
-                    <thead><tr><th>{t('Outro destino', 'Other destination')}</th><th className="n">{t('Índice', 'Index')}</th><th>{t('Equivalente em Braga', 'Braga equivalent')}</th><th className="n">{t('Índice', 'Index')}</th><th className="n">{t('Diferença', 'Difference')}</th></tr></thead>
-                    <tbody>{pares.map(({ b, x, eq }) => {
-                      const xe = numeros(eq!);
-                      const ok = x && xe && x.robustez !== 'insuficiente' && xe.robustez !== 'insuficiente';
-                      const d = ok ? xe!.idx - x!.idx : null;
-                      return (
-                        <tr key={b.id}>
-                          <td data-label={t('Outro destino', 'Other destination')}><strong>{b.nome}</strong><div style={{ fontSize: 12.5, color: 'var(--rb-text2)' }}>{b.destino}</div></td>
-                          <td className="n" data-label={t('Índice', 'Index')}>{x && x.robustez !== 'insuficiente' ? fmt(x.idx, 1) : '—'}</td>
-                          <td data-label={t('Equivalente em Braga', 'Braga equivalent')}><strong>{eq!.name}</strong></td>
-                          <td className="n" data-label={t('Índice', 'Index')}>{xe && xe.robustez !== 'insuficiente' ? fmt(xe.idx, 1) : '—'}</td>
-                          <td className="n" data-label={t('Diferença', 'Difference')} style={{ fontWeight: 700, color: d == null ? 'var(--rb-text2)' : d > 0 ? 'var(--rb-good)' : d < 0 ? 'var(--rb-bad)' : 'var(--rb-text2)' }}>{d == null ? '—' : `${d > 0 ? t('Braga +', 'Braga +') : d < 0 ? t('Braga ', 'Braga ') : ''}${fmt(d, 1)}`}</td>
-                        </tr>
-                      );
-                    })}</tbody>
-                  </table>
-                </div>
-              </section>
-            )}
-
-            <section className="rb-sec">
-              <Titulo h={t('Locais de outros destinos', 'Places from other destinations')} cap={t('Clica em Editar para mudar o nome, o destino, a categoria ou o equivalente em Braga', 'Click Edit to change the name, destination, category or Braga equivalent')} />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 10 }}>
-                {[...bench].sort((p, q) => p.destino.localeCompare(q.destino, 'pt') || p.nome.localeCompare(q.nome, 'pt')).map((b) => {
-                  const x = numeros(comoLoc(b));
-                  const ed = editar === b.id;
-                  return (
-                    <div key={b.id} style={{ background: 'var(--rb-surface)', border: `1px solid ${ed ? 'var(--rb-accent)' : 'var(--rb-line)'}`, borderRadius: 6, padding: '12px 14px' }}>
-                      {!ed ? (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, fontSize: 14 }}>{b.nome}</div>
-                            <div style={{ fontSize: 12.5, color: 'var(--rb-text2)', marginTop: 2 }}>{b.destino} · {props.catLabel(b.categoria)} · {x ? (x.robustez === 'insuficiente' ? t('dados insuficientes', 'insufficient data') : `${fmt(x.idx, 1)}/10 · ${fmt(x.n)} ${t('aval.', 'rev.')}`) : '—'}</div>
-                            <div style={{ fontSize: 12.5, color: 'var(--rb-accent)', marginTop: 2 }}>{b.equivalente ? `↔ ${nomeBraga(b.equivalente)}` : t('↔ locais de Braga da mesma categoria', '↔ Braga places in same category')}</div>
-                          </div>
-                          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                            <button className="rb-chip ghost" style={{ height: 30, fontSize: 12.5 }} onClick={() => { setEditar(b.id); setRasc({}); }}>{t('Editar', 'Edit')}</button>
-                            <button className="rb-chip danger" style={{ height: 30, fontSize: 12.5 }} onClick={() => apagar(b)}>{t('Retirar', 'Remove')}</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'grid', gap: 8 }}>
-                          <input className="rb-field" defaultValue={b.nome} onChange={(e) => setRasc((r) => ({ ...r, nome: e.target.value }))} aria-label={t('Nome', 'Name')} />
-                          <input className="rb-field" list="rb-destinos" defaultValue={b.destino} onChange={(e) => setRasc((r) => ({ ...r, destino: e.target.value }))} aria-label={t('Destino', 'Destination')} />
-                          <select className="rb-field" defaultValue={b.categoria} onChange={(e) => setRasc((r) => ({ ...r, categoria: e.target.value }))}>{catsTodas.map((c) => <option key={c} value={c}>{props.catLabel(c)}</option>)}</select>
-                          <select className="rb-field" defaultValue={b.equivalente || ''} onChange={(e) => setRasc((r) => ({ ...r, equivalente: e.target.value }))}>
-                            <option value="">{t('Equivalente em Braga: mesma categoria', 'Braga equivalent: same category')}</option>
-                            {bragaOrd.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                          </select>
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button className="rb-btn p" onClick={() => gravarEdicao(b)}>{t('Guardar', 'Save')}</button>
-                            <button className="rb-btn" onClick={() => { setEditar(null); setRasc({}); }}>{t('Cancelar', 'Cancel')}</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
               </div>
             </section>
           </>

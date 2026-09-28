@@ -17,7 +17,7 @@ import {
 } from '@/app/lib/reviews';
 import { TEMAS, temaStats, excertos, numeros, ranking, numerosCoerentes, numerosPermitidos, resumoModelo, tagValida, indiceDestino } from '@/app/lib/temas';
 import { obterFotoBraga } from '@/app/lib/foto-braga';
-import { VisaoGeral, LocaisLista, FichaLocal, MapaView, CompararView, TemasView, RelatorioView, BenchmarkView, MercadosView, type Intervencao, type Afluencia, type Atributos } from '@/app/components/Reputacao';
+import { VisaoGeral, LocaisLista, FichaLocal, MapaView, CompararView, TemasView, RelatorioView, MercadosView, type Intervencao, type Afluencia, type Atributos, type WikiDados } from '@/app/components/Reputacao';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -228,6 +228,7 @@ interface Location {
   interventions?: Intervencao[]; // intervenções registadas (marcadas no gráfico de evolução)
   afluencia?: Afluencia;         // afluência habitual por dia e hora (Google Maps, via extrator)
   atributos?: Atributos;         // informação "Acerca de" e horário do Google Maps (via extrator)
+  wiki?: WikiDados;              // visualizações da Wikipédia por língua (API pública)
 }
 
 type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'benchmark' | 'mercados' | 'relatorio' | 'problemas' | 'observatorio' | 'detalhe';
@@ -1383,19 +1384,23 @@ Em problemasRecentes e problemasAnteriores, indica até 6 problemas em cada, do 
     }
   };
 
+  const pararLote = useRef(false);
   const analyzeAll = async () => {
     const targets = locations.filter((l) => l.reviewStats && revCount(l) > 0);
     if (!targets.length || analyzing || batchRun) return;
     if (!window.confirm(t(
-      `Vão ser analisados ${targets.length} locais com comentários importados. Cada um demora cerca de 1 a 3 minutos — mantém esta página aberta até ao fim. Continuar?`,
-      `${targets.length} places with imported reviews will be analysed. Each takes about 1 to 3 minutes — keep this page open until it finishes. Continue?`))) return;
+      `Vão ser reanalisados ${targets.length} locais. Cada um demora cerca de 1 a 3 minutos (no total, 30 a 60 minutos): mantém esta página aberta.\n\nO plano gratuito do Groq tem um limite diário; se for atingido, os locais seguintes falham e podes retomar noutro dia. Podes parar a qualquer momento: o que já foi analisado fica guardado.\n\nContinuar?`,
+      `${targets.length} places will be re-analysed. Each takes about 1 to 3 minutes (30 to 60 minutes in total): keep this page open.\n\nGroq's free plan has a daily limit; if it is reached, the remaining places fail and you can resume another day. You can stop at any time: what has been analysed is kept.\n\nContinue?`))) return;
+    pararLote.current = false;
     let ok = 0;
     for (let i = 0; i < targets.length; i++) {
+      if (pararLote.current) break;
       setBatchRun({ i: i + 1, total: targets.length, name: targets[i].name });
       if (await analyzeImported(targets[i])) ok++;
     }
     setBatchRun(null);
-    showToast(t(`✓ ${ok}/${targets.length} locais analisados`, `✓ ${ok}/${targets.length} places analysed`));
+    showToast(pararLote.current ? t(`Parado: ${ok} locais analisados`, `Stopped: ${ok} places analysed`) : t(`✓ ${ok}/${targets.length} locais analisados`, `✓ ${ok}/${targets.length} places analysed`));
+    pararLote.current = false;
   };
 
   const analyze = async (id: string) => {
@@ -1700,7 +1705,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     { id: 'locais', label: t('Locais', 'Places'), icon: '⊞' },
     { id: 'mapa', label: t('Mapa', 'Map'), icon: '◎' },
     { id: 'comparar', label: t('Comparar', 'Compare'), icon: '⊟' },
-    { id: 'benchmark', label: t('Destinos comparáveis', 'Benchmark'), icon: '≈' },
     { id: 'mercados', label: t('Mercados', 'Markets'), icon: '◍' },
     { id: 'problemas', label: t('Problemas', 'Issues'), icon: '▦' },
     { id: 'relatorio', label: t('Relatório', 'Report'), icon: '≡' },
@@ -1936,13 +1940,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
         {/* ── OVERVIEW ── */}
         {view === 'overview' && (
-          <VisaoGeral locations={locations} onOpen={(id) => { setDetailId(id); setView('detalhe'); }} onOpenList={() => setView('locais')} onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} />
+          <VisaoGeral locations={locations} onOpen={(id) => { setDetailId(id); setView('detalhe'); }} onOpenList={() => setView('locais')} onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} onObservatorio={() => setView('observatorio')} />
         )}
 
         {/* ── LOCAIS ── */}
         {view === 'locais' && (
           <LocaisLista locations={locations} analyzing={analyzing} batchRun={batchRun} catLabel={catLabel}
-            onOpen={(id) => { setDetailId(id); setView('detalhe'); }} onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} onAnalyzeAll={analyzeAll} onAdd={() => setShowAdd(true)} />
+            onOpen={(id) => { setDetailId(id); setView('detalhe'); }} onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} onStopBatch={() => { pararLote.current = true; showToast(t('Vai parar no fim do local em curso…', 'Will stop after the current place…')); }} onAnalyzeAll={analyzeAll} onAdd={() => setShowAdd(true)} />
         )}
 
         {/* ── MAPA ── */}
@@ -1965,16 +1969,21 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             onReanalyze={(id) => analyze(id)} onShare={(id) => copyShareLink(id)} onOpenList={() => setView('locais')} onOpen={(id) => setDetailId(id)}
             onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} onPaste={(id) => { setSelId(id); setShowReview(true); }}
             onEdit={(id) => { const l = locations.find((z) => z.id === id); if (l) startEdit(l); }}
-            onDelete={(id) => deleteLoc(id)} onSaveInterventions={guardarIntervencoes} />
+            onDelete={(id) => deleteLoc(id)} onSaveInterventions={guardarIntervencoes}
+              onSaveWiki={async (id, w) => {
+                const l = locations.find((z) => z.id === id);
+                if (!l) return;
+                const w2 = JSON.parse(JSON.stringify(w)) as WikiDados;
+                await gravarLocal(l, { wiki: w2 });
+                setLocations((prev) => prev.map((z) => (z.id === id ? { ...z, wiki: w2 } : z)));
+                showToast(t('✓ Interesse online atualizado', '✓ Online interest updated'));
+              }} />
         )}
 
         {/* ── COMPARAR ── */}
         {view === 'comparar' && (
           <CompararView locations={locations} catLabel={catLabel} onOpen={(id) => { setDetailId(id); setView('detalhe'); }} />
         )}
-
-        {/* ── DESTINOS COMPARÁVEIS ── */}
-        {view === 'benchmark' && <BenchmarkView locations={locations} catLabel={catLabel} />}
 
         {/* ── MERCADOS: procura e satisfação ── */}
         {view === 'mercados' && <MercadosView locations={locations} />}
