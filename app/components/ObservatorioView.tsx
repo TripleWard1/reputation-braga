@@ -25,6 +25,9 @@ import { obterFotoBraga } from '@/app/lib/foto-braga';
 import { SIBS_PAISES, SIBS_MENSAL, SIBS_SETORES, SIBS_CONCELHOS, SIBS_PERIODO } from '@/app/lib/sibs-dados';
 import { BILHETEIRA, BILHETEIRA_FONTE } from '@/app/lib/bilheteira-dados';
 import { AL_BRAGA, AEROPORTO_PORTO } from '@/app/lib/alojamento-aeroporto-dados';
+import { LOJAS_HISTORIA, LOJAS_HISTORIA_META } from '@/app/lib/lojas-historia-dados';
+import { db } from '../firebase';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
 const LOGO = 'https://i.imgur.com/Vij12Qd.png';
 
@@ -97,6 +100,28 @@ const OBS_CSS = `
 .obs .leaflet-container { background: #15171B; font-family: 'Public Sans', system-ui, sans-serif; }
 .obs .leaflet-control-zoom a { background: #1C1F24; color: #ECEDEF; border-color: #2D3139; }
 .obs .leaflet-control-attribution { background: rgba(21,23,27,.7) !important; color: #6F747D !important; }
+.obs-loja { background: #22262D; border: 1px solid #2D3139; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+.obs-loja:hover { transform: translateY(-3px); border-color: #3A404B; box-shadow: 0 16px 40px -18px rgba(0,0,0,.7); }
+.obs-loja-topo { position: relative; height: 178px; overflow: hidden; background: #1C1F24; }
+.obs-loja-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .6s ease, transform .8s cubic-bezier(.2,.7,.2,1); }
+.obs-loja:hover .obs-loja-img { transform: scale(1.06); }
+.obs-loja-carrega { position: absolute; inset: 0; background: linear-gradient(90deg, #1C1F24 0%, #262A31 50%, #1C1F24 100%); background-size: 200% 100%; animation: obsBrilho 1.3s ease-in-out infinite; }
+@keyframes obsBrilho { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.obs-loja-vazio { position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-end; padding-right: 22px; background: radial-gradient(420px 180px at 20% 0%, rgba(138,176,230,.14), transparent), linear-gradient(160deg, #262A31, #1C1F24); }
+.obs-loja-vazio span { font-size: 96px; font-weight: 700; line-height: 1; color: rgba(255,255,255,.05); letter-spacing: -0.04em; }
+.obs-loja-fade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(34,38,45,0) 30%, rgba(34,38,45,.55) 62%, #22262D 100%); pointer-events: none; }
+.obs-loja-ano { position: absolute; top: 10px; right: 10px; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; color: #ECEDEF; background: rgba(21,23,27,.6); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.obs-loja-ano.cent { color: #F2C14E; border-color: rgba(242,193,78,.45); }
+.obs-loja-acoes { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; opacity: 0; transition: opacity .2s ease; }
+.obs-loja:hover .obs-loja-acoes, .obs-loja-vazio ~ .obs-loja-acoes { opacity: 1; }
+.obs-loja-acoes button { height: 28px; padding: 0 11px; border-radius: 999px; font: 600 12px 'Public Sans', system-ui, sans-serif; color: #ECEDEF; background: rgba(21,23,27,.62); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); cursor: pointer; }
+.obs-loja-acoes button:hover { background: rgba(138,176,230,.3); }
+.obs-loja-nome { position: absolute; left: 16px; right: 16px; bottom: 10px; font-size: 16.5px; font-weight: 700; color: #ECEDEF; line-height: 1.25; text-shadow: 0 2px 12px rgba(0,0,0,.55); }
+.obs-loja-nome small { display: block; font-size: 12px; font-weight: 500; color: #A3A8B1; margin-top: 3px; text-shadow: none; }
+.obs-loja-corpo { padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.obs-loja-texto { font-size: 13px; color: #A3A8B1; line-height: 1.55; flex: 1; }
+.obs-loja-corpo a { font-size: 12.5px; color: #8AB0E6; text-decoration: none; }
+@media (hover: none) { .obs-loja-acoes { opacity: 1; } }
 .obs-grow { animation: obsGrow 1.1s cubic-bezier(.2,.7,.2,1) both; transform-origin: left center; }
 @keyframes obsGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .obs .recharts-legend-item-text { color: #A3A8B1 !important; }
@@ -117,7 +142,7 @@ const OBS_CSS = `
 
 const PAL = [C.accent, C.positive, C.orange, C.purple, C.cyan, C.pink, C.info, '#6F747D'];
 
-type Tab = 'geral' | 'procura' | 'economia' | 'cartoes' | 'cultura' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
+type Tab = 'geral' | 'procura' | 'economia' | 'cartoes' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; }
 
@@ -191,6 +216,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'economia', label: t('Economia', 'Economy') },
     { id: 'cartoes', label: t('Gastos com cartão', 'Card spending') },
     { id: 'cultura', label: t('Cultura', 'Culture') },
+    { id: 'lojas', label: t('Lojas com História', 'Historic Shops') },
     { id: 'alojamento', label: t('Alojamento Local', 'Short-term rentals') },
     { id: 'aeroporto', label: t('Aeroporto', 'Airport') },
     { id: 'mercados', label: t('Mercados', 'Markets') },
@@ -680,6 +706,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'digital' && <Digital />}
         {tab === 'cartoes' && <Cartoes />}
         {tab === 'cultura' && <Cultura />}
+        {tab === 'lojas' && <LojasHistoria />}
         {tab === 'alojamento' && <AlojamentoLocal />}
         {tab === 'aeroporto' && <Aeroporto />}
         {tab === 'acessibilidade' && <Acessibilidade />}
@@ -772,7 +799,7 @@ function MapaAL({ pontos }: { pontos: number[][] }) {
   return <div ref={caixa} className="obs-mapa-al" style={{ height: 420, borderRadius: 6, overflow: 'hidden', border: `1px solid ${C.border}` }} />;
 }
 
-// ═══ Alojamento Local (TravelBI / RNAL) - só leitura ═══
+// ═══ Alojamento Local (TravelBI / RNAL) — só leitura ═══
 function AlojamentoLocal() {
   const A: any = AL_BRAGA;
   const MOD: Record<string, string> = { Apartamento: t('Apartamento', 'Apartment'), EstabelecimentoHospedagem: t('Hospedagem', 'Guesthouse'), Moradia: t('Moradia', 'House'), Quartos: t('Quartos', 'Rooms'), EstabelecimentoHospedagemHostel: 'Hostel' };
@@ -825,7 +852,7 @@ function AlojamentoLocal() {
               <Bar dataKey="n" name={t('Registos', 'Registrations')} fill={C.accent} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Só conta os estabelecimentos ainda ativos. O ano com mais registos foi ${pico?.ano} (${pico?.n}); 2024 teve apenas ${anos.find((x) => x.ano === '2024')?.n ?? '-'}, o que coincide com as restrições ao Alojamento Local de 2023–2024.`, `Only active establishments are counted. The year with most registrations was ${pico?.ano} (${pico?.n}); 2024 had only ${anos.find((x) => x.ano === '2024')?.n ?? '-'}, coinciding with the 2023–2024 restrictions on short-term rentals.`)}</div>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Só conta os estabelecimentos ainda ativos. O ano com mais registos foi ${pico?.ano} (${pico?.n}); 2024 teve apenas ${anos.find((x) => x.ano === '2024')?.n ?? '—'}, o que coincide com as restrições ao Alojamento Local de 2023–2024.`, `Only active establishments are counted. The year with most registrations was ${pico?.ano} (${pico?.n}); 2024 had only ${anos.find((x) => x.ano === '2024')?.n ?? '—'}, coinciding with the 2023–2024 restrictions on short-term rentals.`)}</div>
         </Card>
         <Card title={t('Por modalidade', 'By type')}>
           <ResponsiveContainer width="100%" height={280}>
@@ -843,7 +870,7 @@ function AlojamentoLocal() {
   );
 }
 
-// ═══ Aeroporto do Porto (INE) - só leitura; cruzado com as dormidas de Braga ═══
+// ═══ Aeroporto do Porto (INE) — só leitura; cruzado com as dormidas de Braga ═══
 function Aeroporto() {
   const M = AEROPORTO_PORTO.meses;
   const MC = [t('jan', 'Jan'), t('fev', 'Feb'), t('mar', 'Mar'), t('abr', 'Apr'), t('mai', 'May'), t('jun', 'Jun'), t('jul', 'Jul'), t('ago', 'Aug'), t('set', 'Sep'), t('out', 'Oct'), t('nov', 'Nov'), t('dez', 'Dec')];
@@ -881,7 +908,7 @@ function Aeroporto() {
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} interval={2} />
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '-' : `${String(v).replace('.', ',')}%`, n]} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '—' : `${String(v).replace('.', ',')}%`, n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Line type="monotone" dataKey="aeroporto" name={t('Aeroporto do Porto', 'Porto airport')} stroke={C.accent} strokeWidth={2} dot={false} connectNulls />
             <Line type="monotone" dataKey="braga" name={t('Dormidas em Braga', 'Braga overnight stays')} stroke={C.orange} strokeWidth={2} dot={false} connectNulls />
@@ -893,7 +920,140 @@ function Aeroporto() {
   );
 }
 
-// ═══ Cultura: bilheteira do Theatro Circo, gnration e BMA (FazCultura) - só leitura ═══
+
+
+// Fotografia de cada Loja com História (guardada na base de dados; carregada só quando o cartão aparece)
+const slugLoja = (n: string) => n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 100);
+async function comprimirFoto(fl: File): Promise<string> {
+  const url = URL.createObjectURL(fl);
+  const img = new Image();
+  await new Promise<void>((ok, ko) => { img.onload = () => ok(); img.onerror = () => ko(new Error('imagem')); img.src = url; });
+  const e = Math.min(1, 1000 / img.width);
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(img.width * e); cv.height = Math.round(img.height * e);
+  cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
+  URL.revokeObjectURL(url);
+  let d = cv.toDataURL('image/jpeg', 0.76);
+  if (d.length > 700000) d = cv.toDataURL('image/jpeg', 0.6);
+  return d;
+}
+function CartaoLoja({ l, ano }: { l: { nome: string; ano: number | null; morada: string; setor: string; resumo: string }; ano: number }) {
+  const [ref, vis] = useVisivelObs<HTMLDivElement>();
+  const [foto, setFoto] = useState<string | null | undefined>(undefined);
+  const [pronta, setPronta] = useState(false);
+  const [aGravar, setAGravar] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+  const id = slugLoja(l.nome);
+  useEffect(() => {
+    if (!vis || foto !== undefined) return;
+    getDoc(doc(db, 'lojasFotos', id)).then((d) => setFoto(d.exists() ? ((d.data() as any).data || null) : null)).catch(() => setFoto(null));
+  }, [vis, foto, id]);
+  const carregar = async (fl: File) => {
+    setAGravar(true);
+    try {
+      const d = await comprimirFoto(fl);
+      await setDoc(doc(db, 'lojasFotos', id), { data: d, nome: l.nome, atualizadoEm: new Date().toISOString() });
+      setPronta(false); setFoto(d);
+    } catch { alert(t('Não foi possível carregar a fotografia.', 'Could not upload the photo.')); } finally { setAGravar(false); }
+  };
+  const remover = async () => {
+    if (!window.confirm(t(`Remover a fotografia de "${l.nome}"?`, `Remove the photo of "${l.nome}"?`))) return;
+    await deleteDoc(doc(db, 'lojasFotos', id)).catch(() => {});
+    setFoto(null); setPronta(false);
+  };
+  const idade = l.ano ? ano - l.ano : null;
+  return (
+    <div ref={ref} className="obs-loja">
+      <div className="obs-loja-topo">
+        {foto === undefined && vis && <div className="obs-loja-carrega" />}
+        {foto === null && <div className="obs-loja-vazio"><span>{l.nome.replace(/^(A|O|Casa|Restaurante|Café|Pastelaria)\s+/i, '').charAt(0)}</span></div>}
+        {foto && <img className="obs-loja-img" src={foto} alt={l.nome} onLoad={() => setPronta(true)} style={{ opacity: pronta ? 1 : 0 }} />}
+        <div className="obs-loja-fade" />
+        {l.ano && <span className={`obs-loja-ano${idade != null && idade >= 100 ? ' cent' : ''}`}>{l.ano}</span>}
+        <div className="obs-loja-acoes">
+          <button onClick={() => input.current?.click()} disabled={aGravar}>{aGravar ? t('A guardar…', 'Saving…') : foto ? t('Mudar', 'Change') : t('+ Fotografia', '+ Photo')}</button>
+          {foto && <button onClick={remover}>{t('Remover', 'Remove')}</button>}
+        </div>
+        <div className="obs-loja-nome">{l.nome}<small>{l.setor}{idade != null ? ` · ${idade} ${t('anos', 'years')}` : ''}</small></div>
+        <input ref={input} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const fl = e.target.files?.[0]; e.target.value = ''; if (fl) carregar(fl); }} />
+      </div>
+      <div className="obs-loja-corpo">
+        <div className="obs-loja-texto">{l.resumo}</div>
+        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.nome + ', ' + l.morada)}`} target="_blank" rel="noopener noreferrer">{l.morada} ↗</a>
+      </div>
+    </div>
+  );
+}
+
+// ═══ Lojas com História (rede municipal) — só leitura ═══
+function LojasHistoria() {
+  const [setor, setSetor] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const ano = new Date().getFullYear();
+  const L = LOJAS_HISTORIA;
+  const comAno = L.filter((l) => l.ano);
+  const maisAntiga = [...comAno].sort((a, b) => (a.ano || 0) - (b.ano || 0))[0];
+  const idades = comAno.map((l) => ano - (l.ano || ano)).sort((a, b) => a - b);
+  const mediana = idades.length ? idades[Math.floor(idades.length / 2)] : 0;
+  const setores = Object.entries(L.reduce((o: Record<string, number>, l) => { o[l.setor] = (o[l.setor] || 0) + 1; return o; }, {})).sort((a, b) => b[1] - a[1]).map(([s2, n]) => ({ setor: s2, n }));
+  const seculo = (a: number) => (a < 1801 ? t('séc. XVIII', '18th c.') : a < 1901 ? t('séc. XIX', '19th c.') : a < 1951 ? t('1901–1950', '1901–1950') : a < 2001 ? t('1951–2000', '1951–2000') : t('depois de 2000', 'after 2000'));
+  const ordemSec = [t('séc. XVIII', '18th c.'), t('séc. XIX', '19th c.'), t('1901–1950', '1901–1950'), t('1951–2000', '1951–2000'), t('depois de 2000', 'after 2000')];
+  const porSec = ordemSec.map((s2) => ({ periodo: s2, n: comAno.filter((l) => seculo(l.ano!) === s2).length })).filter((x) => x.n);
+  const norm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const lista = [...L].filter((l) => (!setor || l.setor === setor) && (!q || norm(l.nome + ' ' + l.morada).includes(norm(q)))).sort((a, b) => (a.ano || 9999) - (b.ano || 9999));
+  return (
+    <>
+      <SectionTitle sub={LOJAS_HISTORIA_META.fonte}>{t(`${LOJAS_HISTORIA_META.total} lojas reconhecidas, ${LOJAS_HISTORIA_META.centenarias} com mais de um século`, `${LOJAS_HISTORIA_META.total} recognised shops, ${LOJAS_HISTORIA_META.centenarias} over a century old`)}</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <KPI label={t('Lojas na rede', 'Shops in the network')} value={String(LOJAS_HISTORIA_META.total)} sub={t(`${setores.length} setores de atividade`, `${setores.length} business sectors`)} color={C.accent} />
+        <KPI label={t('Centenárias', 'Centenary shops')} value={String(LOJAS_HISTORIA_META.centenarias)} sub={t('segundo a rede Lojas com História', 'according to the Historic Shops network')} color={C.orange} />
+        {maisAntiga && <KPI label={t('A mais antiga', 'The oldest')} value={String(maisAntiga.ano)} sub={`${maisAntiga.nome} · ${ano - (maisAntiga.ano || ano)} ${t('anos', 'years')}`} color={C.purple} />}
+        <KPI label={t('Idade mediana', 'Median age')} value={`${mediana} ${t('anos', 'years')}`} sub={t('metade das lojas tem mais do que isto', 'half the shops are older than this')} color={C.positive} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('Por setor de atividade', 'By business sector')}>
+          <ResponsiveContainer width="100%" height={340}>
+            <BarChart data={setores} layout="vertical" margin={{ top: 4, right: 20, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+              <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} allowDecimals={false} />
+              <YAxis type="category" dataKey="setor" width={170} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [v, t('Lojas', 'Shops')]} />
+              <Bar dataKey="n" name={t('Lojas', 'Shops')} fill={C.orange} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card title={t('Quando foram fundadas', 'When they were founded')}>
+          <ResponsiveContainer width="100%" height={340}>
+            <BarChart data={porSec} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+              <XAxis dataKey="periodo" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} allowDecimals={false} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [v, t('Lojas', 'Shops')]} />
+              <Bar dataKey="n" name={t('Lojas', 'Shops')} fill={C.accent} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t(`Ano de fundação indicado na brochura (${comAno.length} das ${L.length} lojas).`, `Founding year stated in the brochure (${comAno.length} of ${L.length} shops).`)}</div>
+        </Card>
+      </div>
+      <Card title={t(`As lojas · ${lista.length}`, `The shops · ${lista.length}`)} right={
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Procurar loja ou rua', 'Search shop or street')} aria-label={t('Procurar loja ou rua', 'Search shop or street')}
+          style={{ height: 34, padding: '0 12px', borderRadius: 999, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontFamily: 'inherit', fontSize: 13, minWidth: 200 }} />
+      }>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+          <button onClick={() => setSetor(null)} style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${!setor ? C.accent : C.border}`, background: !setor ? C.accentBg : 'transparent', color: !setor ? C.text : C.textMuted }}>{t('Todas', 'All')}</button>
+          {setores.map((s2) => (
+            <button key={s2.setor} onClick={() => setSetor(setor === s2.setor ? null : s2.setor)} style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${setor === s2.setor ? C.accent : C.border}`, background: setor === s2.setor ? C.accentBg : 'transparent', color: setor === s2.setor ? C.text : C.textMuted }}>{s2.setor} · {s2.n}</button>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 14 }}>
+          {lista.map((l) => <CartaoLoja key={l.nome} l={l} ano={ano} />)}
+        </div>
+      </Card>
+    </>
+  );
+}
+
+// ═══ Cultura: bilheteira do Theatro Circo, gnration e BMA (FazCultura) — só leitura ═══
 function Cultura() {
   const ents = ['theatro circo', 'gnration', 'bma'].filter((k) => BILHETEIRA[k]);
   const CORES_E: Record<string, string> = { 'theatro circo': C.accent, gnration: C.positive, bma: C.orange };
@@ -961,10 +1121,10 @@ function Cultura() {
   );
 }
 
-// ═══ Gastos com cartão (SIBS Analytics) - só leitura dos dados exportados ═══
+// ═══ Gastos com cartão (SIBS Analytics) — só leitura dos dados exportados ═══
 function Cartoes() {
   const me = (v: number) => `${(v / 1e6).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} M€`;
-  const pct = (v: number | null | undefined) => (v == null ? '-' : `${v >= 0 ? '+' : ''}${v.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })}%`);
+  const pct = (v: number | null | undefined) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })}%`);
   const paises = [...SIBS_PAISES].filter((p) => p.valor > 0).sort((a, b) => b.valor - a.valor);
   const totEst = paises.reduce((s2, p) => s2 + p.valor, 0);
   const nEst = paises.reduce((s2, p) => s2 + (p.n || 0), 0);
@@ -1001,7 +1161,7 @@ function Cartoes() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
         <KPI label={t('Gasto com cartões estrangeiros', 'Foreign card spending')} value={me(totEst)} sub={braga ? t(`${((totEst / braga.valor) * 100).toLocaleString('pt-PT', { maximumFractionDigits: 1 })}% de todo o gasto com cartão em Braga`, `${((totEst / braga.valor) * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}% of all card spending in Braga`) : ''} color={C.accent} />
         <KPI label={t('Operações', 'Transactions')} value={fmt(nEst)} sub={t(`valor médio ${(totEst / Math.max(1, nEst)).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} €`, `average ${(totEst / Math.max(1, nEst)).toLocaleString('en-GB', { maximumFractionDigits: 1 })} €`)} color={C.info} />
-        <KPI label={t('Maior país', 'Top country')} value={dl(paises[0]?.pais || '-')} sub={paises[0] ? `${me(paises[0].valor)} · ${pct(paises[0].varValor)} ${t('homólogo', 'YoY')}` : ''} color={C.positive} />
+        <KPI label={t('Maior país', 'Top country')} value={dl(paises[0]?.pais || '—')} sub={paises[0] ? `${me(paises[0].valor)} · ${pct(paises[0].varValor)} ${t('homólogo', 'YoY')}` : ''} color={C.positive} />
         <KPI label={t('Países com forte emigração portuguesa', 'Countries with large Portuguese diaspora')} value={`${Math.round((diaspora / Math.max(1, totEst)) * 100)}%`} sub={t('do gasto estrangeiro (França, Suíça, Luxemburgo, Alemanha, Bélgica, Andorra, Reino Unido)', 'of foreign spending (France, Switzerland, Luxembourg, Germany, Belgium, Andorra, UK)')} color={C.orange} />
         {braga && <KPI label={t('Braga entre os concelhos', 'Braga among municipalities')} value={`${posBraga}.º`} sub={t(`${me(braga.valor)} com todos os cartões · ${pct(braga.varValor)} homólogo`, `${me(braga.valor)} with all cards · ${pct(braga.varValor)} YoY`)} color={C.purple} />}
       </div>
@@ -1078,7 +1238,7 @@ function Cartoes() {
             <thead><tr style={{ color: C.textMuted, textAlign: 'left' }}><th style={{ padding: '8px 6px' }}>{t('Concelho', 'Municipality')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Gasto', 'Spending')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Operações', 'Transactions')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Valor médio', 'Average')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Homólogo', 'YoY')}</th></tr></thead>
             <tbody>{comp.map((c) => (
               <tr key={c.concelho} style={{ borderTop: `1px solid ${C.border}`, fontWeight: c.concelho.trim().toLowerCase() === 'braga' ? 700 : 400, color: c.concelho.trim().toLowerCase() === 'braga' ? C.accentLight : C.text }}>
-                <td style={{ padding: '9px 6px' }}>{c.concelho.trim()}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{me(c.valor)}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.n ? fmt(c.n) : '-'}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.medio ? `${String(c.medio).replace('.', ',')} €` : '-'}</td><td style={{ padding: '9px 6px', textAlign: 'right', color: (c.varValor || 0) >= 0 ? C.positive : C.negative }}>{pct(c.varValor)}</td>
+                <td style={{ padding: '9px 6px' }}>{c.concelho.trim()}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{me(c.valor)}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.n ? fmt(c.n) : '—'}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.medio ? `${String(c.medio).replace('.', ',')} €` : '—'}</td><td style={{ padding: '9px 6px', textAlign: 'right', color: (c.varValor || 0) >= 0 ? C.positive : C.negative }}>{pct(c.varValor)}</td>
               </tr>
             ))}</tbody>
           </table>

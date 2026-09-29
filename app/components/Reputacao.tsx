@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REPUTAÇÃO - Visão Geral, lista de Locais e Ficha do local
+// REPUTAÇÃO — Visão Geral, lista de Locais e Ficha do local
 // Segue o mockup aprovado (versão escura). Na impressão/PDF usa a versão clara.
 // Todos os números vêm de app/lib/temas.ts → numeros() (fonte única).
 // ═══════════════════════════════════════════════════════════════════════════
@@ -16,6 +16,7 @@ import { limparFotoBraga } from '@/app/lib/foto-braga';
 import { windowStats, langName, cutoffDate, loadWindowReviews, parseReviewFile, groupByPlace, buildStats, type StoredReview, type ReviewStats } from '@/app/lib/reviews';
 import { SEMESTRE_2026, BALCAO, DORMIDAS_BRAGA, DORMIDAS_PORTUGAL, MESES } from '@/app/lib/observatorio-dados';
 import { BILHETEIRA, BILHETEIRA_FONTE, type Bilheteira } from '@/app/lib/bilheteira-dados';
+import { UNESCO_BOM_JESUS } from '@/app/lib/unesco-bom-jesus';
 import {
   TEMAS, temaNome, estadoNome, numeros, ranking, alerta, numerosCoerentes, numerosPermitidos, resumoModelo,
   MIN_ROBUSTO, type Estado, type LocMin, type Numeros,
@@ -301,6 +302,7 @@ const ESTILO = `
   .rb-draw { stroke-dashoffset: 0 !important; } .rb-bar { transform: none !important; }
   .rb-hero-foto { height: auto !important; background: none !important; } .rb-hero-img, .rb-hero-shade, .rb-hero-top { display: none !important; }
   .rb-hero-in { padding: 0 0 20px; } .rb-hero-h1 { text-shadow: none; }
+  .rb-unesco-ecra { display: none !important; } .rb-unesco-print { display: block !important; }
 }
 `;
 
@@ -327,7 +329,7 @@ function Faixa({ x, a }: { x: Numeros | null; a?: any }) {
     <div className="rb-strip rb-rise">
       <div>
         <div className="rb-lab">{t('Índice de reputação', 'Reputation index')}</div>
-        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>-</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
+        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>—</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
         <div className="rb-sub">{insuf ? t(`Dados insuficientes · menos de ${MIN_ROBUSTO} avaliações`, `Insufficient data · fewer than ${MIN_ROBUSTO} reviews`) : `${x.robustez === 'alta' ? t('Robustez alta', 'High robustness') : t('Robustez média', 'Medium robustness')} · ${fmt(x.textN)} ${t('com texto', 'with text')}`}{x.basis === 'ia' ? ` · ${t('estimado pela IA', 'AI estimate')}` : ''}</div>
       </div>
       <div>
@@ -562,7 +564,7 @@ function MercadosDetalhe({ lista }: { lista: Mercado[] }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr)', gap: '8px 12px', marginTop: 10, alignItems: 'start' }}>
             <span style={{ fontSize: 13, color: 'var(--rb-good)', fontWeight: 700, paddingTop: 3 }}>{t('Valoriza', 'Values')}</span>
-            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>-</span>}</div>
+            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>—</span>}</div>
             <span style={{ fontSize: 13, color: 'var(--rb-bad)', fontWeight: 700, paddingTop: 3 }}>{t('Critica', 'Criticises')}</span>
             <div>{m.critica.length ? m.critica.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-bad)', 'var(--rb-bad-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>{t('sem críticas relevantes', 'no relevant criticism')}</span>}</div>
           </div>
@@ -619,6 +621,110 @@ function AfluenciaMapa({ a }: { a: Afluencia }) {
   );
 }
 
+
+
+// ─── PATRIMÓNIO MUNDIAL (só no Bom Jesus) — informação técnica, sem história ─────
+const eBomJesus = (nome: string) => /bom jesus/i.test(nome);
+function LogoUnesco({ tam = 56 }: { tam?: number }) {
+  return (
+    <>
+      <img className="rb-unesco-ecra" src="/unesco-patrimonio-mundial.png" alt={t('Património Mundial da UNESCO', 'UNESCO World Heritage')} width={tam} height={tam} style={{ display: 'block' }} />
+      <img className="rb-unesco-print" src="/unesco-patrimonio-mundial-preto.png" alt="" width={tam} height={tam} style={{ display: 'none' }} />
+    </>
+  );
+}
+function SecaoUnesco() {
+  const U: any = UNESCO_BOM_JESUS;
+  const [aba, setAba] = useState<'ficha' | 'conservacao' | 'acoes'>('ficha');
+  useRevelar(aba); // revela o conteúdo do separador escolhido (sem isto ficava invisível)
+  const L = t('pt', 'en') as 'pt' | 'en';
+  const feitas = U.acoes.filter((a: any) => a.estado === 'feito').length;
+  const abas: [typeof aba, string][] = [['ficha', t('Inscrição', 'Inscription')], ['conservacao', t('Estado de conservação 2025', 'State of conservation 2025')], ['acoes', t(`Ações e planos · ${feitas}/${U.acoes.length} concluídas`, `Actions and plans · ${feitas}/${U.acoes.length} completed`)]];
+  const caixa = { background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '16px 18px' } as CSSProperties;
+  return (
+    <section id="rb-unesco" className="rb-sec">
+      <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 18, flexWrap: 'wrap' }}>
+        <LogoUnesco tam={64} />
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <h2 className="rb-h2" style={{ margin: 0 }}>{t('Património Mundial da UNESCO desde 2019', 'UNESCO World Heritage since 2019')}</h2>
+          <p className="rb-cap" style={{ marginTop: 6 }}>{t('Paisagem cultural inscrita pelos critérios (ii) e (iv) · o que a UNESCO avalia e pede ao Estado Português', 'Cultural landscape inscribed under criteria (ii) and (iv) · what UNESCO assesses and asks of Portugal')}</p>
+        </div>
+      </div>
+      <div className="rb-noprint" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+        {abas.map(([id, nome]) => <button key={id} className={`rb-chip${aba === id ? '' : ' ghost'}`} onClick={() => setAba(id)}>{nome}</button>)}
+      </div>
+
+      {aba === 'ficha' && (
+        <div className="rb-rise rb-2" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16 }}>
+          <div style={caixa}>
+            {U.ficha.map((x: any, i: number) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '150px minmax(0,1fr)', gap: 12, padding: '9px 0', borderTop: i ? '1px solid var(--rb-line)' : 'none', fontSize: 14 }}>
+                <span style={{ color: 'var(--rb-text2)' }}>{x[L][0]}</span><span style={{ fontWeight: 600 }}>{x[L][1]}</span>
+              </div>
+            ))}
+          </div>
+          <div style={caixa}>
+            <div className="rb-lab">{t('Área protegida', 'Protected area')}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, margin: '6px 0 14px' }}><span className="rb-big" style={{ fontSize: 40 }}><Conta v={U.areas.total} /></span><span style={{ color: 'var(--rb-text2)' }}>{t('hectares', 'hectares')}</span></div>
+            <div style={{ display: 'flex', height: 14, borderRadius: 999, overflow: 'hidden', background: 'var(--rb-muted)' }}>
+              <div className="rb-bar" style={{ width: `${(U.areas.bem / U.areas.total) * 100}%`, background: 'var(--rb-star)' }} />
+              <div className="rb-bar" style={{ width: `${(U.areas.tampao / U.areas.total) * 100}%`, background: 'rgba(138,176,230,.55)', transitionDelay: '150ms' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13, marginTop: 10 }}>
+              <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: 'var(--rb-star)', marginRight: 6 }} />{t('Bem inscrito', 'Inscribed property')}: <strong>{U.areas.bem} ha</strong></span>
+              <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: 'rgba(138,176,230,.55)', marginRight: 6 }} />{t('Zona tampão', 'Buffer zone')}: <strong>{U.areas.tampao} ha</strong></span>
+            </div>
+            <p className="rb-sub" style={{ marginTop: 14 }}>{t('A zona tampão é 9 vezes maior do que o bem: qualquer obra nessa área pode ter de ser avaliada quanto ao impacto no Património Mundial.', 'The buffer zone is 9 times larger than the property: any works there may require a heritage impact assessment.')}</p>
+          </div>
+        </div>
+      )}
+
+      {aba === 'conservacao' && (
+        <div className="rb-rise" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+          <div style={caixa}>
+            <div className="rb-lab" style={{ marginBottom: 10 }}>{t('Fatores que afetam o bem (2025)', 'Factors affecting the property (2025)')}</div>
+            {U.fatores2025[L].map((x: string) => <div key={x} style={{ display: 'flex', gap: 10, padding: '7px 0', fontSize: 14 }}><span style={{ color: 'var(--rb-warn)', fontWeight: 700 }}>!</span>{x}</div>)}
+            <div className="rb-lab" style={{ margin: '16px 0 8px' }}>{t('Visitantes', 'Visitors')}</div>
+            <div style={{ fontSize: 14, lineHeight: 1.55 }}>{U.visitantes[L]}</div>
+            <div className="rb-lab" style={{ margin: '16px 0 8px' }}>{t('Prevenção de incêndios', 'Fire prevention')}</div>
+            <div style={{ fontSize: 14, lineHeight: 1.55 }}>{t(`Associação Sacromontes de Braga e Guimarães: cerca de ${fmt(U.incendios.sacromontes_ha)} ha de área florestal envolvente. Faixas de gestão de combustível: ${fmt(U.incendios.faixas_ha, 1)} ha.`, `Sacromontes Association of Braga and Guimarães: about ${fmt(U.incendios.sacromontes_ha)} ha of surrounding forest. Fuel management strips: ${fmt(U.incendios.faixas_ha, 1)} ha.`)}</div>
+          </div>
+          <div style={caixa}>
+            <div className="rb-lab" style={{ marginBottom: 10 }}>{t('O que o Comité do Património Mundial pede (decisão 47 COM 7B.122, 2025)', 'What the World Heritage Committee requests (decision 47 COM 7B.122, 2025)')}</div>
+            {U.pedidos.map((x: any, i: number) => <div key={i} style={{ display: 'grid', gridTemplateColumns: '22px minmax(0,1fr)', gap: 8, padding: '8px 0', borderTop: i ? '1px solid var(--rb-line)' : 'none', fontSize: 14, lineHeight: 1.5 }}><span style={{ color: 'var(--rb-accent)', fontWeight: 700 }}>{i + 1}</span>{x[L]}</div>)}
+          </div>
+          <div style={{ ...caixa, gridColumn: '1 / -1', background: 'var(--rb-accent-bg)', border: '1px solid rgba(138,176,230,.3)' }}>
+            <div style={{ fontSize: 14.5, lineHeight: 1.6 }}>{t('Esta plataforma já responde a parte do pedido 6: os temas "Gestão de fluxos", "Acesso e estacionamento" e "Limpeza e conservação", a afluência e a evolução dos comentários desta ficha são indicadores do impacto da visitação, atualizados a partir das avaliações dos visitantes.', 'This platform already addresses part of request 6: the "Visitor flow", "Access and parking" and "Cleanliness and upkeep" themes, busyness and the review trend on this page are indicators of visitor impact, updated from visitor reviews.')}</div>
+            <div className="rb-sub" style={{ marginTop: 8 }}>{t('Grupos de indicadores em desenvolvimento para o parque e a mata: ', 'Indicator groups being developed for the park and woodland: ')}{U.indicadores[L].join(' · ')}</div>
+          </div>
+        </div>
+      )}
+
+      {aba === 'acoes' && (
+        <div className="rb-rise" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+          <div style={caixa}>
+            <div className="rb-lab" style={{ marginBottom: 10 }}>{t('Obras e intervenções', 'Works and interventions')}</div>
+            {U.acoes.map((a: any, i: number) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '14px minmax(0,1fr)', gap: 10, padding: '9px 0', borderTop: i ? '1px solid var(--rb-line)' : 'none' }}>
+                <span style={{ width: 10, height: 10, borderRadius: 999, marginTop: 5, background: a.estado === 'feito' ? 'var(--rb-good)' : 'transparent', border: `2px solid ${a.estado === 'feito' ? 'var(--rb-good)' : 'var(--rb-warn)'}` }} />
+                <div><div style={{ fontSize: 14, fontWeight: 600 }}>{a[L]}</div><div style={{ fontSize: 12.5, color: a.estado === 'feito' ? 'var(--rb-good)' : 'var(--rb-text2)', marginTop: 2 }}>{a.estado === 'feito' ? t('Concluído', 'Completed') : `${t('Previsto', 'Scheduled')}: ${a.quando}`}</div></div>
+              </div>
+            ))}
+          </div>
+          <div style={caixa}>
+            <div className="rb-lab" style={{ marginBottom: 10 }}>{t('Planos e documentos', 'Plans and documents')}</div>
+            {U.planos.map((p: any, i: number) => (
+              <div key={i} style={{ padding: '9px 0', borderTop: i ? '1px solid var(--rb-line)' : 'none' }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{p[L]}</div><div style={{ fontSize: 12.5, color: 'var(--rb-text2)', marginTop: 2 }}>{p.quando}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <p className="rb-sub">{t('Datas segundo o relatório de Portugal à UNESCO (janeiro de 2025) e a decisão do Comité (2025); confirma o ponto de situação atual com a Confraria. ', 'Dates according to Portugal’s report to UNESCO (January 2025) and the Committee decision (2025); check current status with the Confraternity. ')}{t('Fonte', 'Source')}: {U.fonte}</p>
+    </section>
+  );
+}
 
 // ─── ENTRADAS E BILHETEIRA (dados enviados pelas entidades) ────────────────
 const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -924,6 +1030,12 @@ export function FichaLocal(props: {
           <div style={{ fontSize: 14, color: 'var(--rb-text2)', lineHeight: 1.5 }}>
             {[loc.coords ? `${loc.coords[0].toFixed(4)}, ${loc.coords[1].toFixed(4)}` : '', 'Google Maps', loc.lastAnalyzed ? t(`analisado a ${dataCurta(loc.lastAnalyzed)}`, `analysed on ${dataCurta(loc.lastAnalyzed)}`) : t('ainda não analisado', 'not analysed yet')].filter(Boolean).join(' · ')}
           </div>
+          {eBomJesus(loc.name) && (
+            <a href="#rb-unesco" onClick={(e) => { e.preventDefault(); document.getElementById('rb-unesco')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="rb-glass" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginTop: 16, padding: '8px 16px 8px 8px', textDecoration: 'none', color: 'var(--rb-text)', borderRadius: 999 }}>
+              <LogoUnesco tam={36} />
+              <span style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.25 }}>{t('Património Mundial da UNESCO', 'UNESCO World Heritage')}<span style={{ display: 'block', fontSize: 12, fontWeight: 400, color: 'var(--rb-text2)' }}>{t('desde 2019 · paisagem cultural', 'since 2019 · cultural landscape')}</span></span>
+            </a>
+          )}
         </div>
       </HeroFoto>
       <div className="rb-wrap rb-enter" style={{ paddingTop: 0, animationDelay: '120ms' }}>
@@ -956,7 +1068,7 @@ export function FichaLocal(props: {
 
         {/* 5. Âncoras */}
         <nav className="rb-noprint rb-anc" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginTop: 28, paddingBottom: 12, borderBottom: '1px solid var(--rb-line)', fontSize: 14.5 }}>
-          {[['rb-resumo', t('Resumo', 'Summary')], ['rb-temas', t('Temas', 'Themes')], ['rb-comentarios', t('Pontos fortes e problemas', 'Strengths and issues')], ['rb-periodos', t('Problemas por período', 'Issues by period')], ['rb-dimensoes', t('Dimensões', 'Dimensions')], ['rb-evolucao', t('Evolução', 'Trend')], ['rb-estrelas', t('Estrelas', 'Stars')], ...(loc.afluencia?.dias?.length ? [['rb-afluencia', t('Afluência', 'Busyness')]] : []), ...(bilheteiraDe(loc.name) ? [['rb-bilheteira', t('Bilheteira', 'Box office')]] : []), ['rb-wiki', t('Interesse online', 'Online interest')], ...(loc.atributos ? [['rb-google', t('Google', 'Google')]] : []), ['rb-mercados', t('Mercados', 'Markets')], ['rb-recomendacoes', t('Sugestões', 'Suggestions')]].map(([id, lb], i) => (
+          {[['rb-resumo', t('Resumo', 'Summary')], ...(eBomJesus(loc.name) ? [['rb-unesco', 'UNESCO']] : []), ['rb-temas', t('Temas', 'Themes')], ['rb-comentarios', t('Pontos fortes e problemas', 'Strengths and issues')], ['rb-periodos', t('Problemas por período', 'Issues by period')], ['rb-dimensoes', t('Dimensões', 'Dimensions')], ['rb-evolucao', t('Evolução', 'Trend')], ['rb-estrelas', t('Estrelas', 'Stars')], ...(loc.afluencia?.dias?.length ? [['rb-afluencia', t('Afluência', 'Busyness')]] : []), ...(bilheteiraDe(loc.name) ? [['rb-bilheteira', t('Bilheteira', 'Box office')]] : []), ['rb-wiki', t('Interesse online', 'Online interest')], ...(loc.atributos ? [['rb-google', t('Google', 'Google')]] : []), ['rb-mercados', t('Mercados', 'Markets')], ['rb-recomendacoes', t('Sugestões', 'Suggestions')]].map(([id, lb], i) => (
             <button key={id} onClick={() => ir(id)} style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', color: i === 0 ? 'var(--rb-text)' : 'var(--rb-text2)', fontWeight: i === 0 ? 700 : 400, fontSize: 14.5 }}>{lb}</button>
           ))}
         </nav>
@@ -970,6 +1082,8 @@ export function FichaLocal(props: {
         )}
 
         {/* 7. Temas */}
+        {eBomJesus(loc.name) && <SecaoUnesco />}
+
         <section id="rb-temas" className="rb-sec">
           <Titulo h={temas.length ? tituloTemas : t('Temas', 'Themes')} cap={t('Comparação entre os últimos 12 meses e os 12–36 meses anteriores', 'Comparison between the last 12 months and the previous 12–36 months')} />
           {temas.length ? (
@@ -999,7 +1113,7 @@ export function FichaLocal(props: {
                     <span style={{ color: col.cor, fontWeight: 700, fontSize: 16, lineHeight: 1.4, flexShrink: 0 }}>{col.sinal}</span>
                     <span style={{ fontSize: 15, lineHeight: 1.55 }}>{p}</span>
                   </div>
-                )) : <p className="rb-sub">-</p>}
+                )) : <p className="rb-sub">—</p>}
                 {col.cit.length > 0 && (
                   <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--rb-line)' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--rb-text2)' }}>{t('Nas palavras dos visitantes', 'In visitors’ own words')}</div>
@@ -1016,7 +1130,7 @@ export function FichaLocal(props: {
           </section>
         )}
 
-        {/* Problemas por período - detalhe da leitura + números dos temas */}
+        {/* Problemas por período — detalhe da leitura + números dos temas */}
         {a && (() => {
           const per = v2?.periodos
             ? { recentes: (v2.periodos.recentes || []) as { problema: string; detalhe: string; estado: string }[], anteriores: (v2.periodos.anteriores || []) as { problema: string; detalhe: string; estado: string }[] }
@@ -1222,7 +1336,7 @@ export function FichaLocal(props: {
           </div>
         </section>
 
-        {/* 10. Sugestões (indicativas - o Município não gere o local) */}
+        {/* 10. Sugestões (indicativas — o Município não gere o local) */}
         <section id="rb-recomendacoes" className="rb-sec">
           <Titulo h={t('O que os comentários sugerem', 'What the reviews suggest')} cap={t('Possíveis melhorias identificadas pela IA a partir dos comentários dos visitantes · a título indicativo', 'Possible improvements identified by AI from visitor reviews · for guidance only')} />
           {recs.length ? (
@@ -1333,9 +1447,9 @@ export function LocaisLista(props: {
               return (
                 <tr key={o.l.id} className="rb-row" onClick={() => props.onOpen(o.l.id)}>
                   <td><div style={{ display: 'flex', gap: 16, alignItems: 'center' }}><Miniatura src={mini[o.l.id]} /><div><div style={{ fontWeight: 700 }}>{o.l.name}</div><div style={{ fontSize: 13, color: 'var(--rb-text2)' }}>{props.catLabel(o.l.category)}{props.analyzing === o.l.id ? ` · ${t('a analisar…', 'analysing…')}` : ''}</div><div className="rb-only-m" style={{ fontSize: 13, marginTop: 4, lineHeight: 1.4 }}>{situacao(o)}</div></div></div></td>
-                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>-</span> : fmt(o.x!.idx, 1)}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '-'}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '-'}</td>
+                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>—</span> : fmt(o.x!.idx, 1)}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '—'}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '—'}</td>
                   <td className="rb-hide-m" style={{ paddingLeft: 24, fontSize: 14 }}>{situacao(o)}</td>
                 </tr>
               );
@@ -1349,7 +1463,7 @@ export function LocaisLista(props: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VISÃO GERAL - o destino num relance (sem rankings)
+// VISÃO GERAL — o destino num relance (sem rankings)
 // ═══════════════════════════════════════════════════════════════════════════
 const MES_LONGO_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const MES_LONGO_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -1509,7 +1623,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
       </HeroFoto>
 
       <div className="rb-wrap" style={{ paddingTop: 20 }}>
-        {/* Turismo em Braga - o essencial do Observatório (mesmas contas; os dados não são alterados) */}
+        {/* Turismo em Braga — o essencial do Observatório (mesmas contas; os dados não são alterados) */}
         {(() => {
           const S: any = SEMESTRE_2026 as any;
           const H1 = (MESES as any[]).slice(0, 6);
@@ -1702,7 +1816,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SEPARADORES COMPLEMENTARES - Mapa, Comparar, Temas (Problemas) e Relatório
+// SEPARADORES COMPLEMENTARES — Mapa, Comparar, Temas (Problemas) e Relatório
 // Mesma identidade da Visão Geral e dos Locais; números da fonte única (numeros()).
 // ═══════════════════════════════════════════════════════════════════════════
 const ESTILO_EXTRA = `
@@ -1861,7 +1975,7 @@ export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => st
                   <span style={{ display: 'block', fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.l.name}</span>
                   <span style={{ display: 'block', fontSize: 12, color: d.al ? 'var(--rb-warn)' : 'var(--rb-text2)', marginTop: 2 }}>{d.al ? t('Alerta no último trimestre', 'Alert last quarter') : props.catLabel(d.l.category)}</span>
                 </span>
-                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '-'}</span>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '—'}</span>
               </button>
             ))}
             {dados.length > comCoords.length && <div className="rb-sub" style={{ padding: '12px 14px', marginTop: 0 }}>{t(`${dados.length - comCoords.length} locais sem coordenadas (edita o local para as indicar).`, `${dados.length - comCoords.length} places without coordinates (edit the place to add them).`)}</div>}
@@ -1917,7 +2031,7 @@ function LinhasComparadas({ series, rotulo, casas = 2, zero = false }: { series:
       {hover != null && (
         <div className="rb-tip" style={{ left: `${(X(hover) / W) * 100}%`, top: 0, transform: `translate(${hover > qs.length / 2 ? '-105%' : '5%'}, 0)` }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>{lab(qs[hover])}</div>
-          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, casas) : '-'}</strong></div>; })}
+          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, casas) : '—'}</strong></div>; })}
         </div>
       )}
     </div>
@@ -1977,7 +2091,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: CORES_CMP[i] }}>{props.catLabel(d.l.category)}</div>
                       <button onClick={() => props.onOpen(d.l.id)} style={{ background: 'none', border: 0, padding: 0, color: 'var(--rb-text)', font: 'inherit', fontSize: 17, fontWeight: 700, textAlign: 'left', cursor: 'pointer', margin: '6px 0 14px', lineHeight: 1.3 }}>{d.l.name}</button>
                       <div className="rb-lab">{t('Índice', 'Index')}</div>
-                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>-</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
+                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>—</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
                       <div className="rb-sub">{insuf ? t('Dados insuficientes', 'Insufficient data') : ''}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--rb-line)' }}>
                         <div><div className="rb-lab">{t('Média', 'Average')}</div><div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}><Conta v={d.x!.avg} d={2} /> <span style={{ color: 'var(--rb-star)', fontSize: 16 }}>★</span></div></div>
@@ -2018,7 +2132,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                           <div style={{ height: 8, background: 'var(--rb-muted)', borderRadius: 999, overflow: 'hidden' }}>
                             {typeof v === 'number' && <div className="rb-bar" style={{ width: `${v * 10}%`, height: '100%', background: CORES_CMP[i], borderRadius: 999, transitionDelay: `${i * 90}ms` }} />}
                           </div>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '-'}</span>
+                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '—'}</span>
                         </div>
                       );
                     })}
@@ -2036,7 +2150,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                   <tbody>{TEMAS.map((tm) => (
                     <tr key={tm.id} style={{ cursor: 'default' }}>
                       <td className="rb-fixa" style={{ fontWeight: 600 }}>{temaNome(tm.id)}</td>
-                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>-</span>}</td>; })}
+                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>; })}
                     </tr>
                   ))}</tbody>
                 </table>
@@ -2115,8 +2229,8 @@ export function TemasView(props: { locations: LocV[]; catLabel: (c: string) => s
                 <div className="rb-rise" style={{ marginTop: 16, background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '18px 22px' }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{temaNome(foco)}</div>
                   <div style={{ fontSize: 14, color: 'var(--rb-text2)', marginTop: 8, lineHeight: 1.6 }}>
-                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '-'}<br />
-                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '-'}
+                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '—'}<br />
+                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '—'}
                   </div>
                 </div>
               ); })()}
@@ -2246,7 +2360,7 @@ export function RelatorioView(props: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MERCADOS - procura (INE, balcão) × voz e satisfação (comentários)
+// MERCADOS — procura (INE, balcão) × voz e satisfação (comentários)
 // Só LÊ os dados do Observatório; não os altera.
 // ═══════════════════════════════════════════════════════════════════════════
 const LINGUA_PAIS: Record<string, string> = {
@@ -2337,9 +2451,9 @@ export function MercadosView(props: { locations: LocV[] }) {
                 <tr key={z.lg} className="rb-row" onClick={() => setSel(z.lg)} style={lgSel === z.lg ? { background: 'var(--rb-accent-bg)' } : undefined}>
                   <td><strong>{nomeLingua(z.lg)}</strong><div style={{ fontSize: 12, color: 'var(--rb-text2)', marginTop: 2 }}>{z.lg === 'pt' ? t(`Brasil e outros lusófonos (sem residentes em Portugal)${z.porPais.length ? ' · ' + z.porPais.map(([p2, v2]) => `${p2} ${fmt(totDorm ? (v2 / totDorm) * 100 : 0, 1)}%`).join(' · ') : ''}`, 'Brazil and other Portuguese-speaking countries (excl. residents in Portugal)') : z.porPais.length ? z.porPais.sort((a2, b2) => b2[1] - a2[1]).slice(0, 4).map(([p2, v2]) => `${p2} ${fmt(totDorm ? (v2 / totDorm) * 100 : 0, 1)}%`).join(' · ') : t('sem dormidas no top do INE', 'not in INE top markets')}</div></td>
                   <td data-label={t('Dormidas de estrangeiros · jan–jun 2026', 'Foreign stays · Jan–Jun 2026')}>{barra(z.pd, '#8AB0E6')}</td>
-                  <td data-label={t('Comentários em línguas estrangeiras', 'Reviews in foreign languages')}>{z.pr >= 0 ? barra(z.pr, '#7CC79A') : <span style={{ fontSize: 12.5, color: 'var(--rb-text2)' }}>{t('- (junta residentes em Portugal e brasileiros)', '- (mixes Portuguese residents and Brazilians)')}</span>}</td>
+                  <td data-label={t('Comentários em línguas estrangeiras', 'Reviews in foreign languages')}>{z.pr >= 0 ? barra(z.pr, '#7CC79A') : <span style={{ fontSize: 12.5, color: 'var(--rb-text2)' }}>{t('— (junta residentes em Portugal e brasileiros)', '— (mixes Portuguese residents and Brazilians)')}</span>}</td>
                   <td data-label={t('Atendimentos a estrangeiros no Posto', 'Foreign visitors at the Tourist Office')}>{barra(z.pb, '#E9C46A')}</td>
-                  <td className="n" data-label={t('Satisfação', 'Satisfaction')}>{z.avg != null && z.n >= 10 ? <><strong style={{ fontSize: 15 }}>{fmt(z.avg, 2)}</strong> <span style={{ color: 'var(--rb-star)' }}>★</span><div style={{ fontSize: 12, color: z.avg >= mediaGeral ? 'var(--rb-good)' : 'var(--rb-bad)' }}>{z.avg >= mediaGeral ? '+' : ''}{fmt(z.avg - mediaGeral, 2)} {t('vs média', 'vs average')}</div></> : <span style={{ color: 'var(--rb-text2)' }}>-</span>}</td>
+                  <td className="n" data-label={t('Satisfação', 'Satisfaction')}>{z.avg != null && z.n >= 10 ? <><strong style={{ fontSize: 15 }}>{fmt(z.avg, 2)}</strong> <span style={{ color: 'var(--rb-star)' }}>★</span><div style={{ fontSize: 12, color: z.avg >= mediaGeral ? 'var(--rb-good)' : 'var(--rb-bad)' }}>{z.avg >= mediaGeral ? '+' : ''}{fmt(z.avg - mediaGeral, 2)} {t('vs média', 'vs average')}</div></> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>
                 </tr>
               ))}</tbody>
             </table>
