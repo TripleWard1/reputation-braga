@@ -26,6 +26,8 @@ import { SIBS_PAISES, SIBS_MENSAL, SIBS_SETORES, SIBS_CONCELHOS, SIBS_PERIODO } 
 import { BILHETEIRA, BILHETEIRA_FONTE } from '@/app/lib/bilheteira-dados';
 import { AL_BRAGA, AEROPORTO_PORTO } from '@/app/lib/alojamento-aeroporto-dados';
 import { LOJAS_HISTORIA, LOJAS_HISTORIA_META } from '@/app/lib/lojas-historia-dados';
+import { RNAAT, RNAAT_FONTE } from '@/app/lib/rnaat-dados';
+import { PERFIL_TURISTA } from '@/app/lib/perfil-turista-dados';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
@@ -142,7 +144,7 @@ const OBS_CSS = `
 
 const PAL = [C.accent, C.positive, C.orange, C.purple, C.cyan, C.pink, C.info, '#6F747D'];
 
-type Tab = 'geral' | 'procura' | 'economia' | 'cartoes' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
+type Tab = 'geral' | 'procura' | 'economia' | 'cartoes' | 'perfil' | 'animacao' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; }
 
@@ -215,6 +217,8 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'procura', label: t('Procura (INE)', 'Demand (INE)') },
     { id: 'economia', label: t('Economia', 'Economy') },
     { id: 'cartoes', label: t('Gastos com cartão', 'Card spending') },
+    { id: 'perfil', label: t('Perfil do turista', 'Visitor profile') },
+    { id: 'animacao', label: t('Animação turística', 'Tourism activities') },
     { id: 'cultura', label: t('Cultura', 'Culture') },
     { id: 'lojas', label: t('Lojas com História', 'Historic Shops') },
     { id: 'alojamento', label: t('Alojamento Local', 'Short-term rentals') },
@@ -706,6 +710,8 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'digital' && <Digital />}
         {tab === 'cartoes' && <Cartoes />}
         {tab === 'cultura' && <Cultura />}
+        {tab === 'perfil' && <PerfilTurista />}
+        {tab === 'animacao' && <AnimacaoTuristica />}
         {tab === 'lojas' && <LojasHistoria />}
         {tab === 'alojamento' && <AlojamentoLocal />}
         {tab === 'aeroporto' && <Aeroporto />}
@@ -921,6 +927,176 @@ function Aeroporto() {
 }
 
 
+
+
+// Barras de percentagem (mesmo estilo das listas animadas)
+function BarrasPct({ dados, cor, max }: { dados: [string, number][]; cor: string; max?: number }) {
+  const m = max || Math.max(1, ...dados.map((d) => d[1]));
+  return (
+    <div>
+      {dados.map(([nome, v], i) => (
+        <div key={nome} style={{ margin: '9px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5 }}><span style={{ color: C.text }}>{nome}</span><strong style={{ color: C.text }}>{String(v).replace('.', ',')}%</strong></div>
+          <div style={{ height: 7, background: '#262A30', borderRadius: 999, marginTop: 4, overflow: 'hidden' }}>
+            <div className="obs-grow" style={{ width: `${(v / m) * 100}%`, height: '100%', background: cor, borderRadius: 999, animationDelay: `${i * 60}ms` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══ Perfil do turista (estudo por inquérito) — só leitura ═══
+function PerfilTurista() {
+  const P = PERFIL_TURISTA;
+  const intl = P.origem.slice(0, 4).reduce((a: number, x: any) => a + x[1], 0);
+  const espanha = P.origem[0][1] + P.origem[1][1];
+  const maxG = Math.max(...P.gastos.map((g: any) => g[2]));
+  return (
+    <>
+      <SectionTitle sub={P.fonte}>{t(`Quem visita Braga: ${Math.round(intl)}% estrangeiros, ${String(P.primeiraVisita).replace('.', ',')}% pela primeira vez, ${P.motivacao[0][1]}% em lazer`, `Who visits Braga: ${Math.round(intl)}% international, ${P.primeiraVisita}% first-timers, ${P.motivacao[0][1]}% for leisure`)}</SectionTitle>
+      <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.55, margin: '0 0 16px', padding: '10px 14px', background: 'rgba(237,160,107,.1)', border: '1px solid rgba(237,160,107,.3)', borderRadius: 6 }}>
+        {t(`Amostra de ${P.amostra} inquiridos em quatro dias de março (época baixa). Dá uma boa fotografia do visitante, mas não representa o ano inteiro: no verão o peso dos estrangeiros e das dormidas deve ser maior.`, `Sample of ${P.amostra} respondents over four days in March (low season). A good snapshot, but not representative of the whole year: in summer the share of international visitors and overnight stays is likely higher.`)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <KPI label={t('Primeira visita', 'First visit')} value={`${String(P.primeiraVisita).replace('.', ',')}%`} sub={t(`${P.voltaramMenos2Anos}% dos recorrentes voltaram em menos de 2 anos`, `${P.voltaramMenos2Anos}% of repeat visitors returned within 2 years`)} color={C.accent} />
+        <KPI label={t('Vindos de Espanha', 'From Spain')} value={`${espanha}%`} sub={t(`${P.origem[0][1]}% da Galiza`, `${P.origem[0][1]}% from Galicia`)} color={C.orange} />
+        <KPI label={t('Não pernoitaram', 'Did not stay overnight')} value={`${String(P.alojamento[0][1]).replace('.', ',')}%`} sub={t('visitas de um só dia', 'day visits only')} color={C.purple} />
+        <KPI label={t('Visitaram outras cidades', 'Visited other cities')} value={`${P.outrosDestinos.comOutros}%`} sub={t(`Porto (${P.outrosDestinos.lista[0][1]}%) e Guimarães (${P.outrosDestinos.lista[1][1]}%)`, `Porto (${P.outrosDestinos.lista[0][1]}%) and Guimarães (${P.outrosDestinos.lista[1][1]}%)`)} color={C.cyan} />
+        <KPI label={t('Planearam com IA', 'Planned with AI')} value={`${P.fontes[3][1]}%`} sub={t(`contra ${P.fontes[7][1]}% no site oficial de turismo`, `vs ${P.fontes[7][1]}% on the official tourism site`)} color={C.pink} />
+        <KPI label={t('Sem nada a apontar', 'No complaints')} value={`${100 - P.comQueixas}%`} sub={t('não indicaram nenhum aspeto negativo', 'mentioned nothing negative')} color={C.positive} />
+      </div>
+      <div style={{ padding: '16px 18px', marginBottom: 16, background: C.accentBg, border: '1px solid rgba(138,176,230,.3)', borderRadius: 6 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 }}>{t('Leituras para a gestão', 'Takeaways for management')}</div>
+        {[
+          t(`Mais de um quarto (${String(P.alojamento[0][1]).replace('.', ',')}%) não dorme em Braga: converter visitas de um dia em estadias é a maior margem de crescimento.`, `Over a quarter (${P.alojamento[0][1]}%) do not stay overnight: turning day trips into stays is the biggest growth margin.`),
+          t(`${P.fontes[3][1]}% usaram inteligência artificial para planear e só ${P.fontes[7][1]}% o site oficial: a informação de Braga tem de estar bem presente onde os assistentes de IA a vão buscar.`, `${P.fontes[3][1]}% used AI to plan and only ${P.fontes[7][1]}% the official site: Braga’s information must be present where AI assistants look for it.`),
+          t(`Entre quem apontou algo negativo, a primeira queixa é a falta de eventos e oferta cultural (${P.negativos[0][1]}%).`, `Among those with complaints, the top issue is the lack of events and cultural offer (${P.negativos[0][1]}%).`),
+          t(`Só ${P.reservas[3][1]}% reservaram atividades antes de chegar: as ${RNAAT.length} empresas de animação turística de Braga têm aqui um público por conquistar.`, `Only ${P.reservas[3][1]}% booked activities in advance: Braga’s ${RNAAT.length} tourism activity companies have an untapped audience here.`),
+        ].map((x, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr)', gap: 6, fontSize: 13.5, color: C.textMuted, lineHeight: 1.55, padding: '4px 0' }}><span style={{ color: C.accent, fontWeight: 700 }}>{i + 1}</span>{x}</div>)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('De onde vêm (%)', 'Where they come from (%)')}><BarrasPct dados={P.origem} cor={C.orange} /></Card>
+        <Card title={t('Porque vêm (%, várias respostas)', 'Why they come (%, multiple answers)')}><BarrasPct dados={P.motivacao} cor={C.accent} /></Card>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('Com quem viajam (%)', 'Who they travel with (%)')}><BarrasPct dados={P.companhia} cor={C.purple} /></Card>
+        <Card title={t(`Idade (%) · ${P.genero.homens}% homens, ${P.genero.mulheres}% mulheres`, `Age (%) · ${P.genero.homens}% men, ${P.genero.mulheres}% women`)}><BarrasPct dados={P.idade} cor={C.cyan} /></Card>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('Onde dormiram (%)', 'Where they stayed (%)')}><BarrasPct dados={P.alojamento.filter((x: any) => x[1] > 0)} cor={C.purple} /></Card>
+        <Card title={t('Como chegaram (%, várias respostas)', 'How they arrived (%, multiple answers)')}><BarrasPct dados={P.transporte} cor={C.accent} /></Card>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('Onde se informaram (%, várias respostas)', 'Information sources (%, multiple answers)')}><BarrasPct dados={P.fontes} cor={C.pink} /></Card>
+        <Card title={t('O que reservaram antes de chegar (%)', 'What they booked in advance (%)')}>
+          <BarrasPct dados={P.reservas} cor={C.orange} />
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: '18px 0 4px' }}>{t('Como organizaram a viagem (%)', 'How they organised the trip (%)')}</div>
+          <BarrasPct dados={P.organizacao} cor={C.textDim} />
+        </Card>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('O que mais gostaram (%)', 'What they liked most (%)')}><BarrasPct dados={P.positivos} cor={C.positive} /></Card>
+        <Card title={t(`O que menos gostaram · entre os ${P.comQueixas}% que apontaram algo (%)`, `What they liked least · among the ${P.comQueixas}% with complaints (%)`)}><BarrasPct dados={P.negativos} cor={C.negative} max={100} /></Card>
+      </div>
+      <Card title={t('Quanto gastam por dia, por pessoa (€, sem alojamento)', 'Daily spending per person (€, excluding accommodation)')}>
+        {P.gastos.map((g: any, i: number) => (
+          <div key={g[0]} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px, 240px) minmax(0,1fr) 90px', gap: 12, alignItems: 'center', margin: '9px 0', fontSize: 13.5 }}>
+            <span style={{ color: C.text }}>{g[0]}</span>
+            <div style={{ position: 'relative', height: 10, background: '#262A30', borderRadius: 999 }}>
+              <div className="obs-grow" style={{ position: 'absolute', left: `${(g[1] / maxG) * 100}%`, width: `${((g[2] - g[1]) / maxG) * 100}%`, top: 0, bottom: 0, background: C.accent, borderRadius: 999, animationDelay: `${i * 70}ms` }} />
+            </div>
+            <strong style={{ color: C.text, textAlign: 'right' }}>{g[1]}–{g[2]} €</strong>
+          </div>
+        ))}
+        <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.55, marginTop: 12 }}>
+          {t(`No total, entre ${P.gastoDiario[0]} € e ${P.gastoDiario[1]} € por dia, sem alojamento. O estudo de 2019 apontava ${P.estudo2019.gasto} € por dia com alojamento; somando o alojamento, o gasto atual deve ser semelhante ou superior.`, `In total, between ${P.gastoDiario[0]} € and ${P.gastoDiario[1]} € a day, excluding accommodation. The 2019 study found ${P.estudo2019.gasto} € a day including accommodation; adding accommodation, current spending is likely similar or higher.`)}
+        </div>
+      </Card>
+    </>
+  );
+}
+
+// ═══ Animação turística (RNAAT) — só leitura ═══
+function AnimacaoTuristica() {
+  const [cat, setCat] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const E = RNAAT;
+  const CATS: [string, string, string][] = [['cultural', t('Cultura e património', 'Culture and heritage'), C.accent], ['natureza', t('Ar livre e aventura', 'Outdoor and adventure'), C.positive], ['maritimo', t('Marítimo-turísticas', 'Water-based'), C.cyan], ['reconhecidas', t('Turismo de natureza reconhecido', 'Recognised nature tourism'), C.orange]];
+  const n = (k: string) => E.filter((e: any) => e.atividades[k].length).length;
+  const anos = Array.from(new Set(E.map((e) => e.ano).filter(Boolean) as number[])).sort().map((a) => ({ ano: String(a), n: E.filter((e) => e.ano === a).length }));
+  const recentes = E.filter((e) => (e.ano || 0) >= 2018).length;
+  const cont: Record<string, number> = {};
+  E.forEach((e: any) => Object.values(e.atividades).flat().forEach((x: any) => { cont[x] = (cont[x] || 0) + 1; }));
+  const top = Object.entries(cont).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([a, v]) => ({ atividade: a.length > 46 ? a.slice(0, 44) + '…' : a, v }));
+  const norm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const lista = E.filter((e: any) => (!cat || e.atividades[cat].length) && (!q || norm(`${e.nome} ${e.marca} ${Object.values(e.atividades).flat().join(' ')}`).includes(norm(q)))).sort((a, b) => (b.ano || 0) - (a.ano || 0));
+  return (
+    <>
+      <SectionTitle sub={RNAAT_FONTE}>{t(`${E.length} empresas de animação turística; ${Math.round((recentes / E.length) * 100)}% registaram-se desde 2018`, `${E.length} tourism activity companies; ${Math.round((recentes / E.length) * 100)}% registered since 2018`)}</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <KPI label={t('Empresas registadas', 'Registered companies')} value={String(E.length)} sub={t(`${recentes} desde 2018`, `${recentes} since 2018`)} color={C.text} />
+        {CATS.map(([k, nome, cor]) => <KPI key={k} label={nome} value={String(n(k))} sub={t(`${Math.round((n(k) / E.length) * 100)}% das empresas`, `${Math.round((n(k) / E.length) * 100)}% of companies`)} color={cor} />)}
+      </div>
+      <div style={{ fontSize: 13.5, color: C.textMuted, lineHeight: 1.6, margin: '0 0 16px', padding: '12px 16px', background: C.accentBg, borderRadius: 6 }}>
+        {t(`Cruzamento com o perfil do turista: só ${PERFIL_TURISTA.reservas[3][1]}% dos visitantes reservaram atividades antes de chegar. Há oferta; falta ligá-la ao visitante, por exemplo no Posto de Turismo, no site e nos assistentes de IA que ${PERFIL_TURISTA.fontes[3][1]}% já usam para planear.`, `Cross-check with the visitor profile: only ${PERFIL_TURISTA.reservas[3][1]}% of visitors booked activities in advance. The offer exists; it needs connecting to visitors, e.g. at the Tourist Office, online and in the AI assistants ${PERFIL_TURISTA.fontes[3][1]}% already use to plan.`)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('Registos por ano (empresas ativas)', 'Registrations per year (active companies)')}>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={anos} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+              <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+              <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} allowDecimals={false} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [v, t('Empresas', 'Companies')]} />
+              <Bar dataKey="n" name={t('Empresas', 'Companies')} fill={C.accent} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card title={t('Atividades mais oferecidas (n.º de empresas)', 'Most offered activities (no. of companies)')}>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={top} layout="vertical" margin={{ top: 4, right: 20, left: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+              <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} allowDecimals={false} />
+              <YAxis type="category" dataKey="atividade" width={220} stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [v, t('Empresas', 'Companies')]} />
+              <Bar dataKey="v" name={t('Empresas', 'Companies')} fill={C.positive} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+      <Card title={t(`As empresas · ${lista.length}`, `The companies · ${lista.length}`)} right={
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Procurar empresa ou atividade', 'Search company or activity')} aria-label={t('Procurar empresa ou atividade', 'Search company or activity')}
+          style={{ height: 34, padding: '0 12px', borderRadius: 999, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontFamily: 'inherit', fontSize: 13, minWidth: 220 }} />
+      }>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+          {[['', t('Todas', 'All'), C.accent] as [string, string, string], ...CATS].map(([k, nome, cor]) => (
+            <button key={k || 'todas'} onClick={() => setCat(k || null)} style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${(cat || '') === k ? cor : C.border}`, background: (cat || '') === k ? C.accentBg : 'transparent', color: (cat || '') === k ? C.text : C.textMuted }}>{nome}</button>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+          {lista.map((e: any) => (
+            <div key={e.registo + e.nome} style={{ background: C.cardAlt, border: `1px solid ${C.border}`, borderRadius: 6, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
+                <span style={{ fontSize: 14.5, fontWeight: 700, color: C.text }}>{e.marca || e.nome}</span>
+                {e.ano && <span style={{ fontSize: 12, color: C.textDim, whiteSpace: 'nowrap' }}>{t('desde', 'since')} {e.ano}</span>}
+              </div>
+              {e.marca && <div style={{ fontSize: 12, color: C.textDim, marginTop: -4 }}>{e.nome}</div>}
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                {CATS.filter(([k]) => e.atividades[k].length).map(([k, nome, cor]) => <span key={k} style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, color: cor, border: `1px solid ${cor}55` }}>{nome}</span>)}
+              </div>
+              <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.5, flex: 1 }}>{(Object.values(e.atividades).flat() as string[]).slice(0, 3).join(' · ')}{(Object.values(e.atividades).flat() as string[]).length > 3 ? ' …' : ''}</div>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12.5 }}>
+                {e.email && <a href={`mailto:${e.email}`} style={{ color: C.accent, textDecoration: 'none' }}>{e.email}</a>}
+                {e.telefone && <a href={`tel:${e.telefone}`} style={{ color: C.textMuted, textDecoration: 'none' }}>{e.telefone}</a>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </>
+  );
+}
 
 // Fotografia de cada Loja com História (guardada na base de dados; carregada só quando o cartão aparece)
 const slugLoja = (n: string) => n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 100);
