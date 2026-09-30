@@ -29,6 +29,7 @@ import { LOJAS_HISTORIA, LOJAS_HISTORIA_META } from '@/app/lib/lojas-historia-da
 import { RNAAT, RNAAT_FONTE } from '@/app/lib/rnaat-dados';
 import { PERFIL_TURISTA } from '@/app/lib/perfil-turista-dados';
 import { FERRAMENTAS_DIGITAIS } from '@/app/lib/ferramentas-digitais-dados';
+import { HOTELARIA } from '@/app/lib/hotelaria-dados';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
@@ -90,8 +91,8 @@ const OBS_CSS = `
 .obs .recharts-cartesian-axis-line, .obs .recharts-cartesian-axis-tick-line { display: none; }
 .obs .recharts-cartesian-axis-tick-value { fill: #A3A8B1; font-size: 12px; }
 .obs .recharts-bar-rectangle path { transition: filter .25s ease, opacity .25s ease; }
-.obs .recharts-bar-rectangle:hover path { filter: brightness(1.18) drop-shadow(0 6px 14px rgba(0,0,0,.4)); }
-.obs .recharts-line-curve { stroke-width: 2.6px; filter: drop-shadow(0 5px 10px rgba(0,0,0,.45)); }
+.obs .recharts-bar-rectangle:hover path { filter: brightness(1.18); }
+.obs .recharts-line-curve { stroke-width: 2.6px; }
 .obs .recharts-line-dots circle, .obs .recharts-line-dot { stroke: #1C1F24; stroke-width: 2px; }
 .obs .recharts-active-dot circle { stroke: #1C1F24; stroke-width: 3px; }
 .obs .recharts-pie-sector path { stroke: #1C1F24; stroke-width: 2px; transition: filter .25s ease; }
@@ -125,9 +126,45 @@ const OBS_CSS = `
 .obs-loja-texto { font-size: 13px; color: #A3A8B1; line-height: 1.55; flex: 1; }
 .obs-loja-corpo a { font-size: 12.5px; color: #8AB0E6; text-decoration: none; }
 @media (hover: none) { .obs-loja-acoes { opacity: 1; } }
+.obs-rnaat-linha { display: grid; grid-template-columns: minmax(200px, 300px) minmax(0,1fr); gap: 20px; padding: 14px 4px; border-bottom: 1px solid #2D3139; }
+.obs-rnaat-linha:hover { background: rgba(255,255,255,.02); }
+@media (max-width: 820px) { .obs-rnaat-linha { grid-template-columns: 1fr; gap: 8px; } }
 .obs-grow { animation: obsGrow 1.1s cubic-bezier(.2,.7,.2,1) both; transform-origin: left center; }
 @keyframes obsGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .obs .recharts-legend-item-text { color: #A3A8B1 !important; }
+.obs-grupos { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+.obs-grupo { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 15px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: #A3A8B1; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background .2s ease, color .2s ease, border-color .2s ease; }
+.obs-grupo:hover { color: #ECEDEF; background: rgba(255,255,255,.04); }
+.obs-grupo.on { background: #22324A; color: #ECEDEF; font-weight: 600; border-color: rgba(138,176,230,.35); }
+.obs-grupo.on svg { color: #8AB0E6; }
+.obs-grupo:focus-visible, .obs-sub:focus-visible, .obs-menu-m:focus-visible { outline: 2px solid #8AB0E6; outline-offset: 2px; }
+.obs-sub-in { max-width: 1760px; margin: 0 auto; padding: 0 40px; display: flex; gap: 26px; border-top: 1px solid rgba(255,255,255,.05); overflow-x: auto; scrollbar-width: none; }
+.obs-sub-in::-webkit-scrollbar { display: none; }
+.obs-sub { flex: 0 0 auto; height: 42px; padding: 0 2px; background: none; border: 0; border-bottom: 2px solid transparent; color: #A3A8B1; font: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: color .2s ease, border-color .2s ease; }
+.obs-sub:hover { color: #ECEDEF; }
+.obs-sub.on { color: #ECEDEF; font-weight: 600; border-bottom-color: #8AB0E6; }
+.obs-menu-m { display: none; }
+.obs-folha-fundo { position: fixed; inset: 0; z-index: 60; background: rgba(8,9,11,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: obsFade .2s ease both; }
+@keyframes obsFade { from { opacity: 0; } to { opacity: 1; } }
+.obs-folha { position: fixed; left: 0; right: 0; bottom: 0; max-height: 84vh; overflow-y: auto; background: #1C1F24; border-top: 1px solid #2D3139; border-radius: 18px 18px 0 0; padding: 8px 18px calc(22px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -20px 60px rgba(0,0,0,.5); animation: obsSobe .28s cubic-bezier(.2,.7,.2,1) both; font-family: 'Public Sans', system-ui, sans-serif; }
+@keyframes obsSobe { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.obs-folha-pega { width: 40px; height: 4px; border-radius: 999px; background: #3A404B; margin: 4px auto 10px; }
+.obs-folha-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: #ECEDEF; font-size: 16px; }
+.obs-folha-topo button { width: 36px; height: 36px; border-radius: 999px; border: 1px solid #2D3139; background: transparent; color: #A3A8B1; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.obs-folha-grupo { padding: 12px 0; border-top: 1px solid #2D3139; }
+.obs-folha-grupo:first-of-type { border-top: 0; }
+.obs-folha-titulo { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8AB0E6; margin-bottom: 10px; }
+.obs-folha-itens { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+.obs-folha-itens button { min-height: 44px; padding: 8px 12px; border-radius: 10px; border: 1px solid #2D3139; background: #22262D; color: #ECEDEF; font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.obs-folha-itens button.on { border-color: #8AB0E6; background: #22324A; font-weight: 600; }
+@media (max-width: 820px) {
+  .obs-grupos { display: none; }
+  .obs-menu-m { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 6px 14px; border-radius: 12px; border: 1px solid #2D3139; background: #1C1F24; color: #ECEDEF; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .obs-menu-m small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8AB0E6; margin-bottom: 1px; }
+  .obs-menu-m > svg:first-child { color: #8AB0E6; flex-shrink: 0; }
+  .obs-sub-in { padding: 0 14px; gap: 20px; }
+  .obs-sub { height: 40px; font-size: 13px; }
+}
 @media (prefers-reduced-motion: reduce) { .obs-hero-img, .obs-hero-in, .obs-body, .obs-grow { animation: none !important; } .obs-card { opacity: 1 !important; transform: none !important; transition: none !important; } }
 @media (max-width: 820px) {
   .obs-hero { min-height: 260px; }
@@ -145,7 +182,7 @@ const OBS_CSS = `
 
 const PAL = [C.accent, C.positive, C.orange, C.purple, C.cyan, C.pink, C.info, '#6F747D'];
 
-type Tab = 'geral' | 'procura' | 'economia' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
+type Tab = 'geral' | 'procura' | 'economia' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; }
 
@@ -171,47 +208,6 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     if (window.scrollY > alvo + 2) window.scrollTo({ top: alvo, behavior: 'smooth' });
   }, [tab]);
   useEffect(() => { let vivo = true; obterFotoBraga().then((x) => { if (vivo) setFoto(x); }); return () => { vivo = false; }; }, []);
-  // Camada visual: cada barra recebe um degradê da sua própria cor (a cor e os valores não mudam)
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const NS = 'http://www.w3.org/2000/svg';
-    let host = document.getElementById('obs-grad-defs');
-    if (!host) {
-      const svg = document.createElementNS(NS, 'svg');
-      svg.setAttribute('id', 'obs-grad-defs'); svg.setAttribute('width', '0'); svg.setAttribute('height', '0');
-      svg.setAttribute('style', 'position:absolute;width:0;height:0;overflow:hidden');
-      svg.appendChild(document.createElementNS(NS, 'defs'));
-      document.body.appendChild(svg);
-      host = svg as unknown as HTMLElement;
-    }
-    const defs = host.querySelector('defs')!;
-    const grad = (cor: string) => {
-      const id = 'obsg-' + cor.replace(/[^a-z0-9]/gi, '');
-      if (!document.getElementById(id)) {
-        const g = document.createElementNS(NS, 'linearGradient');
-        g.setAttribute('id', id); g.setAttribute('x1', '0'); g.setAttribute('x2', '0'); g.setAttribute('y1', '0'); g.setAttribute('y2', '1');
-        [['0%', '1'], ['100%', '0.55']].forEach(([o, op]) => { const st = document.createElementNS(NS, 'stop'); st.setAttribute('offset', o); st.setAttribute('stop-color', cor); st.setAttribute('stop-opacity', op); g.appendChild(st); });
-        defs.appendChild(g);
-      }
-      return id;
-    };
-    const aplicar = () => {
-      document.querySelectorAll('.obs .recharts-bar-rectangle path').forEach((n) => {
-        const el = n as SVGPathElement;
-        const cor = el.getAttribute('fill');
-        if (!cor || cor === 'none' || cor.startsWith('url(')) return;
-        if (el.dataset.obsc === cor) return;
-        el.style.fill = `url(#${grad(cor)})`;
-        el.dataset.obsc = cor;
-      });
-    };
-    let raf = 0;
-    const agenda = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(aplicar); };
-    agenda();
-    const mo = new MutationObserver(agenda);
-    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['fill'] });
-    return () => { mo.disconnect(); cancelAnimationFrame(raf); };
-  }, []);
 
   const TABS: { id: Tab; label: string }[] = [
     { id: 'geral', label: t('Visão Geral', 'Overview') },
@@ -222,6 +218,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'animacao', label: t('Animação turística', 'Tourism activities') },
     { id: 'cultura', label: t('Cultura', 'Culture') },
     { id: 'lojas', label: t('Lojas com História', 'Historic Shops') },
+    { id: 'hotelaria', label: t('Hotelaria', 'Hotels') },
     { id: 'alojamento', label: t('Alojamento Local', 'Short-term rentals') },
     { id: 'aeroporto', label: t('Aeroporto', 'Airport') },
     { id: 'mercados', label: t('Mercados', 'Markets') },
@@ -236,6 +233,29 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'cruzamentos', label: t('Cruzamentos', 'Cross-analysis') },
   ];
   const tabLabel = TABS.find((t) => t.id === tab)?.label || '';
+  // Separadores agrupados por tema (menu mais simples, sobretudo no telemóvel)
+  const GRUPOS: { id: string; label: string; icon: string; tabs: Tab[] }[] = [
+    { id: 'resumo', label: t('Resumo', 'Summary'), icon: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z', tabs: ['geral', 'cruzamentos'] },
+    { id: 'procura', label: t('Procura', 'Demand'), icon: 'M3 17l6-6 4 4 8-8M15 7h6v6', tabs: ['procura', 'mercados', 'aeroporto', 'caminhos'] },
+    { id: 'visitante', label: t('Visitante', 'Visitor'), icon: 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21v-1a6 6 0 0112 0v1M16 3.5a4 4 0 010 7.5M22 21v-1a6 6 0 00-4-5.6', tabs: ['perfil', 'balcao'] },
+    { id: 'economia', label: t('Economia', 'Economy'), icon: 'M18 7a7 7 0 100 10M5 10h9M5 14h9', tabs: ['economia', 'cartoes', 'taxa'] },
+    { id: 'oferta', label: t('Oferta', 'Supply'), icon: 'M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1v-9z', tabs: ['hotelaria', 'alojamento', 'animacao', 'cultura', 'lojas'] },
+    { id: 'digital', label: t('Digital', 'Digital'), icon: 'M8 2h8a2 2 0 012 2v16a2 2 0 01-2 2H8a2 2 0 01-2-2V4a2 2 0 012-2zM11 18h2', tabs: ['digital', 'ferramentas'] },
+    { id: 'territorio', label: t('Território', 'Territory'), icon: 'M5 21c0-9 6-15 16-16-1 10-7 16-16 16zM5 21l8-8', tabs: ['sustentabilidade', 'acessibilidade', 'meteo'] },
+  ];
+  const grupoAtual = GRUPOS.find((g) => g.tabs.includes(tab)) || GRUPOS[0];
+  const [ultimoDoGrupo, setUltimoDoGrupo] = useState<Record<string, Tab>>({});
+  useEffect(() => { setUltimoDoGrupo((u) => (u[grupoAtual.id] === tab ? u : { ...u, [grupoAtual.id]: tab })); }, [tab, grupoAtual.id]);
+  const irGrupo = (g: { id: string; tabs: Tab[] }) => { const u = ultimoDoGrupo[g.id]; setTab(u && g.tabs.includes(u) ? u : g.tabs[0]); };
+  const [menuAberto, setMenuAberto] = useState(false);
+  useEffect(() => {
+    if (!menuAberto) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuAberto(false); };
+    const antes = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', esc);
+    return () => { window.removeEventListener('keydown', esc); document.body.style.overflow = antes; };
+  }, [menuAberto]);
 
   const exportProcura = () => {
     const H = HEADLINE;
@@ -655,7 +675,10 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
 
   return (
     <div className="obs" style={{ background: C.bg, minHeight: '100vh', fontFamily: "'Public Sans', system-ui, sans-serif", fontVariantNumeric: 'tabular-nums', color: C.text }}>
-      <style>{OBS_CSS}</style>
+      <style>{OBS_CSS + CSS_GRAD}</style>
+      <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+        <defs>{CORES_GRAD.map((c) => <linearGradient key={c} id={gradId(c)} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={c} stopOpacity={1} /><stop offset="100%" stopColor={c} stopOpacity={0.55} /></linearGradient>)}</defs>
+      </svg>
       <div className="obs-hero">
         {(fotoTopo || foto) && <div className="obs-hero-img" style={{ backgroundImage: `url(${fotoTopo || foto})` }} />}
         <div className="obs-hero-shade" />
@@ -681,11 +704,19 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       </div>
       <div className="obs-tabs">
         <div className="obs-tabs-in">
-          <div className="obs-tabs-list">
-            {TABS.map((t) => (
-              <button key={t.id} onClick={() => setTab(t.id)} className={`obs-tab${tab === t.id ? ' on' : ''}`}>{t.label}</button>
+          <nav className="obs-grupos" aria-label={t('Grupos do Observatório', 'Observatory groups')}>
+            {GRUPOS.map((g) => (
+              <button key={g.id} className={`obs-grupo${g.id === grupoAtual.id ? ' on' : ''}`} onClick={() => irGrupo(g)} aria-current={g.id === grupoAtual.id ? 'true' : undefined}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={g.icon} /></svg>
+                {g.label}
+              </button>
             ))}
-          </div>
+          </nav>
+          <button className="obs-menu-m" onClick={() => setMenuAberto(true)} aria-haspopup="dialog">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={grupoAtual.icon} /></svg>
+            <span style={{ minWidth: 0, flex: 1, textAlign: 'left' }}><small>{grupoAtual.label}</small>{tabLabel}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
           {tab !== 'meteo' && (
             <button className="obs-pdf" onClick={() => {
               const map: Record<string, () => void> = {
@@ -698,7 +729,40 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
             }}>{t('Exportar PDF', 'Export PDF')}</button>
           )}
         </div>
+        {grupoAtual.tabs.length > 1 && (
+          <div className="obs-sub-in">
+            {grupoAtual.tabs.map((id) => (
+              <button key={id} className={`obs-sub${tab === id ? ' on' : ''}`} onClick={() => setTab(id)}>{TABS.find((x) => x.id === id)?.label}</button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {menuAberto && (
+        <div className="obs-folha-fundo" onClick={() => setMenuAberto(false)}>
+          <div className="obs-folha" role="dialog" aria-modal="true" aria-label={t('Escolher separador', 'Choose section')} onClick={(e) => e.stopPropagation()}>
+            <div className="obs-folha-pega" />
+            <div className="obs-folha-topo">
+              <strong>{t('Observatório', 'Observatory')}</strong>
+              <button onClick={() => setMenuAberto(false)} aria-label={t('Fechar', 'Close')}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+              </button>
+            </div>
+            {GRUPOS.map((g) => (
+              <div key={g.id} className="obs-folha-grupo">
+                <div className="obs-folha-titulo">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={g.icon} /></svg>{g.label}
+                </div>
+                <div className="obs-folha-itens">
+                  {g.tabs.map((id) => (
+                    <button key={id} className={tab === id ? 'on' : ''} onClick={() => { setTab(id); setMenuAberto(false); }}>{TABS.find((x) => x.id === id)?.label}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="obs-body" key={tab}>
       <div id="obs-print-area">
@@ -716,6 +780,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'ferramentas' && <FerramentasDigitais />}
         {tab === 'animacao' && <AnimacaoTuristica />}
         {tab === 'lojas' && <LojasHistoria />}
+        {tab === 'hotelaria' && <Hotelaria />}
         {tab === 'alojamento' && <AlojamentoLocal />}
         {tab === 'aeroporto' && <Aeroporto />}
         {tab === 'acessibilidade' && <Acessibilidade />}
@@ -806,6 +871,73 @@ function MapaAL({ pontos }: { pontos: number[][] }) {
     return () => { cancelado = true; if (mapa) mapa.remove(); };
   }, [pontos]);
   return <div ref={caixa} className="obs-mapa-al" style={{ height: 420, borderRadius: 6, overflow: 'hidden', border: `1px solid ${C.border}` }} />;
+}
+
+
+// ═══ Hotelaria (oferta do visitbraga.travel) — só leitura ═══
+function Hotelaria() {
+  const Hh = HOTELARIA;
+  const todos: any[] = [...Hh.hoteis.map((x: any) => ({ ...x, tipo: t('Hotel', 'Hotel') })), ...Hh.outros.map((x: any) => ({ ...x, tipo: t('Aparthotel / rural', 'Aparthotel / rural') }))];
+  const cap = todos.reduce((a, x) => a + x.capacidade, 0), uni = todos.reduce((a, x) => a + x.unidades, 0), ad = todos.reduce((a, x) => a + x.adaptadas, 0);
+  const semAd = todos.filter((x) => x.adaptadas === 0);
+  const alCap = Number((AL_BRAGA as any)?.utentes) || 0;
+  const porEst = [5, 4, 3, 2].map((e) => { const xs = Hh.hoteis.filter((x: any) => x.estrelas === e); return { cat: `${e} ★`, quartos: xs.reduce((a: number, x: any) => a + x.unidades, 0), hoteis: xs.length, adaptados: xs.reduce((a: number, x: any) => a + x.adaptadas, 0) }; }).filter((x) => x.hoteis);
+  const [ord, setOrd] = useState<'capacidade' | 'adaptadas'>('capacidade');
+  const lista = [...todos].sort((a, b) => (ord === 'capacidade' ? b.capacidade - a.capacidade : a.adaptadas / Math.max(1, a.unidades) - b.adaptadas / Math.max(1, b.unidades)));
+  const pctAd = (ad / Math.max(1, uni)) * 100;
+  return (
+    <>
+      <SectionTitle sub={Hh.fonte}>{t(`Só ${String(pctAd.toFixed(1)).replace('.', ',')}% dos quartos de hotel estão adaptados a mobilidade reduzida`, `Only ${pctAd.toFixed(1)}% of hotel rooms are adapted for reduced mobility`)}</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <KPI label={t('Estabelecimentos', 'Establishments')} value={String(todos.length)} sub={t(`${Hh.hoteis.length} hotéis · ${Hh.outros.length} aparthotéis e rurais`, `${Hh.hoteis.length} hotels · ${Hh.outros.length} aparthotels and rural`)} color={C.accent} />
+        <KPI label={t('Capacidade', 'Capacity')} value={fmt(cap)} sub={t(`${fmt(uni)} quartos / unidades`, `${fmt(uni)} rooms / units`)} color={C.purple} />
+        <KPI label={t('Quartos adaptados', 'Adapted rooms')} value={String(ad)} sub={t(`${String(pctAd.toFixed(1)).replace('.', ',')}% do total`, `${pctAd.toFixed(1)}% of the total`)} color={C.orange} />
+        <KPI label={t('Sem nenhum quarto adaptado', 'No adapted room')} value={String(semAd.length)} sub={t(`de ${todos.length} estabelecimentos`, `of ${todos.length} establishments`)} color={C.negative} />
+        {alCap > 0 && <KPI label={t('Alojamento Local (comparação)', 'Short-term rentals (comparison)')} value={fmt(alCap)} sub={t(`utentes: ${alCap > cap ? 'já supera' : 'abaixo de'} a capacidade hoteleira`, `guests: ${alCap > cap ? 'already exceeds' : 'below'} hotel capacity`)} color={C.cyan} />}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('Quartos por categoria de hotel', 'Rooms by hotel category')}>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={porEst} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+              <XAxis dataKey="cat" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
+              <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any, it: any) => [`${fmt(v)} · ${it?.payload?.hoteis} ${t('hotéis', 'hotels')} · ${it?.payload?.adaptados} ${t('adaptados', 'adapted')}`, t('Quartos', 'Rooms')]} />
+              <Bar dataKey="quartos" name={t('Quartos', 'Rooms')} fill={C.accent} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card title={t('Leitura', 'Reading')}>
+          {[
+            t(`${semAd.length} estabelecimentos não têm nenhum quarto adaptado, incluindo ${semAd.filter((x) => x.estrelas >= 4).length} de 4 ou 5 estrelas.`, `${semAd.length} establishments have no adapted room, including ${semAd.filter((x) => x.estrelas >= 4).length} with 4 or 5 stars.`),
+            t(`O Meliá (5 ★) tem ${Hh.hoteis[0].unidades} quartos e ${Hh.hoteis[0].adaptadas} adaptados; o B&B Lamaçães é o hotel com mais quartos adaptados (4).`, `The Meliá (5 ★) has ${Hh.hoteis[0].unidades} rooms and ${Hh.hoteis[0].adaptadas} adapted; B&B Lamaçães has the most adapted rooms among hotels (4).`),
+            alCap > 0 ? t(`O Alojamento Local (${fmt(alCap)} utentes) já tem mais capacidade do que estes estabelecimentos (${fmt(cap)} lugares).`, `Short-term rentals (${fmt(alCap)} guests) already have more capacity than these establishments (${fmt(cap)} places).`) : '',
+            (() => { const top5 = [...todos].sort((a, b) => b.unidades - a.unidades).slice(0, 5).reduce((a, x) => a + x.unidades, 0); const p5 = Math.round((top5 / Math.max(1, uni)) * 100); return t(`Para congressos e grupos grandes: os cinco maiores estabelecimentos concentram ${p5}% dos quartos.`, `For conferences and large groups: the five largest establishments hold ${p5}% of rooms.`); })(),
+          ].filter(Boolean).map((x, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr)', gap: 6, fontSize: 13.5, color: C.textMuted, lineHeight: 1.55, padding: '6px 0', borderTop: i ? `1px solid ${C.border}` : 'none' }}><span style={{ color: C.accent, fontWeight: 700 }}>{i + 1}</span>{x}</div>)}
+        </Card>
+      </div>
+      <Card title={t(`Todos os estabelecimentos · ${todos.length}`, `All establishments · ${todos.length}`)} right={
+        <div style={{ display: 'flex', gap: 6 }}>
+          {([['capacidade', t('Por capacidade', 'By capacity')], ['adaptadas', t('Menos adaptados primeiro', 'Least adapted first')]] as const).map(([k, nome]) => <button key={k} onClick={() => setOrd(k)} style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${ord === k ? C.accent : C.border}`, background: ord === k ? C.accentBg : 'transparent', color: ord === k ? C.text : C.textMuted }}>{nome}</button>)}
+        </div>
+      }>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5, minWidth: 560 }}>
+            <thead><tr style={{ color: C.textMuted, textAlign: 'left' }}><th style={{ padding: '8px 6px' }}>{t('Estabelecimento', 'Establishment')}</th><th style={{ padding: '8px 6px' }}>{t('Categoria', 'Category')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Capacidade', 'Capacity')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Quartos', 'Rooms')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Adaptados', 'Adapted')}</th></tr></thead>
+            <tbody>{lista.map((x) => (
+              <tr key={x.nome} style={{ borderTop: `1px solid ${C.border}` }}>
+                <td style={{ padding: '9px 6px', color: C.text, fontWeight: 600 }}>{x.nome}<div style={{ fontSize: 11.5, color: C.textDim, fontWeight: 400 }}>{x.tipo}</div></td>
+                <td style={{ padding: '9px 6px', color: '#F2C14E', whiteSpace: 'nowrap' }}>{x.estrelas ? '★'.repeat(x.estrelas) : <span style={{ color: C.textDim }}>—</span>}</td>
+                <td style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{fmt(x.capacidade)}</td>
+                <td style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{fmt(x.unidades)}</td>
+                <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 700, color: x.adaptadas === 0 ? C.negative : C.positive }}>{x.adaptadas}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </Card>
+    </>
+  );
 }
 
 // ═══ Alojamento Local (TravelBI / RNAL) — só leitura ═══
@@ -1166,7 +1298,7 @@ function AnimacaoTuristica() {
           </ResponsiveContainer>
         </Card>
       </div>
-      <Card title={t(`As empresas · ${lista.length}`, `The companies · ${lista.length}`)} right={
+      <Card title={t(`As empresas · ${lista.length} · mais recentes primeiro`, `The companies · ${lista.length} · newest first`)} right={
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Procurar empresa ou atividade', 'Search company or activity')} aria-label={t('Procurar empresa ou atividade', 'Search company or activity')}
           style={{ height: 34, padding: '0 12px', borderRadius: 999, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontFamily: 'inherit', fontSize: 13, minWidth: 220 }} />
       }>
@@ -1175,24 +1307,25 @@ function AnimacaoTuristica() {
             <button key={k || 'todas'} onClick={() => setCat(k || null)} style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${(cat || '') === k ? cor : C.border}`, background: (cat || '') === k ? C.accentBg : 'transparent', color: (cat || '') === k ? C.text : C.textMuted }}>{nome}</button>
           ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
-          {lista.map((e: any) => (
-            <div key={e.registo + e.nome} style={{ background: C.cardAlt, border: `1px solid ${C.border}`, borderRadius: 6, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
-                <span style={{ fontSize: 14.5, fontWeight: 700, color: C.text }}>{e.marca || e.nome}</span>
-                {e.ano && <span style={{ fontSize: 12, color: C.textDim, whiteSpace: 'nowrap' }}>{t('desde', 'since')} {e.ano}</span>}
+        <div style={{ borderTop: `1px solid ${C.border}` }}>
+          {lista.map((e: any) => {
+            const todas = Object.values(e.atividades).flat() as string[];
+            return (
+              <div key={e.registo + e.nome} className="obs-rnaat-linha">
+                <div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: C.text }}>{e.marca || e.nome}</div>
+                  {e.marca && <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{e.nome}</div>}
+                  <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{t('Registo', 'Registration')} {e.registo.trim()}{e.ano ? ` · ${t('desde', 'since')} ${e.ano}` : ''}</div>
+                </div>
+                <div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
+                    {CATS.filter(([k]) => e.atividades[k].length).map(([k, nome, cor]) => <span key={k} style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, color: cor, border: `1px solid ${cor}55` }}>{nome}</span>)}
+                  </div>
+                  <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.55 }}>{todas.join(' · ')}</div>
+                </div>
               </div>
-              {e.marca && <div style={{ fontSize: 12, color: C.textDim, marginTop: -4 }}>{e.nome}</div>}
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                {CATS.filter(([k]) => e.atividades[k].length).map(([k, nome, cor]) => <span key={k} style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, color: cor, border: `1px solid ${cor}55` }}>{nome}</span>)}
-              </div>
-              <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.5, flex: 1 }}>{(Object.values(e.atividades).flat() as string[]).slice(0, 3).join(' · ')}{(Object.values(e.atividades).flat() as string[]).length > 3 ? ' …' : ''}</div>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12.5 }}>
-                {e.email && <a href={`mailto:${e.email}`} style={{ color: C.accent, textDecoration: 'none' }}>{e.email}</a>}
-                {e.telefone && <a href={`tel:${e.telefone}`} style={{ color: C.textMuted, textDecoration: 'none' }}>{e.telefone}</a>}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
     </>
@@ -2216,6 +2349,11 @@ function Balcao() {
 // ─── TAXA TURÍSTICA ──────────────────────────────────────────────────────────
 // ─── SUSTENTABILIDADE ────────────────────────────────────────────────────────
 const SUS_PAL = [C.positive, C.accent, C.orange, C.purple, C.info, C.cyan, C.pink];
+
+// Degradê das barras: regras fixas por cor (aplicam-se no instante em que a barra aparece, sem piscar)
+const CORES_GRAD: string[] = Array.from(new Set([...Object.values(C), ...Object.values(YEAR_COLORS), ...PAL, ...SUS_PAL].filter((c) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c))));
+const gradId = (c: string) => 'og' + c.slice(1).toLowerCase();
+const CSS_GRAD = CORES_GRAD.map((c) => `.obs .recharts-bar-rectangle path[fill="${c}"],.obs .recharts-bar-rectangle path[fill="${c.toLowerCase()}"],.obs .recharts-bar-rectangle path[fill="${c.toUpperCase()}"]{fill:url(#${gradId(c)})}`).join('');
 
 // Ícones de traço fino para os indicadores (substituem os emojis)
 const BADGE_ICON: Record<string, string> = {

@@ -251,6 +251,10 @@ const ESTILO = `
 .rb-hero-top { position: absolute; top: 24px; left: 48px; right: 48px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
 .rb-hero-h1 { font-size: clamp(34px, 5vw, 58px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.04; margin: 12px 0 14px; text-shadow: 0 2px 24px rgba(0,0,0,.35); }
 .rb-row:hover .rb-th img { transform: scale(1.08); }
+.rb-vg-logo { position: absolute; top: 96px; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
+.rb-vg-logo img { width: clamp(240px, 34vw, 480px); height: auto; display: block; filter: drop-shadow(0 4px 18px rgba(0,0,0,.25)); }
+@media (max-width: 900px) { .rb-vg-logo { position: relative; top: auto; margin: 4px 0 22px; } .rb-vg-logo img { width: 220px; } }
+@media print { .rb-vg-logo { display: none; } }
 .rb-only-m { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .rb-sec, .rb-rise, .rb-dot { opacity: 1 !important; transform: none !important; transition: none !important; }
@@ -1601,6 +1605,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
       {/* Fotografia de Braga + números do destino em vidro */}
       <HeroFoto src={fundo} mini={FOTO_VISAO_MINI} altura={fundo ? 660 : 460}>
         {topoFoto}
+        <div className="rb-vg-logo"><img className="rb-enter" src="/visit-braga-logo.png" alt="Visit Braga" /></div>
         <div className="rb-enter" style={{ maxWidth: 880 }}>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>Braga</div>
           <h1 className="rb-hero-h1">{titulo}</h1>

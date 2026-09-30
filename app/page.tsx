@@ -148,10 +148,10 @@ const C = {
   cardHover: '#1c2030',
   border: '#252836',
   borderLight: '#2e3347',
-  accent: '#c9a84c',
-  accentLight: '#e8cc7e',
+  accent: '#8AB0E6',
+  accentLight: '#B7CDF0',
   accentDim: '#7a6428',
-  accentBg: 'rgba(201,168,76,0.12)',
+  accentBg: 'rgba(138,176,230,0.12)',
   positive: '#34d399',
   positiveBg: 'rgba(52,211,153,0.12)',
   neutral: '#fbbf24',
@@ -171,8 +171,8 @@ const C = {
   shadowSoft: '0 18px 50px -22px rgba(0,0,0,0.75)',
   cardGrad: 'linear-gradient(180deg, #181b23 0%, #14171d 100%)',
   sidebarGrad: 'linear-gradient(180deg, #0f1218 0%, #0b0d12 100%)',
-  accentGlow: 'rgba(201,168,76,0.22)',
-  appGrad: 'radial-gradient(1200px 600px at 70% -10%, rgba(201,168,76,0.05), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(96,165,250,0.04), transparent 55%), #0c0e14',
+  accentGlow: 'rgba(138,176,230,0.22)',
+  appGrad: 'radial-gradient(1200px 600px at 70% -10%, rgba(138,176,230,0.05), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(96,165,250,0.04), transparent 55%), #0c0e14',
 };
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -711,8 +711,8 @@ export default function Home() {
       body { font-family: var(--rb-body); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; letter-spacing: -0.005em; }
       h1, .rb-display { font-family: var(--rb-display); font-optical-sizing: auto; }
       h1 { letter-spacing: -0.02em !important; }
-      ::selection { background: rgba(201,168,76,0.28); color: #fff; }
-      *:focus-visible { outline: 2px solid rgba(201,168,76,0.7); outline-offset: 2px; border-radius: 4px; }
+      ::selection { background: rgba(138,176,230,0.28); color: #fff; }
+      *:focus-visible { outline: 2px solid rgba(138,176,230,0.7); outline-offset: 2px; border-radius: 4px; }
       ::-webkit-scrollbar { width: 10px; height: 10px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: #2a2e3d; border-radius: 8px; border: 2px solid #0c0e14; }
@@ -728,7 +728,7 @@ export default function Home() {
       .rb-splash-foto { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .5; animation: rbsKb 18s ease-in-out infinite alternate; }
       .rb-nav:hover { background: rgba(255,255,255,0.04) !important; color: #d8d7d2 !important; }
       .rb-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-      .rb-card:hover { border-color: rgba(201,168,76,0.35) !important; box-shadow: 0 18px 50px -22px rgba(0,0,0,0.75); }
+      .rb-card:hover { border-color: rgba(138,176,230,0.35) !important; box-shadow: 0 18px 50px -22px rgba(0,0,0,0.75); }
       @keyframes rbFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
       @keyframes rbPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
       @keyframes rbShimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
@@ -1062,7 +1062,7 @@ RULES:
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
-  :root{--ink:#1f232c;--ink2:#3a3f4b;--muted:#7c8190;--gold:#9c7d28;--goldL:#c9a84c;--paper:#ffffff;--band:#14171d;--line:#e7e3d8;--tint:#faf8f3;}
+  :root{--ink:#1f232c;--ink2:#3a3f4b;--muted:#7c8190;--gold:#3E6FB0;--goldL:#8AB0E6;--paper:#ffffff;--band:#14171d;--line:#e7e3d8;--tint:#faf8f3;}
   html,body{background:#e9e9ec;}
   body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .sheet{background:var(--paper);width:210mm;min-height:297mm;margin:0 auto;display:flex;flex-direction:column;box-shadow:0 4px 30px rgba(0,0,0,.18);}
