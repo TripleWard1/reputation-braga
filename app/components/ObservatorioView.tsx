@@ -874,7 +874,7 @@ function MapaAL({ pontos }: { pontos: number[][] }) {
 }
 
 
-// ═══ Hotelaria (oferta do visitbraga.travel) — só leitura ═══
+// ═══ Hotelaria (oferta do visitbraga.travel) - só leitura ═══
 function Hotelaria() {
   const Hh = HOTELARIA;
   const todos: any[] = [...Hh.hoteis.map((x: any) => ({ ...x, tipo: t('Hotel', 'Hotel') })), ...Hh.outros.map((x: any) => ({ ...x, tipo: t('Aparthotel / rural', 'Aparthotel / rural') }))];
@@ -927,7 +927,7 @@ function Hotelaria() {
             <tbody>{lista.map((x) => (
               <tr key={x.nome} style={{ borderTop: `1px solid ${C.border}` }}>
                 <td style={{ padding: '9px 6px', color: C.text, fontWeight: 600 }}>{x.nome}<div style={{ fontSize: 11.5, color: C.textDim, fontWeight: 400 }}>{x.tipo}</div></td>
-                <td style={{ padding: '9px 6px', color: '#F2C14E', whiteSpace: 'nowrap' }}>{x.estrelas ? '★'.repeat(x.estrelas) : <span style={{ color: C.textDim }}>—</span>}</td>
+                <td style={{ padding: '9px 6px', color: '#F2C14E', whiteSpace: 'nowrap' }}>{x.estrelas ? '★'.repeat(x.estrelas) : <span style={{ color: C.textDim }}>-</span>}</td>
                 <td style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{fmt(x.capacidade)}</td>
                 <td style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{fmt(x.unidades)}</td>
                 <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 700, color: x.adaptadas === 0 ? C.negative : C.positive }}>{x.adaptadas}</td>
@@ -940,7 +940,7 @@ function Hotelaria() {
   );
 }
 
-// ═══ Alojamento Local (TravelBI / RNAL) — só leitura ═══
+// ═══ Alojamento Local (TravelBI / RNAL) - só leitura ═══
 function AlojamentoLocal() {
   const A: any = AL_BRAGA;
   const MOD: Record<string, string> = { Apartamento: t('Apartamento', 'Apartment'), EstabelecimentoHospedagem: t('Hospedagem', 'Guesthouse'), Moradia: t('Moradia', 'House'), Quartos: t('Quartos', 'Rooms'), EstabelecimentoHospedagemHostel: 'Hostel' };
@@ -993,7 +993,7 @@ function AlojamentoLocal() {
               <Bar dataKey="n" name={t('Registos', 'Registrations')} fill={C.accent} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Só conta os estabelecimentos ainda ativos. O ano com mais registos foi ${pico?.ano} (${pico?.n}); 2024 teve apenas ${anos.find((x) => x.ano === '2024')?.n ?? '—'}, o que coincide com as restrições ao Alojamento Local de 2023–2024.`, `Only active establishments are counted. The year with most registrations was ${pico?.ano} (${pico?.n}); 2024 had only ${anos.find((x) => x.ano === '2024')?.n ?? '—'}, coinciding with the 2023–2024 restrictions on short-term rentals.`)}</div>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Só conta os estabelecimentos ainda ativos. O ano com mais registos foi ${pico?.ano} (${pico?.n}); 2024 teve apenas ${anos.find((x) => x.ano === '2024')?.n ?? '-'}, o que coincide com as restrições ao Alojamento Local de 2023–2024.`, `Only active establishments are counted. The year with most registrations was ${pico?.ano} (${pico?.n}); 2024 had only ${anos.find((x) => x.ano === '2024')?.n ?? '-'}, coinciding with the 2023–2024 restrictions on short-term rentals.`)}</div>
         </Card>
         <Card title={t('Por modalidade', 'By type')}>
           <ResponsiveContainer width="100%" height={280}>
@@ -1011,7 +1011,7 @@ function AlojamentoLocal() {
   );
 }
 
-// ═══ Aeroporto do Porto (INE) — só leitura; cruzado com as dormidas de Braga ═══
+// ═══ Aeroporto do Porto (INE) - só leitura; cruzado com as dormidas de Braga ═══
 function Aeroporto() {
   const M = AEROPORTO_PORTO.meses;
   const MC = [t('jan', 'Jan'), t('fev', 'Feb'), t('mar', 'Mar'), t('abr', 'Apr'), t('mai', 'May'), t('jun', 'Jun'), t('jul', 'Jul'), t('ago', 'Aug'), t('set', 'Sep'), t('out', 'Oct'), t('nov', 'Nov'), t('dez', 'Dec')];
@@ -1049,7 +1049,7 @@ function Aeroporto() {
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} interval={2} />
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '—' : `${String(v).replace('.', ',')}%`, n]} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '-' : `${String(v).replace('.', ',')}%`, n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Line type="monotone" dataKey="aeroporto" name={t('Aeroporto do Porto', 'Porto airport')} stroke={C.accent} strokeWidth={2} dot={false} connectNulls />
             <Line type="monotone" dataKey="braga" name={t('Dormidas em Braga', 'Braga overnight stays')} stroke={C.orange} strokeWidth={2} dot={false} connectNulls />
@@ -1082,7 +1082,7 @@ function BarrasPct({ dados, cor, max }: { dados: [string, number][]; cor: string
 }
 
 
-// ═══ Ferramentas digitais: TOMI, SmartGuide e Super Fan — só leitura ═══
+// ═══ Ferramentas digitais: TOMI, SmartGuide e Super Fan - só leitura ═══
 function FerramentasDigitais() {
   const F = FERRAMENTAS_DIGITAIS;
   const [ano, setAno] = useState<'2025' | '2026'>('2026');
@@ -1179,7 +1179,7 @@ function FerramentasDigitais() {
   );
 }
 
-// ═══ Perfil do turista (estudo por inquérito) — só leitura ═══
+// ═══ Perfil do turista (estudo por inquérito) - só leitura ═══
 function PerfilTurista() {
   const P = PERFIL_TURISTA;
   const intl = P.origem.slice(0, 4).reduce((a: number, x: any) => a + x[1], 0);
@@ -1250,7 +1250,7 @@ function PerfilTurista() {
   );
 }
 
-// ═══ Animação turística (RNAAT) — só leitura ═══
+// ═══ Animação turística (RNAAT) - só leitura ═══
 function AnimacaoTuristica() {
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState('');
@@ -1395,7 +1395,7 @@ function CartaoLoja({ l, ano }: { l: { nome: string; ano: number | null; morada:
   );
 }
 
-// ═══ Lojas com História (rede municipal) — só leitura ═══
+// ═══ Lojas com História (rede municipal) - só leitura ═══
 function LojasHistoria() {
   const [setor, setSetor] = useState<string | null>(null);
   const [q, setQ] = useState('');
@@ -1463,7 +1463,7 @@ function LojasHistoria() {
   );
 }
 
-// ═══ Cultura: bilheteira do Theatro Circo, gnration e BMA (FazCultura) — só leitura ═══
+// ═══ Cultura: bilheteira do Theatro Circo, gnration e BMA (FazCultura) - só leitura ═══
 function Cultura() {
   const ents = ['theatro circo', 'gnration', 'bma'].filter((k) => BILHETEIRA[k]);
   const CORES_E: Record<string, string> = { 'theatro circo': C.accent, gnration: C.positive, bma: C.orange };
@@ -1531,10 +1531,10 @@ function Cultura() {
   );
 }
 
-// ═══ Gastos com cartão (SIBS Analytics) — só leitura dos dados exportados ═══
+// ═══ Gastos com cartão (SIBS Analytics) - só leitura dos dados exportados ═══
 function Cartoes() {
   const me = (v: number) => `${(v / 1e6).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} M€`;
-  const pct = (v: number | null | undefined) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })}%`);
+  const pct = (v: number | null | undefined) => (v == null ? '-' : `${v >= 0 ? '+' : ''}${v.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })}%`);
   const paises = [...SIBS_PAISES].filter((p) => p.valor > 0).sort((a, b) => b.valor - a.valor);
   const totEst = paises.reduce((s2, p) => s2 + p.valor, 0);
   const nEst = paises.reduce((s2, p) => s2 + (p.n || 0), 0);
@@ -1571,7 +1571,7 @@ function Cartoes() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
         <KPI label={t('Gasto com cartões estrangeiros', 'Foreign card spending')} value={me(totEst)} sub={braga ? t(`${((totEst / braga.valor) * 100).toLocaleString('pt-PT', { maximumFractionDigits: 1 })}% de todo o gasto com cartão em Braga`, `${((totEst / braga.valor) * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}% of all card spending in Braga`) : ''} color={C.accent} />
         <KPI label={t('Operações', 'Transactions')} value={fmt(nEst)} sub={t(`valor médio ${(totEst / Math.max(1, nEst)).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} €`, `average ${(totEst / Math.max(1, nEst)).toLocaleString('en-GB', { maximumFractionDigits: 1 })} €`)} color={C.info} />
-        <KPI label={t('Maior país', 'Top country')} value={dl(paises[0]?.pais || '—')} sub={paises[0] ? `${me(paises[0].valor)} · ${pct(paises[0].varValor)} ${t('homólogo', 'YoY')}` : ''} color={C.positive} />
+        <KPI label={t('Maior país', 'Top country')} value={dl(paises[0]?.pais || '-')} sub={paises[0] ? `${me(paises[0].valor)} · ${pct(paises[0].varValor)} ${t('homólogo', 'YoY')}` : ''} color={C.positive} />
         <KPI label={t('Países com forte emigração portuguesa', 'Countries with large Portuguese diaspora')} value={`${Math.round((diaspora / Math.max(1, totEst)) * 100)}%`} sub={t('do gasto estrangeiro (França, Suíça, Luxemburgo, Alemanha, Bélgica, Andorra, Reino Unido)', 'of foreign spending (France, Switzerland, Luxembourg, Germany, Belgium, Andorra, UK)')} color={C.orange} />
         {braga && <KPI label={t('Braga entre os concelhos', 'Braga among municipalities')} value={`${posBraga}.º`} sub={t(`${me(braga.valor)} com todos os cartões · ${pct(braga.varValor)} homólogo`, `${me(braga.valor)} with all cards · ${pct(braga.varValor)} YoY`)} color={C.purple} />}
       </div>
@@ -1648,7 +1648,7 @@ function Cartoes() {
             <thead><tr style={{ color: C.textMuted, textAlign: 'left' }}><th style={{ padding: '8px 6px' }}>{t('Concelho', 'Municipality')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Gasto', 'Spending')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Operações', 'Transactions')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Valor médio', 'Average')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Homólogo', 'YoY')}</th></tr></thead>
             <tbody>{comp.map((c) => (
               <tr key={c.concelho} style={{ borderTop: `1px solid ${C.border}`, fontWeight: c.concelho.trim().toLowerCase() === 'braga' ? 700 : 400, color: c.concelho.trim().toLowerCase() === 'braga' ? C.accentLight : C.text }}>
-                <td style={{ padding: '9px 6px' }}>{c.concelho.trim()}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{me(c.valor)}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.n ? fmt(c.n) : '—'}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.medio ? `${String(c.medio).replace('.', ',')} €` : '—'}</td><td style={{ padding: '9px 6px', textAlign: 'right', color: (c.varValor || 0) >= 0 ? C.positive : C.negative }}>{pct(c.varValor)}</td>
+                <td style={{ padding: '9px 6px' }}>{c.concelho.trim()}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{me(c.valor)}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.n ? fmt(c.n) : '-'}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.medio ? `${String(c.medio).replace('.', ',')} €` : '-'}</td><td style={{ padding: '9px 6px', textAlign: 'right', color: (c.varValor || 0) >= 0 ? C.positive : C.negative }}>{pct(c.varValor)}</td>
               </tr>
             ))}</tbody>
           </table>
