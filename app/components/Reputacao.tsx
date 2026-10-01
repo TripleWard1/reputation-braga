@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REPUTAÇÃO - Visão Geral, lista de Locais e Ficha do local
+// REPUTAÇÃO — Visão Geral, lista de Locais e Ficha do local
 // Segue o mockup aprovado (versão escura). Na impressão/PDF usa a versão clara.
 // Todos os números vêm de app/lib/temas.ts → numeros() (fonte única).
 // ═══════════════════════════════════════════════════════════════════════════
@@ -333,7 +333,7 @@ function Faixa({ x, a }: { x: Numeros | null; a?: any }) {
     <div className="rb-strip rb-rise">
       <div>
         <div className="rb-lab">{t('Índice de reputação', 'Reputation index')}</div>
-        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>-</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
+        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>—</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
         <div className="rb-sub">{insuf ? t(`Dados insuficientes · menos de ${MIN_ROBUSTO} avaliações`, `Insufficient data · fewer than ${MIN_ROBUSTO} reviews`) : `${x.robustez === 'alta' ? t('Robustez alta', 'High robustness') : t('Robustez média', 'Medium robustness')} · ${fmt(x.textN)} ${t('com texto', 'with text')}`}{x.basis === 'ia' ? ` · ${t('estimado pela IA', 'AI estimate')}` : ''}</div>
       </div>
       <div>
@@ -568,7 +568,7 @@ function MercadosDetalhe({ lista }: { lista: Mercado[] }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr)', gap: '8px 12px', marginTop: 10, alignItems: 'start' }}>
             <span style={{ fontSize: 13, color: 'var(--rb-good)', fontWeight: 700, paddingTop: 3 }}>{t('Valoriza', 'Values')}</span>
-            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>-</span>}</div>
+            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>—</span>}</div>
             <span style={{ fontSize: 13, color: 'var(--rb-bad)', fontWeight: 700, paddingTop: 3 }}>{t('Critica', 'Criticises')}</span>
             <div>{m.critica.length ? m.critica.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-bad)', 'var(--rb-bad-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>{t('sem críticas relevantes', 'no relevant criticism')}</span>}</div>
           </div>
@@ -627,7 +627,7 @@ function AfluenciaMapa({ a }: { a: Afluencia }) {
 
 
 
-// ─── PATRIMÓNIO MUNDIAL (só no Bom Jesus) - informação técnica, sem história ─────
+// ─── PATRIMÓNIO MUNDIAL (só no Bom Jesus) — informação técnica, sem história ─────
 const eBomJesus = (nome: string) => /bom jesus/i.test(nome);
 function LogoUnesco({ tam = 56 }: { tam?: number }) {
   return (
@@ -1117,7 +1117,7 @@ export function FichaLocal(props: {
                     <span style={{ color: col.cor, fontWeight: 700, fontSize: 16, lineHeight: 1.4, flexShrink: 0 }}>{col.sinal}</span>
                     <span style={{ fontSize: 15, lineHeight: 1.55 }}>{p}</span>
                   </div>
-                )) : <p className="rb-sub">-</p>}
+                )) : <p className="rb-sub">—</p>}
                 {col.cit.length > 0 && (
                   <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--rb-line)' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--rb-text2)' }}>{t('Nas palavras dos visitantes', 'In visitors’ own words')}</div>
@@ -1134,7 +1134,7 @@ export function FichaLocal(props: {
           </section>
         )}
 
-        {/* Problemas por período - detalhe da leitura + números dos temas */}
+        {/* Problemas por período — detalhe da leitura + números dos temas */}
         {a && (() => {
           const per = v2?.periodos
             ? { recentes: (v2.periodos.recentes || []) as { problema: string; detalhe: string; estado: string }[], anteriores: (v2.periodos.anteriores || []) as { problema: string; detalhe: string; estado: string }[] }
@@ -1340,7 +1340,7 @@ export function FichaLocal(props: {
           </div>
         </section>
 
-        {/* 10. Sugestões (indicativas - o Município não gere o local) */}
+        {/* 10. Sugestões (indicativas — o Município não gere o local) */}
         <section id="rb-recomendacoes" className="rb-sec">
           <Titulo h={t('O que os comentários sugerem', 'What the reviews suggest')} cap={t('Possíveis melhorias identificadas pela IA a partir dos comentários dos visitantes · a título indicativo', 'Possible improvements identified by AI from visitor reviews · for guidance only')} />
           {recs.length ? (
@@ -1451,9 +1451,9 @@ export function LocaisLista(props: {
               return (
                 <tr key={o.l.id} className="rb-row" onClick={() => props.onOpen(o.l.id)}>
                   <td><div style={{ display: 'flex', gap: 16, alignItems: 'center' }}><Miniatura src={mini[o.l.id]} /><div><div style={{ fontWeight: 700 }}>{o.l.name}</div><div style={{ fontSize: 13, color: 'var(--rb-text2)' }}>{props.catLabel(o.l.category)}{props.analyzing === o.l.id ? ` · ${t('a analisar…', 'analysing…')}` : ''}</div><div className="rb-only-m" style={{ fontSize: 13, marginTop: 4, lineHeight: 1.4 }}>{situacao(o)}</div></div></div></td>
-                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>-</span> : fmt(o.x!.idx, 1)}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '-'}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '-'}</td>
+                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>—</span> : fmt(o.x!.idx, 1)}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '—'}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '—'}</td>
                   <td className="rb-hide-m" style={{ paddingLeft: 24, fontSize: 14 }}>{situacao(o)}</td>
                 </tr>
               );
@@ -1467,7 +1467,7 @@ export function LocaisLista(props: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VISÃO GERAL - o destino num relance (sem rankings)
+// VISÃO GERAL — o destino num relance (sem rankings)
 // ═══════════════════════════════════════════════════════════════════════════
 const MES_LONGO_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const MES_LONGO_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -1628,7 +1628,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
       </HeroFoto>
 
       <div className="rb-wrap" style={{ paddingTop: 20 }}>
-        {/* Turismo em Braga - o essencial do Observatório (mesmas contas; os dados não são alterados) */}
+        {/* Turismo em Braga — o essencial do Observatório (mesmas contas; os dados não são alterados) */}
         {(() => {
           const S: any = SEMESTRE_2026 as any;
           const H1 = (MESES as any[]).slice(0, 6);
@@ -1821,7 +1821,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SEPARADORES COMPLEMENTARES - Mapa, Comparar, Temas (Problemas) e Relatório
+// SEPARADORES COMPLEMENTARES — Mapa, Comparar, Temas (Problemas) e Relatório
 // Mesma identidade da Visão Geral e dos Locais; números da fonte única (numeros()).
 // ═══════════════════════════════════════════════════════════════════════════
 const ESTILO_EXTRA = `
@@ -1980,7 +1980,7 @@ export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => st
                   <span style={{ display: 'block', fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.l.name}</span>
                   <span style={{ display: 'block', fontSize: 12, color: d.al ? 'var(--rb-warn)' : 'var(--rb-text2)', marginTop: 2 }}>{d.al ? t('Alerta no último trimestre', 'Alert last quarter') : props.catLabel(d.l.category)}</span>
                 </span>
-                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '-'}</span>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '—'}</span>
               </button>
             ))}
             {dados.length > comCoords.length && <div className="rb-sub" style={{ padding: '12px 14px', marginTop: 0 }}>{t(`${dados.length - comCoords.length} locais sem coordenadas (edita o local para as indicar).`, `${dados.length - comCoords.length} places without coordinates (edit the place to add them).`)}</div>}
@@ -2036,7 +2036,7 @@ function LinhasComparadas({ series, rotulo, casas = 2, zero = false }: { series:
       {hover != null && (
         <div className="rb-tip" style={{ left: `${(X(hover) / W) * 100}%`, top: 0, transform: `translate(${hover > qs.length / 2 ? '-105%' : '5%'}, 0)` }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>{lab(qs[hover])}</div>
-          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, casas) : '-'}</strong></div>; })}
+          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, casas) : '—'}</strong></div>; })}
         </div>
       )}
     </div>
@@ -2096,7 +2096,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: CORES_CMP[i] }}>{props.catLabel(d.l.category)}</div>
                       <button onClick={() => props.onOpen(d.l.id)} style={{ background: 'none', border: 0, padding: 0, color: 'var(--rb-text)', font: 'inherit', fontSize: 17, fontWeight: 700, textAlign: 'left', cursor: 'pointer', margin: '6px 0 14px', lineHeight: 1.3 }}>{d.l.name}</button>
                       <div className="rb-lab">{t('Índice', 'Index')}</div>
-                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>-</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
+                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>—</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
                       <div className="rb-sub">{insuf ? t('Dados insuficientes', 'Insufficient data') : ''}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--rb-line)' }}>
                         <div><div className="rb-lab">{t('Média', 'Average')}</div><div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}><Conta v={d.x!.avg} d={2} /> <span style={{ color: 'var(--rb-star)', fontSize: 16 }}>★</span></div></div>
@@ -2137,7 +2137,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                           <div style={{ height: 8, background: 'var(--rb-muted)', borderRadius: 999, overflow: 'hidden' }}>
                             {typeof v === 'number' && <div className="rb-bar" style={{ width: `${v * 10}%`, height: '100%', background: CORES_CMP[i], borderRadius: 999, transitionDelay: `${i * 90}ms` }} />}
                           </div>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '-'}</span>
+                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '—'}</span>
                         </div>
                       );
                     })}
@@ -2155,7 +2155,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                   <tbody>{TEMAS.map((tm) => (
                     <tr key={tm.id} style={{ cursor: 'default' }}>
                       <td className="rb-fixa" style={{ fontWeight: 600 }}>{temaNome(tm.id)}</td>
-                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>-</span>}</td>; })}
+                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>; })}
                     </tr>
                   ))}</tbody>
                 </table>
@@ -2234,8 +2234,8 @@ export function TemasView(props: { locations: LocV[]; catLabel: (c: string) => s
                 <div className="rb-rise" style={{ marginTop: 16, background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '18px 22px' }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{temaNome(foco)}</div>
                   <div style={{ fontSize: 14, color: 'var(--rb-text2)', marginTop: 8, lineHeight: 1.6 }}>
-                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '-'}<br />
-                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '-'}
+                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '—'}<br />
+                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '—'}
                   </div>
                 </div>
               ); })()}
@@ -2365,7 +2365,7 @@ export function RelatorioView(props: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MERCADOS - procura (INE, balcão) × voz e satisfação (comentários)
+// MERCADOS — procura (INE, balcão) × voz e satisfação (comentários)
 // Só LÊ os dados do Observatório; não os altera.
 // ═══════════════════════════════════════════════════════════════════════════
 const LINGUA_PAIS: Record<string, string> = {
@@ -2456,9 +2456,9 @@ export function MercadosView(props: { locations: LocV[] }) {
                 <tr key={z.lg} className="rb-row" onClick={() => setSel(z.lg)} style={lgSel === z.lg ? { background: 'var(--rb-accent-bg)' } : undefined}>
                   <td><strong>{nomeLingua(z.lg)}</strong><div style={{ fontSize: 12, color: 'var(--rb-text2)', marginTop: 2 }}>{z.lg === 'pt' ? t(`Brasil e outros lusófonos (sem residentes em Portugal)${z.porPais.length ? ' · ' + z.porPais.map(([p2, v2]) => `${p2} ${fmt(totDorm ? (v2 / totDorm) * 100 : 0, 1)}%`).join(' · ') : ''}`, 'Brazil and other Portuguese-speaking countries (excl. residents in Portugal)') : z.porPais.length ? z.porPais.sort((a2, b2) => b2[1] - a2[1]).slice(0, 4).map(([p2, v2]) => `${p2} ${fmt(totDorm ? (v2 / totDorm) * 100 : 0, 1)}%`).join(' · ') : t('sem dormidas no top do INE', 'not in INE top markets')}</div></td>
                   <td data-label={t('Dormidas de estrangeiros · jan–jun 2026', 'Foreign stays · Jan–Jun 2026')}>{barra(z.pd, '#8AB0E6')}</td>
-                  <td data-label={t('Comentários em línguas estrangeiras', 'Reviews in foreign languages')}>{z.pr >= 0 ? barra(z.pr, '#7CC79A') : <span style={{ fontSize: 12.5, color: 'var(--rb-text2)' }}>{t('- (junta residentes em Portugal e brasileiros)', '- (mixes Portuguese residents and Brazilians)')}</span>}</td>
+                  <td data-label={t('Comentários em línguas estrangeiras', 'Reviews in foreign languages')}>{z.pr >= 0 ? barra(z.pr, '#7CC79A') : <span style={{ fontSize: 12.5, color: 'var(--rb-text2)' }}>{t('— (junta residentes em Portugal e brasileiros)', '— (mixes Portuguese residents and Brazilians)')}</span>}</td>
                   <td data-label={t('Atendimentos a estrangeiros no Posto', 'Foreign visitors at the Tourist Office')}>{barra(z.pb, '#E9C46A')}</td>
-                  <td className="n" data-label={t('Satisfação', 'Satisfaction')}>{z.avg != null && z.n >= 10 ? <><strong style={{ fontSize: 15 }}>{fmt(z.avg, 2)}</strong> <span style={{ color: 'var(--rb-star)' }}>★</span><div style={{ fontSize: 12, color: z.avg >= mediaGeral ? 'var(--rb-good)' : 'var(--rb-bad)' }}>{z.avg >= mediaGeral ? '+' : ''}{fmt(z.avg - mediaGeral, 2)} {t('vs média', 'vs average')}</div></> : <span style={{ color: 'var(--rb-text2)' }}>-</span>}</td>
+                  <td className="n" data-label={t('Satisfação', 'Satisfaction')}>{z.avg != null && z.n >= 10 ? <><strong style={{ fontSize: 15 }}>{fmt(z.avg, 2)}</strong> <span style={{ color: 'var(--rb-star)' }}>★</span><div style={{ fontSize: 12, color: z.avg >= mediaGeral ? 'var(--rb-good)' : 'var(--rb-bad)' }}>{z.avg >= mediaGeral ? '+' : ''}{fmt(z.avg - mediaGeral, 2)} {t('vs média', 'vs average')}</div></> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>
                 </tr>
               ))}</tbody>
             </table>
@@ -2487,3 +2487,189 @@ export function MercadosView(props: { locations: LocV[] }) {
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRODUTOS TURÍSTICOS — portefólio da Divisão (mapas, brochuras, roteiros)
+// Base fixa aqui; links e capas editáveis na própria página (Firestore: 'produtos', 'produtosCapas').
+// ═══════════════════════════════════════════════════════════════════════════
+type Lingua = 'pt' | 'es' | 'fr' | 'en' | 'pt-en';
+interface Edicao { pagina?: string; pdf?: string }
+interface ProdutoBase { id: string; nome: string; tipo: string; descricao: [string, string]; linguas: Lingua[]; base: Partial<Record<Lingua, Edicao>> }
+const PRODUTOS: ProdutoBase[] = [
+  { id: 'mapa-turistico-oficial', nome: 'Mapa Turístico Oficial de Braga', tipo: 'Mapa', descricao: ['O mapa oficial da cidade, com monumentos, museus e serviços de apoio ao visitante.', 'The official city map, with monuments, museums and visitor services.'], linguas: ['pt', 'es', 'fr', 'en'],
+    base: { pt: { pagina: 'https://visitbraga.travel/highlights/mapas-roteiros/mapa-turistico-oficial-de-braga-portugues/' } } },
+  { id: 'brochura-turistica', nome: 'Brochura Turística – Visit Braga', tipo: 'Brochura', descricao: ['A apresentação do destino: património, gastronomia, natureza e experiências.', 'The destination at a glance: heritage, food, nature and experiences.'], linguas: ['pt', 'es', 'fr', 'en'],
+    base: { pt: { pagina: 'https://visitbraga.travel/highlights/mapas-roteiros/brochura-turistica-visit-braga-pt/' } } },
+  { id: 'brochura-descobre-a-caminho', nome: 'Brochura Turística – Descobre a caMINHO', tipo: 'Brochura', descricao: ['Brochura bilingue Descobre a caMINHO, em português e inglês.', 'Bilingual Descobre a caMINHO brochure, in Portuguese and English.'], linguas: ['pt-en'],
+    base: { 'pt-en': { pagina: 'https://visitbraga.travel/highlights/mapas-roteiros/brochura-turistica-descobre-a-caminho-pt-en/' } } },
+  { id: 'roteiro-lojas-com-historia', nome: 'Roteiro Lojas com História', tipo: 'Roteiro', descricao: ['Itinerário pelas lojas centenárias e tradicionais reconhecidas pelo Município.', 'Itinerary through the centenary and traditional shops recognised by the Municipality.'], linguas: ['pt-en'],
+    base: { 'pt-en': { pagina: 'https://visitbraga.travel/highlights/mapas-roteiros/roteiro-lojas-com-historia-pt-en/' } } },
+  { id: 'roteiro-3-dias', nome: 'Roteiro Turístico – Descobrir Braga em 3 Dias', tipo: 'Roteiro', descricao: ['Três dias organizados para conhecer o essencial de Braga.', 'Three days planned to discover the best of Braga.'], linguas: ['pt', 'es', 'fr', 'en'],
+    base: { pt: { pagina: 'https://visitbraga.travel/highlights/mapas-roteiros/roteiro-descobrir-braga-em-3-dias-pt/' } } },
+  { id: 'roteiro-cidade-do-bracvs', nome: 'Roteiro Infantojuvenil – "A Cidade do Bracvs"', tipo: 'Roteiro', descricao: ['Um roteiro pensado para crianças e jovens descobrirem a cidade a brincar.', 'An itinerary designed for children and young people to discover the city through play.'], linguas: ['pt', 'es', 'en'],
+    base: { pt: { pagina: 'https://visitbraga.travel/highlights/mapas-roteiros/roteiro-infantojuvenil-a-cidade-do-bracvs/' } } },
+  { id: 'braga-after-dark', nome: 'Braga After Dark', tipo: 'Roteiro', descricao: ['A cidade à noite: cultura, gastronomia e vida noturna.', 'The city by night: culture, food and nightlife.'], linguas: ['pt-en'],
+    base: { 'pt-en': { pagina: 'https://visitbraga.travel/highlights/mapas-roteiros/roteiro-braga-after-dark/' } } },
+];
+const NOME_LINGUA: Record<Lingua, [string, string]> = { pt: ['Português', 'Portuguese'], es: ['Espanhol', 'Spanish'], fr: ['Francês', 'French'], en: ['Inglês', 'English'], 'pt-en': ['Português e inglês', 'Portuguese and English'] };
+const SIGLA: Record<Lingua, string> = { pt: 'PT', es: 'ES', fr: 'FR', en: 'EN', 'pt-en': 'PT · EN' };
+// Cor do contorno da cápsula de cada língua (PT e PT·EN mantêm o estilo da plataforma)
+const COR_LINGUA: Partial<Record<Lingua, string>> = { es: '#fff116', en: '#ee1d23', fr: '#82d2e8' };
+const urlValido = (u: string) => !u || /^https?:\/\/\S+$/i.test(u.trim());
+
+function CartaoProduto({ p, guardado, onGuardar }: { p: ProdutoBase; guardado: Partial<Record<Lingua, Edicao>>; onGuardar: (l: Lingua, e: Edicao) => Promise<void> }) {
+  const [capa, setCapa] = useState<string | null | undefined>(undefined);
+  const [pronta, setPronta] = useState(false);
+  const [aGravarCapa, setAGravarCapa] = useState(false);
+  const [editar, setEditar] = useState<Lingua | null>(null);
+  const [rasc, setRasc] = useState<Edicao>({});
+  const [erro, setErro] = useState<string | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => { getDoc(doc(db, 'produtosCapas', p.id)).then((d) => setCapa(d.exists() ? ((d.data() as any).data || null) : null)).catch(() => setCapa(null)); }, [p.id]);
+  const carregarCapa = async (fl: File) => {
+    setAGravarCapa(true);
+    try {
+      const url = URL.createObjectURL(fl);
+      let d = await reduzir(url, 1000, 0.8);
+      if (d.length > 700000) d = await reduzir(url, 900, 0.65);
+      URL.revokeObjectURL(url);
+      await setDoc(doc(db, 'produtosCapas', p.id), { data: d, atualizadoEm: new Date().toISOString() });
+      setPronta(false); setCapa(d);
+    } catch { alert(t('Não foi possível carregar a capa.', 'Could not upload the cover.')); } finally { setAGravarCapa(false); }
+  };
+  const ed = (l: Lingua): Edicao => ({ ...(p.base[l] || {}), ...(guardado[l] || {}) });
+  const abrirEdicao = (l: Lingua) => { setEditar(l); setRasc(ed(l)); setErro(null); };
+  const gravar = async () => {
+    if (!editar) return;
+    if (!urlValido(rasc.pdf || '') || !urlValido(rasc.pagina || '')) { setErro(t('Os links têm de começar por http:// ou https://', 'Links must start with http:// or https://')); return; }
+    await onGuardar(editar, { pagina: (rasc.pagina || '').trim(), pdf: (rasc.pdf || '').trim() });
+    setEditar(null);
+  };
+  const nPdf = p.linguas.filter((l) => ed(l).pdf).length;
+  return (
+    <div className="rb-produto rb-rise">
+      <div className="rb-produto-capa">
+        {capa === undefined && <div className="rb-produto-carrega" />}
+        {capa === null && <div className="rb-produto-vazio"><span>{p.tipo}</span></div>}
+        {capa && <img src={capa} alt={p.nome} onLoad={() => setPronta(true)} style={{ opacity: pronta ? 1 : 0 }} />}
+        <div className="rb-produto-fade" />
+        <span className="rb-produto-tipo">{t(p.tipo, p.tipo === 'Mapa' ? 'Map' : p.tipo === 'Brochura' ? 'Brochure' : 'Itinerary')}</span>
+        <button className="rb-produto-btncapa" disabled={aGravarCapa} onClick={() => input.current?.click()}>{aGravarCapa ? t('A guardar…', 'Saving…') : capa ? t('Mudar capa', 'Change cover') : t('+ Capa', '+ Cover')}</button>
+        <input ref={input} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const fl = e.target.files?.[0]; e.target.value = ''; if (fl) carregarCapa(fl); }} />
+      </div>
+      <div className="rb-produto-corpo">
+        <div style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.3 }}>{p.nome}</div>
+        <div style={{ fontSize: 13.5, color: 'var(--rb-text2)', lineHeight: 1.5, marginTop: 6 }}>{t(p.descricao[0], p.descricao[1])}</div>
+        <div style={{ fontSize: 12, color: nPdf === p.linguas.length ? 'var(--rb-good)' : 'var(--rb-text2)', marginTop: 10, fontWeight: 600 }}>{t(`${nPdf} de ${p.linguas.length} ${p.linguas.length === 1 ? 'edição' : 'edições'} com PDF`, `${nPdf} of ${p.linguas.length} ${p.linguas.length === 1 ? 'edition' : 'editions'} with PDF`)}</div>
+        <div style={{ marginTop: 10, borderTop: '1px solid var(--rb-line)' }}>
+          {p.linguas.map((l) => {
+            const e = ed(l);
+            return (
+              <div key={l} className="rb-produto-lingua">
+                {editar === l ? (
+                  <div style={{ display: 'grid', gap: 8, width: '100%' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{SIGLA[l]} · {t(NOME_LINGUA[l][0], NOME_LINGUA[l][1])}</div>
+                    <input className="rb-field" placeholder={t('Link do PDF (https://…)', 'PDF link (https://…)')} value={rasc.pdf || ''} onChange={(ev) => setRasc((r) => ({ ...r, pdf: ev.target.value }))} aria-label={t('Link do PDF', 'PDF link')} autoFocus />
+                    <input className="rb-field" placeholder={t('Link da página no visitbraga.travel (opcional)', 'Page link on visitbraga.travel (optional)')} value={rasc.pagina || ''} onChange={(ev) => setRasc((r) => ({ ...r, pagina: ev.target.value }))} aria-label={t('Link da página', 'Page link')} />
+                    {erro && <div style={{ fontSize: 12.5, color: 'var(--rb-warn)' }}>{erro}</div>}
+                    <div style={{ display: 'flex', gap: 6 }}><button className="rb-btn p" onClick={gravar}>{t('Guardar', 'Save')}</button><button className="rb-btn" onClick={() => setEditar(null)}>{t('Cancelar', 'Cancel')}</button></div>
+                  </div>
+                ) : (
+                  <>
+                    <span className="rb-produto-sigla" style={{ borderColor: COR_LINGUA[l] || (e.pdf ? 'rgba(124,199,154,.5)' : 'var(--rb-line)'), borderWidth: COR_LINGUA[l] ? 1.5 : 1, color: COR_LINGUA[l] || (e.pdf ? 'var(--rb-good)' : 'var(--rb-text2)') }}>{SIGLA[l]}</span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 13 }}>
+                      {e.pdf ? <a className="rb-chip" style={{ height: 30, fontSize: 12.5 }} href={e.pdf} target="_blank" rel="noopener noreferrer">{t('Descarregar PDF', 'Download PDF')} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg></a>
+                        : <span style={{ color: 'var(--rb-text2)' }}>{t('PDF por carregar', 'PDF not added yet')}</span>}
+                      {e.pagina && <a href={e.pagina} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 10, fontSize: 12.5, color: 'var(--rb-accent)', textDecoration: 'none' }}>{t('Página', 'Page')} ↗</a>}
+                    </span>
+                    <button className="rb-chip ghost" style={{ height: 30, fontSize: 12.5 }} onClick={() => abrirEdicao(l)}>{t('Editar', 'Edit')}</button>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ProdutosView() {
+  const [guardado, setGuardado] = useState<Record<string, Partial<Record<Lingua, Edicao>>>>({});
+  const [filtro, setFiltro] = useState<string | null>(null);
+  useRevelar(filtro || 'todos');
+  useEffect(() => {
+    getDocs(collection(db, 'produtos')).then((snap) => {
+      const o: Record<string, Partial<Record<Lingua, Edicao>>> = {};
+      snap.forEach((d) => { o[d.id] = ((d.data() as any).edicoes || {}) as Partial<Record<Lingua, Edicao>>; });
+      setGuardado(o);
+    }).catch(() => {});
+  }, []);
+  const guardar = async (id: string, l: Lingua, e: Edicao) => {
+    const novo = { ...(guardado[id] || {}), [l]: e };
+    await setDoc(doc(db, 'produtos', id), { edicoes: novo, atualizadoEm: new Date().toISOString() }, { merge: true });
+    setGuardado((g) => ({ ...g, [id]: novo }));
+  };
+  const ed = (p: ProdutoBase, l: Lingua): Edicao => ({ ...(p.base[l] || {}), ...((guardado[p.id] || {})[l] || {}) });
+  const edicoes = PRODUTOS.flatMap((p) => p.linguas.map((l) => ({ p, l })));
+  const comPdf = edicoes.filter(({ p, l }) => ed(p, l).pdf).length;
+  const cobertura = (['pt', 'es', 'fr', 'en'] as Lingua[]).map((l) => {
+    const total = PRODUTOS.filter((p) => p.linguas.includes(l) || p.linguas.includes('pt-en') && (l === 'pt' || l === 'en')).length;
+    const ok = PRODUTOS.filter((p) => (p.linguas.includes(l) && ed(p, l).pdf) || (p.linguas.includes('pt-en') && (l === 'pt' || l === 'en') && ed(p, 'pt-en').pdf)).length;
+    return { l, total, ok };
+  });
+  const tipos = Array.from(new Set(PRODUTOS.map((p) => p.tipo)));
+  const lista = PRODUTOS.filter((p) => !filtro || p.tipo === filtro);
+  return (
+    <div className="rbx">
+      <style>{ESTILO + ESTILO_EXTRA + ESTILO_PRODUTOS}</style>
+      <div className="rb-wrap" style={{ maxWidth: 1400 }}>
+        <Cabecalho kicker={t('Visit Braga · Divisão de Atividades Económicas e Turismo', 'Visit Braga · Economic Activities and Tourism Division')} titulo={t('Produtos turísticos', 'Tourism products')}
+          sub={t('Mapas, brochuras e roteiros criados pela Divisão nos últimos três anos, em todas as línguas disponíveis.', 'Maps, brochures and itineraries created by the Division over the last three years, in every available language.')} />
+        <section className="rb-sec" style={{ paddingTop: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+            {[
+              { l: t('Produtos', 'Products'), v: PRODUTOS.length, s: tipos.map((x) => { const n = PRODUTOS.filter((p) => p.tipo === x).length; const pt = x === 'Mapa' ? 'mapa' : x === 'Brochura' ? 'brochura' : 'roteiro'; const en = x === 'Mapa' ? 'map' : x === 'Brochura' ? 'brochure' : 'itinerary'; return `${n} ${t(n === 1 ? pt : pt + 's', n === 1 ? en : en + (en.endsWith('y') ? '' : 's')).replace('itinerarys', 'itineraries')}`; }).join(' · ') },
+              { l: t('Edições linguísticas', 'Language editions'), v: edicoes.length, s: t(`${comPdf} com PDF disponível`, `${comPdf} with PDF available`) },
+              ...cobertura.map((c) => ({ l: t(`Em ${NOME_LINGUA[c.l][0].toLowerCase()}`, `In ${NOME_LINGUA[c.l][1]}`), v: c.ok, s: t(`de ${c.total} produtos com PDF`, `of ${c.total} products with PDF`) })),
+            ].map((k, i) => (
+              <div key={i} className="rb-rise" style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '16px 18px', transitionDelay: `${i * 50}ms` }}>
+                <div className="rb-lab">{k.l}</div><div className="rb-big" style={{ fontSize: 30 }}><Conta v={k.v} /></div><div className="rb-sub">{k.s}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="rb-sec">
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+            {[null, ...tipos].map((x) => <button key={x || 'todos'} className={`rb-chip${filtro === x ? '' : ' ghost'}`} onClick={() => setFiltro(x)}>{x ? t(x === 'Roteiro' ? 'Roteiros' : x === 'Mapa' ? 'Mapas' : 'Brochuras', x === 'Roteiro' ? 'Itineraries' : x === 'Mapa' ? 'Maps' : 'Brochures') : t('Todos', 'All')}</button>)}
+          </div>
+          <div className="rb-produtos-grid">
+            {lista.map((p) => <CartaoProduto key={p.id} p={p} guardado={guardado[p.id] || {}} onGuardar={(l, e) => guardar(p.id, l, e)} />)}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+const ESTILO_PRODUTOS = `
+.rb-produtos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+.rb-produto { background: var(--rb-surface); border: 1px solid var(--rb-line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+.rb-produto:hover { transform: translateY(-3px); border-color: #3A404B; box-shadow: 0 18px 44px -20px rgba(0,0,0,.75); }
+.rb-produto-capa { position: relative; height: 230px; overflow: hidden; background: #1C1F24; }
+.rb-produto-capa img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .6s ease, transform .9s cubic-bezier(.2,.7,.2,1); }
+.rb-produto:hover .rb-produto-capa img { transform: scale(1.05); }
+.rb-produto-carrega { position: absolute; inset: 0; background: linear-gradient(90deg, #1C1F24 0%, #262A31 50%, #1C1F24 100%); background-size: 200% 100%; animation: rbBrilhoP 1.3s ease-in-out infinite; }
+@keyframes rbBrilhoP { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.rb-produto-vazio { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(420px 200px at 30% 0%, rgba(138,176,230,.16), transparent), linear-gradient(160deg, #262A31, #1C1F24); }
+.rb-produto-vazio span { font-size: 54px; font-weight: 700; color: rgba(255,255,255,.05); letter-spacing: -0.03em; }
+.rb-produto-fade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(28,31,36,0) 55%, rgba(28,31,36,.85) 100%); pointer-events: none; }
+.rb-produto-tipo { position: absolute; left: 12px; bottom: 12px; padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #ECEDEF; background: rgba(21,23,27,.62); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.rb-produto-btncapa { position: absolute; top: 12px; right: 12px; height: 30px; padding: 0 12px; border-radius: 999px; font: 600 12px 'Public Sans', system-ui, sans-serif; color: #ECEDEF; background: rgba(21,23,27,.62); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); cursor: pointer; opacity: 0; transition: opacity .2s ease; }
+.rb-produto:hover .rb-produto-btncapa, .rb-produto-vazio ~ .rb-produto-btncapa { opacity: 1; }
+.rb-produto-corpo { padding: 16px 18px 14px; flex: 1; display: flex; flex-direction: column; }
+.rb-produto-lingua { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rb-line); }
+.rb-produto-lingua:last-child { border-bottom: 0; }
+.rb-produto-sigla { flex-shrink: 0; min-width: 44px; text-align: center; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--rb-line); font-size: 11.5px; font-weight: 700; }
+@media (hover: none) { .rb-produto-btncapa { opacity: 1; } }
+@media (max-width: 600px) { .rb-produtos-grid { grid-template-columns: 1fr; } .rb-produto-capa { height: 200px; } }
+`;
