@@ -2626,17 +2626,64 @@ export function ProdutosView() {
       <div className="rb-wrap" style={{ maxWidth: 1400 }}>
         <Cabecalho kicker={t('Visit Braga · Divisão de Atividades Económicas e Turismo', 'Visit Braga · Economic Activities and Tourism Division')} titulo={t('Produtos turísticos', 'Tourism products')}
           sub={t('Mapas, brochuras e roteiros criados pela Divisão nos últimos três anos, em todas as línguas disponíveis.', 'Maps, brochures and itineraries created by the Division over the last three years, in every available language.')} />
-        <section className="rb-sec" style={{ paddingTop: 24 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
-            {[
-              { l: t('Produtos', 'Products'), v: PRODUTOS.length, s: tipos.map((x) => { const n = PRODUTOS.filter((p) => p.tipo === x).length; const pt = x === 'Mapa' ? 'mapa' : x === 'Brochura' ? 'brochura' : 'roteiro'; const en = x === 'Mapa' ? 'map' : x === 'Brochura' ? 'brochure' : 'itinerary'; return `${n} ${t(n === 1 ? pt : pt + 's', n === 1 ? en : en + (en.endsWith('y') ? '' : 's')).replace('itinerarys', 'itineraries')}`; }).join(' · ') },
-              { l: t('Edições linguísticas', 'Language editions'), v: edicoes.length, s: t(`${comPdf} com PDF disponível`, `${comPdf} with PDF available`) },
-              ...cobertura.map((c) => ({ l: t(`Em ${NOME_LINGUA[c.l][0].toLowerCase()}`, `In ${NOME_LINGUA[c.l][1]}`), v: c.ok, s: t(`de ${c.total} produtos com PDF`, `of ${c.total} products with PDF`) })),
-            ].map((k, i) => (
-              <div key={i} className="rb-rise" style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '16px 18px', transitionDelay: `${i * 50}ms` }}>
-                <div className="rb-lab">{k.l}</div><div className="rb-big" style={{ fontSize: 30 }}><Conta v={k.v} /></div><div className="rb-sub">{k.s}</div>
+        <section className="rb-sec" style={{ paddingTop: 26 }}>
+          <div className="rb-prod-resumo">
+            {/* 1. Produtos por tipo */}
+            <div className="rb-prod-bloco rb-rise">
+              <div className="rb-lab">{t('Produtos criados', 'Products created')}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '6px 0 16px' }}>
+                <span className="rb-big" style={{ fontSize: 52 }}><Conta v={PRODUTOS.length} /></span>
+                <span style={{ color: 'var(--rb-text2)', fontSize: 14 }}>{t('nos últimos três anos', 'in the last three years')}</span>
               </div>
-            ))}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {tipos.map((x) => {
+                  const n = PRODUTOS.filter((p) => p.tipo === x).length;
+                  const ic = x === 'Mapa' ? 'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14' : x === 'Brochura' ? 'M2 5h7a3 3 0 013 3v13a2 2 0 00-2-2H2zM22 5h-7a3 3 0 00-3 3v13a2 2 0 012-2h8z' : 'M6 19a2 2 0 100-4 2 2 0 000 4zM18 9a2 2 0 100-4 2 2 0 000 4zM6 15V9a4 4 0 014-4h2M18 9v6a4 4 0 01-4 4h-2';
+                  const nome = x === 'Mapa' ? t(n === 1 ? 'mapa' : 'mapas', n === 1 ? 'map' : 'maps') : x === 'Brochura' ? t(n === 1 ? 'brochura' : 'brochuras', n === 1 ? 'brochure' : 'brochures') : t(n === 1 ? 'roteiro' : 'roteiros', n === 1 ? 'itinerary' : 'itineraries');
+                  return (
+                    <button key={x} className={`rb-prod-tipo${filtro === x ? ' on' : ''}`} onClick={() => setFiltro(filtro === x ? null : x)} title={t('Filtrar', 'Filter')}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ic} /></svg>
+                      <strong>{n}</strong> {nome}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Edições com PDF (anel) */}
+            <div className="rb-prod-bloco rb-rise" style={{ transitionDelay: '80ms', display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ position: 'relative', width: 112, height: 112, flexShrink: 0 }}>
+                <svg width="112" height="112" viewBox="0 0 112 112" aria-hidden="true">
+                  <circle cx="56" cy="56" r="46" fill="none" stroke="var(--rb-muted)" strokeWidth="9" />
+                  <circle className="rb-prod-anel" cx="56" cy="56" r="46" fill="none" stroke={comPdf === edicoes.length ? 'var(--rb-good)' : 'var(--rb-accent)'} strokeWidth="9" strokeLinecap="round" pathLength={100} strokeDasharray={`${(comPdf / Math.max(1, edicoes.length)) * 100} 100`} transform="rotate(-90 56 56)" />
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 26, fontWeight: 700, lineHeight: 1 }}><Conta v={Math.round((comPdf / Math.max(1, edicoes.length)) * 100)} />%</span>
+                </div>
+              </div>
+              <div>
+                <div className="rb-lab">{t('Edições com PDF', 'Editions with PDF')}</div>
+                <div style={{ fontSize: 30, fontWeight: 700, margin: '4px 0 6px', letterSpacing: '-0.02em' }}><Conta v={comPdf} /> <span style={{ fontSize: 18, color: 'var(--rb-text2)', fontWeight: 500 }}>/ {edicoes.length}</span></div>
+                <div className="rb-sub" style={{ marginTop: 0 }}>{comPdf === edicoes.length ? t('Todas as edições têm o PDF disponível para descarregar.', 'Every edition has a downloadable PDF.') : t(`Faltam ${edicoes.length - comPdf} PDFs por carregar.`, `${edicoes.length - comPdf} PDFs still to add.`)}</div>
+              </div>
+            </div>
+
+            {/* 3. Cobertura por língua */}
+            <div className="rb-prod-bloco rb-rise" style={{ transitionDelay: '160ms' }}>
+              <div className="rb-lab" style={{ marginBottom: 12 }}>{t('Disponível em', 'Available in')}</div>
+              {cobertura.map((c, i) => {
+                const cor = COR_LINGUA[c.l] || 'var(--rb-accent)';
+                return (
+                  <div key={c.l} style={{ display: 'grid', gridTemplateColumns: '38px minmax(0,1fr) 42px', gap: 12, alignItems: 'center', margin: '9px 0' }}>
+                    <span className="rb-produto-sigla" style={{ borderColor: cor, borderWidth: 1.5, color: cor, minWidth: 38 }}>{SIGLA[c.l]}</span>
+                    <div style={{ height: 8, background: 'var(--rb-muted)', borderRadius: 999, overflow: 'hidden' }} title={t(NOME_LINGUA[c.l][0], NOME_LINGUA[c.l][1])}>
+                      <div className="rb-bar" style={{ width: `${(c.ok / Math.max(1, c.total)) * 100}%`, height: '100%', background: cor, borderRadius: 999, transitionDelay: `${200 + i * 90}ms` }} />
+                    </div>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{c.ok}<span style={{ color: 'var(--rb-text2)', fontWeight: 500 }}>/{c.total}</span></span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
         <section className="rb-sec">
@@ -2652,6 +2699,16 @@ export function ProdutosView() {
   );
 }
 const ESTILO_PRODUTOS = `
+.rb-prod-resumo { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.1fr); gap: 14px; }
+.rb-prod-bloco { background: var(--rb-surface); border: 1px solid var(--rb-line); border-radius: 10px; padding: 20px 22px; position: relative; overflow: hidden; }
+.rb-prod-bloco::before { content: ''; position: absolute; inset: 0; background: radial-gradient(360px 140px at 0% 0%, rgba(138,176,230,.08), transparent); pointer-events: none; }
+.rb-prod-tipo { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--rb-line); background: rgba(255,255,255,.02); color: var(--rb-text2); font: inherit; font-size: 13px; cursor: pointer; transition: border-color .2s ease, color .2s ease, background .2s ease; }
+.rb-prod-tipo strong { color: var(--rb-text); font-size: 14px; }
+.rb-prod-tipo svg { color: var(--rb-accent); }
+.rb-prod-tipo:hover, .rb-prod-tipo.on { border-color: var(--rb-accent); color: var(--rb-text); background: var(--rb-accent-bg); }
+.rb-prod-anel { animation: rbAnelP 1.5s cubic-bezier(.2,.7,.2,1) .2s both; }
+@keyframes rbAnelP { from { stroke-dasharray: 0 100; } }
+@media (max-width: 1000px) { .rb-prod-resumo { grid-template-columns: 1fr; } }
 .rb-produtos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
 .rb-produto { background: var(--rb-surface); border: 1px solid var(--rb-line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
 .rb-produto:hover { transform: translateY(-3px); border-color: #3A404B; box-shadow: 0 18px 44px -20px rgba(0,0,0,.75); }

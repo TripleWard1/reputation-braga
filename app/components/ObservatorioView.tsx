@@ -30,6 +30,7 @@ import { RNAAT, RNAAT_FONTE } from '@/app/lib/rnaat-dados';
 import { PERFIL_TURISTA } from '@/app/lib/perfil-turista-dados';
 import { FERRAMENTAS_DIGITAIS } from '@/app/lib/ferramentas-digitais-dados';
 import { HOTELARIA } from '@/app/lib/hotelaria-dados';
+import { EMPREGO } from '@/app/lib/emprego-dados';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
@@ -182,7 +183,7 @@ const OBS_CSS = `
 
 const PAL = [C.accent, C.positive, C.orange, C.purple, C.cyan, C.pink, C.info, '#6F747D'];
 
-type Tab = 'geral' | 'procura' | 'economia' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
+type Tab = 'geral' | 'procura' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; }
 
@@ -213,6 +214,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'geral', label: t('Visão Geral', 'Overview') },
     { id: 'procura', label: t('Procura (INE)', 'Demand (INE)') },
     { id: 'economia', label: t('Economia', 'Economy') },
+    { id: 'emprego', label: t('Emprego', 'Employment') },
     { id: 'cartoes', label: t('Gastos com cartão', 'Card spending') },
     { id: 'perfil', label: t('Perfil do turista', 'Visitor profile') },
     { id: 'animacao', label: t('Animação turística', 'Tourism activities') },
@@ -238,7 +240,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'resumo', label: t('Resumo', 'Summary'), icon: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z', tabs: ['geral', 'cruzamentos'] },
     { id: 'procura', label: t('Procura', 'Demand'), icon: 'M3 17l6-6 4 4 8-8M15 7h6v6', tabs: ['procura', 'mercados', 'aeroporto', 'caminhos'] },
     { id: 'visitante', label: t('Visitante', 'Visitor'), icon: 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21v-1a6 6 0 0112 0v1M16 3.5a4 4 0 010 7.5M22 21v-1a6 6 0 00-4-5.6', tabs: ['perfil', 'balcao'] },
-    { id: 'economia', label: t('Economia', 'Economy'), icon: 'M18 7a7 7 0 100 10M5 10h9M5 14h9', tabs: ['economia', 'cartoes', 'taxa'] },
+    { id: 'economia', label: t('Economia', 'Economy'), icon: 'M18 7a7 7 0 100 10M5 10h9M5 14h9', tabs: ['economia', 'emprego', 'cartoes', 'taxa'] },
     { id: 'oferta', label: t('Oferta', 'Supply'), icon: 'M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1v-9z', tabs: ['hotelaria', 'alojamento', 'animacao', 'cultura', 'lojas'] },
     { id: 'digital', label: t('Digital', 'Digital'), icon: 'M8 2h8a2 2 0 012 2v16a2 2 0 01-2 2H8a2 2 0 01-2-2V4a2 2 0 012-2zM11 18h2', tabs: ['digital', 'ferramentas'] },
     { id: 'territorio', label: t('Território', 'Territory'), icon: 'M5 21c0-9 6-15 16-16-1 10-7 16-16 16zM5 21l8-8', tabs: ['sustentabilidade', 'acessibilidade', 'meteo'] },
@@ -780,6 +782,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'ferramentas' && <FerramentasDigitais />}
         {tab === 'animacao' && <AnimacaoTuristica />}
         {tab === 'lojas' && <LojasHistoria />}
+        {tab === 'emprego' && <Emprego />}
         {tab === 'hotelaria' && <Hotelaria />}
         {tab === 'alojamento' && <AlojamentoLocal />}
         {tab === 'aeroporto' && <Aeroporto />}
@@ -874,7 +877,69 @@ function MapaAL({ pontos }: { pontos: number[][] }) {
 }
 
 
-// ═══ Hotelaria (oferta do visitbraga.travel) - só leitura ═══
+
+// ═══ Emprego no turismo (INE, SCIE) — só leitura ═══
+function Emprego() {
+  const R = EMPREGO.regioes, S = EMPREGO.separacao;
+  const pc = (a: number, b: number) => (a / Math.max(1, b)) * 100;
+  const v = (x: number, d = 1) => x.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: d, maximumFractionDigits: d });
+  const peso = (r: string) => pc(R[r].turismo, R[r].total);
+  const bragaNoCavado = pc(R['Braga'].turismo, R['Cávado'].turismo);
+  const bragaNoCavadoTotal = pc(R['Braga'].total, R['Cávado'].total);
+  const agNoCavado = pc(R['Braga'].agencias, R['Cávado'].agencias);
+  const regs = ['Braga', 'Cávado', 'Norte', 'Portugal'];
+  const setores: [string, number, string][] = [
+    [t('Atividades administrativas e serviços de apoio', 'Administrative and support services'), R['Braga'].administrativas, C.textDim],
+    [t('Consultoria, atividades científicas e técnicas', 'Consulting, scientific and technical'), R['Braga'].consultoria, C.textDim],
+    [t('Alojamento, restauração e similares', 'Accommodation and food services'), R['Braga'].turismo, C.accent],
+    [t('Agências de viagem e operadores turísticos', 'Travel agencies and tour operators'), R['Braga'].agencias, C.orange],
+  ];
+  const maxS = Math.max(...setores.map((x) => x[1]));
+  return (
+    <>
+      <SectionTitle sub={EMPREGO.fonte}>{t(`${fmt(R['Braga'].turismo)} pessoas trabalham no alojamento e na restauração em Braga`, `${fmt(R['Braga'].turismo)} people work in accommodation and food services in Braga`)}</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <KPI label={t('Alojamento e restauração · Braga', 'Accommodation and food · Braga')} value={fmt(R['Braga'].turismo)} sub={t(`${v(peso('Braga'))}% das ${fmt(R['Braga'].total)} pessoas ao serviço nas empresas`, `${v(peso('Braga'))}% of ${fmt(R['Braga'].total)} people employed in companies`)} color={C.accent} />
+        <KPI label={t('Peso no emprego: comparação', 'Share of employment: comparison')} value={`${v(peso('Portugal'))}%`} sub={t(`Portugal · Norte ${v(peso('Norte'))}% · Cávado ${v(peso('Cávado'))}%`, `Portugal · North ${v(peso('Norte'))}% · Cávado ${v(peso('Cávado'))}%`)} color={C.textDim} />
+        <KPI label={t('Braga no Cávado', 'Braga within Cávado')} value={`${v(bragaNoCavado, 0)}%`} sub={t(`do emprego turístico da região (e ${v(bragaNoCavadoTotal, 0)}% do emprego total)`, `of the region’s tourism employment (and ${v(bragaNoCavadoTotal, 0)}% of total employment)`)} color={C.purple} />
+        <KPI label={t('Agências e operadores turísticos', 'Travel agencies and operators')} value={fmt(R['Braga'].agencias)} sub={t(`${v(agNoCavado, 0)}% deste emprego no Cávado está em Braga`, `${v(agNoCavado, 0)}% of this Cávado employment is in Braga`)} color={C.orange} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <Card title={t('Peso do alojamento e restauração no emprego (%)', 'Accommodation and food services share of employment (%)')}>
+          <BarrasPct dados={regs.map((r) => [r, Math.round(peso(r) * 10) / 10] as [string, number])} cor={C.accent} max={10} />
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 10 }}>{t('O turismo pesa menos no emprego de Braga do que no país: natural num concelho com uma base industrial, universitária e de serviços forte. Não é um sinal de fraqueza do turismo, mas de uma economia diversificada.', 'Tourism weighs less in Braga’s employment than nationally: natural in a municipality with a strong industrial, university and services base. It signals a diversified economy rather than weak tourism.')}</div>
+        </Card>
+        <Card title={t('Alojamento ou restauração? (% do emprego turístico)', 'Accommodation or food services? (% of tourism employment)')}>
+          {['Cávado', 'Norte', 'Portugal'].map((r, i) => {
+            const al = pc(S[r].alojamento, S[r].alojamento + S[r].restauracao);
+            return (
+              <div key={r} style={{ margin: '12px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 6 }}><span style={{ color: C.text, fontWeight: 600 }}>{r}</span><span style={{ color: C.textMuted }}>{t('alojamento', 'accommodation')} <strong style={{ color: C.text }}>{v(al, 0)}%</strong> · {t('restauração', 'food')} <strong style={{ color: C.text }}>{v(100 - al, 0)}%</strong></span></div>
+                <div style={{ display: 'flex', height: 12, borderRadius: 999, overflow: 'hidden', background: '#262A30' }}>
+                  <div className="obs-grow" style={{ width: `${al}%`, background: C.purple, animationDelay: `${i * 80}ms` }} />
+                  <div className="obs-grow" style={{ width: `${100 - al}%`, background: C.accent, animationDelay: `${i * 80 + 60}ms` }} />
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 10 }}>{t(`No Cávado, o emprego hoteleiro é só ${v(pc(S['Cávado'].alojamento, S['Cávado'].alojamento + S['Cávado'].restauracao), 0)}% do emprego turístico, contra ${v(pc(S['Portugal'].alojamento, S['Portugal'].alojamento + S['Portugal'].restauracao), 0)}% no país. O INE não divulga esta divisão para Braga; o Cávado é o nível mais próximo.`, `In Cávado, hotel jobs are only ${v(pc(S['Cávado'].alojamento, S['Cávado'].alojamento + S['Cávado'].restauracao), 0)}% of tourism employment, vs ${v(pc(S['Portugal'].alojamento, S['Portugal'].alojamento + S['Portugal'].restauracao), 0)}% nationally. INE does not publish this split for Braga; Cávado is the closest level.`)}</div>
+        </Card>
+      </div>
+      <Card title={t('Emprego em Braga: o turismo ao lado de outros serviços', 'Employment in Braga: tourism next to other services')}>
+        {setores.map(([nome, n, cor], i) => (
+          <div key={nome} style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 320px) minmax(0,1fr) 120px', gap: 12, alignItems: 'center', margin: '10px 0', fontSize: 13.5 }}>
+            <span style={{ color: C.text }}>{nome}</span>
+            <div style={{ height: 9, background: '#262A30', borderRadius: 999, overflow: 'hidden' }}><div className="obs-grow" style={{ width: `${(n / maxS) * 100}%`, height: '100%', background: cor, borderRadius: 999, animationDelay: `${i * 70}ms` }} /></div>
+            <span style={{ textAlign: 'right', color: C.text }}><strong>{fmt(n)}</strong> <span style={{ color: C.textDim }}>· {v(pc(n, R['Braga'].total))}%</span></span>
+          </div>
+        ))}
+      </Card>
+      <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, marginTop: 4 }}>{t(`Notas: a restauração serve também os residentes, por isso nem todo este emprego se deve ao turismo. Só existe ${EMPREGO.ano}: a série atual do INE começa em 2023 e o último ano publicado é ${EMPREGO.ano}. "Pessoal ao serviço" inclui trabalhadores por conta de outrem, proprietários e familiares que trabalham na empresa.`, `Notes: food services also serve residents, so not all this employment is due to tourism. Only ${EMPREGO.ano} is available: INE’s current series starts in 2023 and the latest published year is ${EMPREGO.ano}. "Persons employed" includes employees, owners and family members working in the company.`)}</div>
+    </>
+  );
+}
+
+// ═══ Hotelaria (oferta do visitbraga.travel) — só leitura ═══
 function Hotelaria() {
   const Hh = HOTELARIA;
   const todos: any[] = [...Hh.hoteis.map((x: any) => ({ ...x, tipo: t('Hotel', 'Hotel') })), ...Hh.outros.map((x: any) => ({ ...x, tipo: t('Aparthotel / rural', 'Aparthotel / rural') }))];
@@ -927,7 +992,7 @@ function Hotelaria() {
             <tbody>{lista.map((x) => (
               <tr key={x.nome} style={{ borderTop: `1px solid ${C.border}` }}>
                 <td style={{ padding: '9px 6px', color: C.text, fontWeight: 600 }}>{x.nome}<div style={{ fontSize: 11.5, color: C.textDim, fontWeight: 400 }}>{x.tipo}</div></td>
-                <td style={{ padding: '9px 6px', color: '#F2C14E', whiteSpace: 'nowrap' }}>{x.estrelas ? '★'.repeat(x.estrelas) : <span style={{ color: C.textDim }}>-</span>}</td>
+                <td style={{ padding: '9px 6px', color: '#F2C14E', whiteSpace: 'nowrap' }}>{x.estrelas ? '★'.repeat(x.estrelas) : <span style={{ color: C.textDim }}>—</span>}</td>
                 <td style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{fmt(x.capacidade)}</td>
                 <td style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{fmt(x.unidades)}</td>
                 <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 700, color: x.adaptadas === 0 ? C.negative : C.positive }}>{x.adaptadas}</td>
@@ -940,7 +1005,7 @@ function Hotelaria() {
   );
 }
 
-// ═══ Alojamento Local (TravelBI / RNAL) - só leitura ═══
+// ═══ Alojamento Local (TravelBI / RNAL) — só leitura ═══
 function AlojamentoLocal() {
   const A: any = AL_BRAGA;
   const MOD: Record<string, string> = { Apartamento: t('Apartamento', 'Apartment'), EstabelecimentoHospedagem: t('Hospedagem', 'Guesthouse'), Moradia: t('Moradia', 'House'), Quartos: t('Quartos', 'Rooms'), EstabelecimentoHospedagemHostel: 'Hostel' };
@@ -993,7 +1058,7 @@ function AlojamentoLocal() {
               <Bar dataKey="n" name={t('Registos', 'Registrations')} fill={C.accent} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Só conta os estabelecimentos ainda ativos. O ano com mais registos foi ${pico?.ano} (${pico?.n}); 2024 teve apenas ${anos.find((x) => x.ano === '2024')?.n ?? '-'}, o que coincide com as restrições ao Alojamento Local de 2023–2024.`, `Only active establishments are counted. The year with most registrations was ${pico?.ano} (${pico?.n}); 2024 had only ${anos.find((x) => x.ano === '2024')?.n ?? '-'}, coinciding with the 2023–2024 restrictions on short-term rentals.`)}</div>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Só conta os estabelecimentos ainda ativos. O ano com mais registos foi ${pico?.ano} (${pico?.n}); 2024 teve apenas ${anos.find((x) => x.ano === '2024')?.n ?? '—'}, o que coincide com as restrições ao Alojamento Local de 2023–2024.`, `Only active establishments are counted. The year with most registrations was ${pico?.ano} (${pico?.n}); 2024 had only ${anos.find((x) => x.ano === '2024')?.n ?? '—'}, coinciding with the 2023–2024 restrictions on short-term rentals.`)}</div>
         </Card>
         <Card title={t('Por modalidade', 'By type')}>
           <ResponsiveContainer width="100%" height={280}>
@@ -1011,7 +1076,7 @@ function AlojamentoLocal() {
   );
 }
 
-// ═══ Aeroporto do Porto (INE) - só leitura; cruzado com as dormidas de Braga ═══
+// ═══ Aeroporto do Porto (INE) — só leitura; cruzado com as dormidas de Braga ═══
 function Aeroporto() {
   const M = AEROPORTO_PORTO.meses;
   const MC = [t('jan', 'Jan'), t('fev', 'Feb'), t('mar', 'Mar'), t('abr', 'Apr'), t('mai', 'May'), t('jun', 'Jun'), t('jul', 'Jul'), t('ago', 'Aug'), t('set', 'Sep'), t('out', 'Oct'), t('nov', 'Nov'), t('dez', 'Dec')];
@@ -1049,7 +1114,7 @@ function Aeroporto() {
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} interval={2} />
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '-' : `${String(v).replace('.', ',')}%`, n]} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '—' : `${String(v).replace('.', ',')}%`, n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Line type="monotone" dataKey="aeroporto" name={t('Aeroporto do Porto', 'Porto airport')} stroke={C.accent} strokeWidth={2} dot={false} connectNulls />
             <Line type="monotone" dataKey="braga" name={t('Dormidas em Braga', 'Braga overnight stays')} stroke={C.orange} strokeWidth={2} dot={false} connectNulls />
@@ -1082,7 +1147,7 @@ function BarrasPct({ dados, cor, max }: { dados: [string, number][]; cor: string
 }
 
 
-// ═══ Ferramentas digitais: TOMI, SmartGuide e Super Fan - só leitura ═══
+// ═══ Ferramentas digitais: TOMI, SmartGuide e Super Fan — só leitura ═══
 function FerramentasDigitais() {
   const F = FERRAMENTAS_DIGITAIS;
   const [ano, setAno] = useState<'2025' | '2026'>('2026');
@@ -1179,7 +1244,7 @@ function FerramentasDigitais() {
   );
 }
 
-// ═══ Perfil do turista (estudo por inquérito) - só leitura ═══
+// ═══ Perfil do turista (estudo por inquérito) — só leitura ═══
 function PerfilTurista() {
   const P = PERFIL_TURISTA;
   const intl = P.origem.slice(0, 4).reduce((a: number, x: any) => a + x[1], 0);
@@ -1250,7 +1315,7 @@ function PerfilTurista() {
   );
 }
 
-// ═══ Animação turística (RNAAT) - só leitura ═══
+// ═══ Animação turística (RNAAT) — só leitura ═══
 function AnimacaoTuristica() {
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState('');
@@ -1395,7 +1460,7 @@ function CartaoLoja({ l, ano }: { l: { nome: string; ano: number | null; morada:
   );
 }
 
-// ═══ Lojas com História (rede municipal) - só leitura ═══
+// ═══ Lojas com História (rede municipal) — só leitura ═══
 function LojasHistoria() {
   const [setor, setSetor] = useState<string | null>(null);
   const [q, setQ] = useState('');
@@ -1463,7 +1528,7 @@ function LojasHistoria() {
   );
 }
 
-// ═══ Cultura: bilheteira do Theatro Circo, gnration e BMA (FazCultura) - só leitura ═══
+// ═══ Cultura: bilheteira do Theatro Circo, gnration e BMA (FazCultura) — só leitura ═══
 function Cultura() {
   const ents = ['theatro circo', 'gnration', 'bma'].filter((k) => BILHETEIRA[k]);
   const CORES_E: Record<string, string> = { 'theatro circo': C.accent, gnration: C.positive, bma: C.orange };
@@ -1531,10 +1596,10 @@ function Cultura() {
   );
 }
 
-// ═══ Gastos com cartão (SIBS Analytics) - só leitura dos dados exportados ═══
+// ═══ Gastos com cartão (SIBS Analytics) — só leitura dos dados exportados ═══
 function Cartoes() {
   const me = (v: number) => `${(v / 1e6).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} M€`;
-  const pct = (v: number | null | undefined) => (v == null ? '-' : `${v >= 0 ? '+' : ''}${v.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })}%`);
+  const pct = (v: number | null | undefined) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })}%`);
   const paises = [...SIBS_PAISES].filter((p) => p.valor > 0).sort((a, b) => b.valor - a.valor);
   const totEst = paises.reduce((s2, p) => s2 + p.valor, 0);
   const nEst = paises.reduce((s2, p) => s2 + (p.n || 0), 0);
@@ -1571,7 +1636,7 @@ function Cartoes() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
         <KPI label={t('Gasto com cartões estrangeiros', 'Foreign card spending')} value={me(totEst)} sub={braga ? t(`${((totEst / braga.valor) * 100).toLocaleString('pt-PT', { maximumFractionDigits: 1 })}% de todo o gasto com cartão em Braga`, `${((totEst / braga.valor) * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}% of all card spending in Braga`) : ''} color={C.accent} />
         <KPI label={t('Operações', 'Transactions')} value={fmt(nEst)} sub={t(`valor médio ${(totEst / Math.max(1, nEst)).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} €`, `average ${(totEst / Math.max(1, nEst)).toLocaleString('en-GB', { maximumFractionDigits: 1 })} €`)} color={C.info} />
-        <KPI label={t('Maior país', 'Top country')} value={dl(paises[0]?.pais || '-')} sub={paises[0] ? `${me(paises[0].valor)} · ${pct(paises[0].varValor)} ${t('homólogo', 'YoY')}` : ''} color={C.positive} />
+        <KPI label={t('Maior país', 'Top country')} value={dl(paises[0]?.pais || '—')} sub={paises[0] ? `${me(paises[0].valor)} · ${pct(paises[0].varValor)} ${t('homólogo', 'YoY')}` : ''} color={C.positive} />
         <KPI label={t('Países com forte emigração portuguesa', 'Countries with large Portuguese diaspora')} value={`${Math.round((diaspora / Math.max(1, totEst)) * 100)}%`} sub={t('do gasto estrangeiro (França, Suíça, Luxemburgo, Alemanha, Bélgica, Andorra, Reino Unido)', 'of foreign spending (France, Switzerland, Luxembourg, Germany, Belgium, Andorra, UK)')} color={C.orange} />
         {braga && <KPI label={t('Braga entre os concelhos', 'Braga among municipalities')} value={`${posBraga}.º`} sub={t(`${me(braga.valor)} com todos os cartões · ${pct(braga.varValor)} homólogo`, `${me(braga.valor)} with all cards · ${pct(braga.varValor)} YoY`)} color={C.purple} />}
       </div>
@@ -1648,7 +1713,7 @@ function Cartoes() {
             <thead><tr style={{ color: C.textMuted, textAlign: 'left' }}><th style={{ padding: '8px 6px' }}>{t('Concelho', 'Municipality')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Gasto', 'Spending')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Operações', 'Transactions')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Valor médio', 'Average')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Homólogo', 'YoY')}</th></tr></thead>
             <tbody>{comp.map((c) => (
               <tr key={c.concelho} style={{ borderTop: `1px solid ${C.border}`, fontWeight: c.concelho.trim().toLowerCase() === 'braga' ? 700 : 400, color: c.concelho.trim().toLowerCase() === 'braga' ? C.accentLight : C.text }}>
-                <td style={{ padding: '9px 6px' }}>{c.concelho.trim()}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{me(c.valor)}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.n ? fmt(c.n) : '-'}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.medio ? `${String(c.medio).replace('.', ',')} €` : '-'}</td><td style={{ padding: '9px 6px', textAlign: 'right', color: (c.varValor || 0) >= 0 ? C.positive : C.negative }}>{pct(c.varValor)}</td>
+                <td style={{ padding: '9px 6px' }}>{c.concelho.trim()}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{me(c.valor)}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.n ? fmt(c.n) : '—'}</td><td style={{ padding: '9px 6px', textAlign: 'right' }}>{c.medio ? `${String(c.medio).replace('.', ',')} €` : '—'}</td><td style={{ padding: '9px 6px', textAlign: 'right', color: (c.varValor || 0) >= 0 ? C.positive : C.negative }}>{pct(c.varValor)}</td>
               </tr>
             ))}</tbody>
           </table>
