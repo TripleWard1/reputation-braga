@@ -17,7 +17,8 @@ import { estimativaDormidas } from '@/app/lib/estimativa';
 
 type Barra = { nome: string; valor: number; texto: string; destaque?: boolean };
 type Dia =
-  | { tipo: 'capa' | 'fecho'; titulo: string; sub: string }
+  | { tipo: 'capa'; titulo: string; sub: string }
+  | { tipo: 'fecho'; titulo: string; sub: string }
   | { tipo: 'capitulo'; n: number; titulo: string; sub: string }
   | { tipo: 'numero'; kicker: string; valor: string; unidade?: string; titulo: string; nota?: string }
   | { tipo: 'barras'; kicker: string; titulo: string; barras: Barra[]; nota?: string }
@@ -163,7 +164,7 @@ export default function Apresentacao({ locations, onClose }: { locations: LocMin
             <div className="apr-grande">{d.titulo}</div>
             <div className="apr-sub">{d.sub}</div>
           </>)}
-          {d.tipo !== 'capa' && d.tipo !== 'fecho' && d.tipo !== 'capitulo' && <div className="apr-kicker">{d.kicker}</div>}
+          {'kicker' in d && <div className="apr-kicker">{d.kicker}</div>}
           {d.tipo === 'numero' && (<>
             <div className="apr-valor">{d.valor}{d.unidade && <small>{d.unidade}</small>}</div>
             <div className="apr-titulo">{d.titulo}</div>
