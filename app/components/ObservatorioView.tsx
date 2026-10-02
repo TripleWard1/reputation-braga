@@ -973,7 +973,7 @@ function SetorSustentavel() {
           ))}
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 10 }}>{T.estrutura}</div>
           <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 8 }}>{t('Picos de procura: ', 'Demand peaks: ')}{(T.picos as string[]).join(' · ')}</div>
-          <div style={{ fontSize: 12, color: C.textDim, marginTop: 8 }}>{t('Os números do TIA são de 2025; os registos atuais nos separadores Alojamento Local e Animação turística podem diferir ligeiramente.', 'TIA figures are from 2025; current registry counts in the Short-term rentals and Tourism activities tabs may differ slightly.')}</div>
+          <div style={{ fontSize: 12, color: C.textDim, marginTop: 8 }}>{t(`Os números do TIA são de 2025. Hoje, a base municipal da taxa turística tem ${(AL_BRAGA as any).total} alojamentos locais ativos (o TIA contava os registos, incluindo inativos).`, `TIA figures are from 2025. Today the municipal tourist tax database lists ${(AL_BRAGA as any).total} active short-term rentals (TIA counted registrations, including inactive ones).`)}</div>
         </Card>
       </div>
     </>
@@ -1000,15 +1000,15 @@ function Emprego() {
   const maxS = Math.max(...setores.map((x) => x[1]));
   return (
     <>
-      <SectionTitle sub={EMPREGO.fonte}>{t(`${fmt(R['Braga'].turismo)} pessoas trabalham no alojamento e na restauração em Braga`, `${fmt(R['Braga'].turismo)} people work in accommodation and food services in Braga`)}</SectionTitle>
+      <SectionTitle sub={EMPREGO.fonte}>{t(`Pelo menos ${fmt(R['Braga'].turismo)} pessoas trabalham no alojamento e na restauração em Braga`, `At least ${fmt(R['Braga'].turismo)} people work in accommodation and food services in Braga`)}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
-        <KPI label={t('Alojamento e restauração · Braga', 'Accommodation and food · Braga')} value={fmt(R['Braga'].turismo)} sub={t(`${v(peso('Braga'))}% das ${fmt(R['Braga'].total)} pessoas ao serviço nas empresas · +${v(cresc)}% desde ${SB.anos[0]}`, `${v(peso('Braga'))}% of ${fmt(R['Braga'].total)} people employed in companies · +${v(cresc)}% since ${SB.anos[0]}`)} color={C.accent} />
-        <KPI label={t('Peso no emprego: comparação', 'Share of employment: comparison')} value={`${v(peso('Portugal'))}%`} sub={t(`Portugal · Norte ${v(peso('Norte'))}% · Cávado ${v(peso('Cávado'))}%`, `Portugal · North ${v(peso('Norte'))}% · Cávado ${v(peso('Cávado'))}%`)} color={C.textDim} />
+        <KPI label={t('Alojamento e restauração · Braga', 'Accommodation and food · Braga')} value={fmt(R['Braga'].turismo)} sub={t(`pelo menos · ${v(peso('Braga'))}% das ${fmt(R['Braga'].total)} pessoas ao serviço nas empresas · +${v(cresc)}% desde ${SB.anos[0]}`, `${v(peso('Braga'))}% of ${fmt(R['Braga'].total)} people employed in companies · +${v(cresc)}% since ${SB.anos[0]}`)} color={C.accent} />
+        <KPI label={t('Peso no emprego das empresas: comparação', 'Share of company employment: comparison')} value={`${v(peso('Portugal'))}%`} sub={t(`Portugal · Norte ${v(peso('Norte'))}% · Cávado ${v(peso('Cávado'))}%`, `Portugal · North ${v(peso('Norte'))}% · Cávado ${v(peso('Cávado'))}%`)} color={C.textDim} />
         <KPI label={t('Braga no Cávado', 'Braga within Cávado')} value={`${v(bragaNoCavado, 0)}%`} sub={t(`do emprego turístico da região (e ${v(bragaNoCavadoTotal, 0)}% do emprego total)`, `of the region’s tourism employment (and ${v(bragaNoCavadoTotal, 0)}% of total employment)`)} color={C.purple} />
         <KPI label={t('Agências e operadores turísticos', 'Travel agencies and operators')} value={fmt(R['Braga'].agencias)} sub={t(`${v(agNoCavado, 0)}% deste emprego no Cávado está em Braga`, `${v(agNoCavado, 0)}% of this Cávado employment is in Braga`)} color={C.orange} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={t('Peso do alojamento e restauração no emprego (%)', 'Accommodation and food services share of employment (%)')}>
+        <Card title={t('Peso do alojamento e restauração no emprego das empresas (%)', 'Accommodation and food services share of company employment (%)')}>
           <BarrasPct dados={regs.map((r) => [r, Math.round(peso(r) * 10) / 10] as [string, number])} cor={C.accent} max={10} />
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 10 }}>{t('O turismo pesa menos no emprego de Braga do que no país: natural num concelho com uma base industrial, universitária e de serviços forte. Não é um sinal de fraqueza do turismo, mas de uma economia diversificada.', 'Tourism weighs less in Braga’s employment than nationally: natural in a municipality with a strong industrial, university and services base. It signals a diversified economy rather than weak tourism.')}</div>
         </Card>
@@ -1028,6 +1028,69 @@ function Emprego() {
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 10 }}>{t(`No Cávado, o emprego hoteleiro é só ${v(pc(S['Cávado'].alojamento, S['Cávado'].alojamento + S['Cávado'].restauracao), 0)}% do emprego turístico, contra ${v(pc(S['Portugal'].alojamento, S['Portugal'].alojamento + S['Portugal'].restauracao), 0)}% no país. O INE não divulga esta divisão para Braga; o Cávado é o nível mais próximo.`, `In Cávado, hotel jobs are only ${v(pc(S['Cávado'].alojamento, S['Cávado'].alojamento + S['Cávado'].restauracao), 0)}% of tourism employment, vs ${v(pc(S['Portugal'].alojamento, S['Portugal'].alojamento + S['Portugal'].restauracao), 0)}% nationally. INE does not publish this split for Braga; Cávado is the closest level.`)}</div>
         </Card>
       </div>
+      {EMPREGO.ganhoTerritorios && EMPREGO.ganho && (() => {
+        const GT = EMPREGO.ganhoTerritorios, G = EMPREGO.ganho;
+        const ult = GT.anos.length - 1;
+        const br = GT.territorios['Braga'], no = GT.territorios['Norte'];
+        const eu = (x: number) => `${Math.round(x).toLocaleString(t('pt-PT', 'en-GB'))} €`;
+        const rac = G.turismo / no.servicos[ult];
+        const estBraga = br.servicos[ult] * rac;
+        const cresc = (br.total[ult] / br.total[0] - 1) * 100;
+        const vsNorte = (br.total[ult] / no.total[ult] - 1) * 100;
+        const IN = EMPREGO.inflacao;
+        const deflator = IN ? (IN.taxas as number[]).reduce((a: number, x: number) => a * (1 + x / 100), 1) : 1;
+        const crescReal = (br.total[ult] / br.total[0] / deflator - 1) * 100;
+        const gap = (1 - GT.sexoBraga2024.mulheres / GT.sexoBraga2024.homens) * 100;
+        const cores: Record<string, string> = { Braga: C.accent, 'Cávado': C.purple, Norte: C.orange, Portugal: C.textDim };
+        const serie = GT.anos.map((a: number, i: number) => { const o: any = { ano: String(a) }; Object.keys(GT.territorios).forEach((k) => { o[k] = GT.territorios[k].total[i]; }); return o; });
+        return (
+          <Card title={t(`Quanto se ganha em Braga, ${GT.anos[0]}–${GT.anos[ult]}`, `What Braga pays, ${GT.anos[0]}–${GT.anos[ult]}`)}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 14 }}>
+              <KPI label={t(`Ganho médio em Braga · ${GT.anos[ult]}`, `Average earnings in Braga · ${GT.anos[ult]}`)} value={eu(br.total[ult])} sub={t(`desde ${GT.anos[0]}: +${Math.round(cresc)}% nominal, +${Math.round(crescReal)}% descontada a inflação · ${vsNorte >= 0 ? '+' : ''}${v(vsNorte)}% face ao Norte`, `since ${GT.anos[0]}: +${Math.round(cresc)}% nominal, +${Math.round(crescReal)}% after inflation · ${vsNorte >= 0 ? '+' : ''}${v(vsNorte)}% vs North`)} color={C.accent} />
+              <KPI label={t('Turismo em Braga (estimativa)', 'Tourism in Braga (estimate)')} value={`≈ ${eu(estBraga)}`} sub={t(`serviços de Braga (${eu(br.servicos[ult])}) × ${v(rac * 100)}%, a proporção turismo/serviços do Norte`, `Braga services (${eu(br.servicos[ult])}) × ${v(rac * 100)}%, the North’s tourism/services ratio`)} color={C.orange} />
+              <KPI label={t(`Diferença salarial em Braga · ${GT.anos[ult]}`, `Pay gap in Braga · ${GT.anos[ult]}`)} value={`${v(gap)}%`} sub={t(`mulheres ${eu(GT.sexoBraga2024.mulheres)} · homens ${eu(GT.sexoBraga2024.homens)}`, `women ${eu(GT.sexoBraga2024.mulheres)} · men ${eu(GT.sexoBraga2024.homens)}`)} color={C.pink} />
+            </div>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={serie} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+                <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
+                <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="€" domain={['dataMin - 50', 'dataMax + 50']} />
+                <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(val: any, nm: any) => [eu(Number(val)), nm]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                {Object.keys(GT.territorios).map((k) => <Line key={k} type="monotone" dataKey={k} stroke={cores[k] || C.textDim} strokeWidth={k === 'Braga' ? 3 : 2} dot={{ r: 3 }} />)}
+              </LineChart>
+            </ResponsiveContainer>
+            <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{t(`Ganho médio mensal de todas as atividades, em valores nominais (sem descontar a inflação: ${IN ? (IN.taxas as number[]).map((x: number, i: number) => `${IN.anos[i]} ${String(x).replace('.', ',')}%`).join(', ') : ''}, segundo o IPC do INE). Só inclui trabalhadores a tempo completo com remuneração completa: na restauração, onde há muito trabalho a tempo parcial, o rendimento típico pode ser inferior. O INE não publica o setor do turismo ao nível do concelho, por isso o valor do turismo em Braga é uma estimativa da plataforma, não um dado oficial. Fonte: ${GT.fonte}.`, `Average monthly earnings across all activities. INE does not publish the tourism sector at municipal level, so the Braga tourism figure is a platform estimate, not official data. Source: ${GT.fonte}.`)}</div>
+          </Card>
+        );
+      })()}
+      {EMPREGO.ganho && (() => {
+        const G = EMPREGO.ganho;
+        const dif = (G.turismo / G.total - 1) * 100;
+        const eu = (x: number) => `${x.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })} €`;
+        const dadosG = G.porEscalao.escaloes.map((e: string, i: number) => ({ escalao: e, total: G.porEscalao.total[i], turismo: G.porEscalao.turismo[i] }));
+        return (
+          <Card title={t(`Quanto se ganha no turismo, por dimensão de empresa · região ${G.regiao}, ${G.ano}`, `What tourism pays, by company size · ${G.regiao} region, ${G.ano}`)}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 14 }}>
+              <KPI label={t('Alojamento e restauração', 'Accommodation and food')} value={eu(G.turismo)} sub={t('ganho médio mensal', 'average monthly earnings')} color={C.accent} />
+              <KPI label={t('Todas as atividades', 'All activities')} value={eu(G.total)} sub={t(`o turismo paga ${Math.abs(Math.round(dif))}% ${dif < 0 ? 'menos' : 'mais'}`, `tourism pays ${Math.abs(Math.round(dif))}% ${dif < 0 ? 'less' : 'more'}`)} color={C.textDim} />
+              <KPI label={t('Microempresas do turismo (1–4 pessoas)', 'Tourism micro-firms (1–4 people)')} value={eu(G.porEscalao.turismo[0])} sub={t(`contra ${eu(G.porEscalao.turismo[6])} nas de 250–499 pessoas`, `vs ${eu(G.porEscalao.turismo[6])} in firms with 250–499 people`)} color={C.orange} />
+            </div>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={dadosG} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+                <XAxis dataKey="escalao" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+                <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="€" />
+                <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} labelFormatter={(l: any) => t(`Empresas com ${l} pessoas`, `Firms with ${l} people`)} formatter={(val: any, nm: any) => [eu(Number(val)), nm]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="turismo" name={t('Alojamento e restauração', 'Accommodation and food')} fill={C.accent} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="total" name={t('Todas as atividades', 'All activities')} fill={C.textDim} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{t(`Por dimensão da empresa (n.º de pessoas ao serviço). O INE só publica este indicador ao nível da região ${G.regiao}, sem concelho. Como em Braga predominam micro e pequenas empresas turísticas (TIA 2025), os salários locais do setor deverão estar mais perto dos valores das empresas pequenas. Fonte: ${G.fonte}.`, `By company size (persons employed). INE only publishes this indicator at ${G.regiao} region level, not by municipality. Since micro and small tourism firms predominate in Braga (TIA 2025), local wages are likely closer to small-firm values. Source: ${G.fonte}.`)}</div>
+          </Card>
+        );
+      })()}
       {SB && (
         <Card title={t(`Evolução em Braga, ${SB.anos[0]}–${SB.anos[SB.anos.length - 1]} (pessoas ao serviço)`, `Trend in Braga, ${SB.anos[0]}–${SB.anos[SB.anos.length - 1]} (persons employed)`)}>
           <ResponsiveContainer width="100%" height={260}>
@@ -1053,7 +1116,7 @@ function Emprego() {
           </div>
         ))}
       </Card>
-      <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, marginTop: 4 }}>{t(`Notas: a restauração serve também os residentes, por isso nem todo este emprego se deve ao turismo. A comparação entre regiões é de ${EMPREGO.ano}, o último ano publicado; a evolução de Braga desde 2022 vem do PORDATA (mesma fonte, INE). "Pessoal ao serviço" inclui trabalhadores por conta de outrem, proprietários e familiares que trabalham na empresa.`, `Notes: food services also serve residents, so not all this employment is due to tourism. The regional comparison is for ${EMPREGO.ano}, the latest published year; Braga’s trend since 2022 comes from PORDATA (same source, INE). "Persons employed" includes employees, owners and family members working in the company.`)}</div>
+      <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, marginTop: 4 }}>{t(`Notas: o INE conta este emprego pela localização da empresa, que pode ser a sede; os trabalhadores de hotéis de cadeias com sede noutro concelho podem não estar incluídos em Braga, por isso o valor deve ser lido como mínimo. O total refere-se às empresas não financeiras e não inclui a administração pública. A restauração serve também os residentes, por isso nem todo este emprego se deve ao turismo. A comparação entre regiões é de ${EMPREGO.ano}, o último ano publicado; a evolução de Braga desde 2022 vem do PORDATA (mesma fonte, INE). "Pessoal ao serviço" inclui trabalhadores por conta de outrem, proprietários e familiares que trabalham na empresa.`, `Notes: INE counts this employment by company location, which may be the head office; staff at hotels of chains headquartered in another municipality may not be counted in Braga, so the figure should be read as a minimum. The total refers to non-financial companies and excludes public administration. Food services also serve residents, so not all this employment is due to tourism. The regional comparison is for ${EMPREGO.ano}, the latest published year; Braga’s trend since 2022 comes from PORDATA (same source, INE). "Persons employed" includes employees, owners and family members working in the company.`)}</div>
     </>
   );
 }
@@ -1064,7 +1127,7 @@ function Hotelaria() {
   const todos: any[] = [...Hh.hoteis.map((x: any) => ({ ...x, tipo: t('Hotel', 'Hotel') })), ...Hh.outros.map((x: any) => ({ ...x, tipo: t('Aparthotel / rural', 'Aparthotel / rural') }))];
   const cap = todos.reduce((a, x) => a + x.capacidade, 0), uni = todos.reduce((a, x) => a + x.unidades, 0), ad = todos.reduce((a, x) => a + x.adaptadas, 0);
   const semAd = todos.filter((x) => x.adaptadas === 0);
-  const alCap = Number((AL_BRAGA as any)?.utentes) || 0;
+  const alCap = Number((AL_BRAGA as any)?.camas) || 0;
   const porEst = [5, 4, 3, 2].map((e) => { const xs = Hh.hoteis.filter((x: any) => x.estrelas === e); return { cat: `${e} ★`, quartos: xs.reduce((a: number, x: any) => a + x.unidades, 0), hoteis: xs.length, adaptados: xs.reduce((a: number, x: any) => a + x.adaptadas, 0) }; }).filter((x) => x.hoteis);
   const [ord, setOrd] = useState<'capacidade' | 'adaptadas'>('capacidade');
   const lista = [...todos].sort((a, b) => (ord === 'capacidade' ? b.capacidade - a.capacidade : a.adaptadas / Math.max(1, a.unidades) - b.adaptadas / Math.max(1, b.unidades)));
@@ -1081,7 +1144,7 @@ function Hotelaria() {
         <KPI label={t('Quartos adaptados', 'Adapted rooms')} value={String(ad)} sub={t(`${String(pctAd.toFixed(1)).replace('.', ',')}% do total`, `${pctAd.toFixed(1)}% of the total`)} color={C.orange} />
         <KPI label={t('Sem nenhum quarto adaptado', 'No adapted room')} value={String(semAd.length)} sub={t(`de ${todos.length} estabelecimentos`, `of ${todos.length} establishments`)} color={C.negative} />
         <KPI label={t('Com certificação ambiental', 'With environmental certification')} value={`${cert.length}`} sub={t(`${Math.round((capCert / Math.max(1, cap)) * 100)}% da capacidade · Green Key`, `${Math.round((capCert / Math.max(1, cap)) * 100)}% of capacity · Green Key`)} color={C.positive} />
-        {alCap > 0 && <KPI label={t('Alojamento Local (comparação)', 'Short-term rentals (comparison)')} value={fmt(alCap)} sub={t(`utentes: ${alCap > cap ? 'já supera' : 'abaixo de'} a capacidade hoteleira`, `guests: ${alCap > cap ? 'already exceeds' : 'below'} hotel capacity`)} color={C.cyan} />}
+        {alCap > 0 && <KPI label={t('Alojamento Local ativo (comparação)', 'Active short-term rentals (comparison)')} value={fmt(alCap)} sub={t(`camas: ${alCap > cap ? 'acima' : 'abaixo'} dos ${fmt(cap)} lugares da hotelaria`, `beds: ${alCap > cap ? 'above' : 'below'} the ${fmt(cap)} hotel places`)} color={C.cyan} />}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <Card title={t('Quartos por categoria de hotel', 'Rooms by hotel category')}>
@@ -1099,7 +1162,7 @@ function Hotelaria() {
           {[
             t(`${semAd.length} estabelecimentos não têm nenhum quarto adaptado, incluindo ${semAd.filter((x) => x.estrelas >= 4).length} de 4 ou 5 estrelas.`, `${semAd.length} establishments have no adapted room, including ${semAd.filter((x) => x.estrelas >= 4).length} with 4 or 5 stars.`),
             t(`O Meliá (5 ★) tem ${Hh.hoteis[0].unidades} quartos e ${Hh.hoteis[0].adaptadas} adaptados; o B&B Lamaçães é o hotel com mais quartos adaptados (4).`, `The Meliá (5 ★) has ${Hh.hoteis[0].unidades} rooms and ${Hh.hoteis[0].adaptadas} adapted; B&B Lamaçães has the most adapted rooms among hotels (4).`),
-            alCap > 0 ? t(`O Alojamento Local (${fmt(alCap)} utentes) já tem mais capacidade do que estes estabelecimentos (${fmt(cap)} lugares).`, `Short-term rentals (${fmt(alCap)} guests) already have more capacity than these establishments (${fmt(cap)} places).`) : '',
+            alCap > 0 ? t(`O Alojamento Local ativo tem ${fmt(alCap)} camas, ${alCap > cap ? 'mais' : 'menos'} do que os ${fmt(cap)} lugares destes estabelecimentos (base municipal da taxa turística).`, `Active short-term rentals have ${fmt(alCap)} beds, ${alCap > cap ? 'more' : 'fewer'} than the ${fmt(cap)} places in these establishments (municipal tourist tax database).`) : '',
             (() => { const top5 = [...todos].sort((a, b) => b.unidades - a.unidades).slice(0, 5).reduce((a, x) => a + x.unidades, 0); const p5 = Math.round((top5 / Math.max(1, uni)) * 100); return t(`Para congressos e grupos grandes: os cinco maiores estabelecimentos concentram ${p5}% dos quartos.`, `For conferences and large groups: the five largest establishments hold ${p5}% of rooms.`); })(),
           ].filter(Boolean).map((x, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr)', gap: 6, fontSize: 13.5, color: C.textMuted, lineHeight: 1.55, padding: '6px 0', borderTop: i ? `1px solid ${C.border}` : 'none' }}><span style={{ color: C.accent, fontWeight: 700 }}>{i + 1}</span>{x}</div>)}
         </Card>
@@ -1129,71 +1192,71 @@ function Hotelaria() {
   );
 }
 
-// ═══ Alojamento Local (TravelBI / RNAL) — só leitura ═══
+// ═══ Alojamento Local (base municipal da taxa turística; mapa do RNAL) — só leitura ═══
 function AlojamentoLocal() {
   const A: any = AL_BRAGA;
-  const MOD: Record<string, string> = { Apartamento: t('Apartamento', 'Apartment'), EstabelecimentoHospedagem: t('Hospedagem', 'Guesthouse'), Moradia: t('Moradia', 'House'), Quartos: t('Quartos', 'Rooms'), EstabelecimentoHospedagemHostel: 'Hostel' };
-  const centro = (f: string) => /^União das freguesias de Braga \(|^Braga \(/.test(f);
+  const MOD: Record<string, string> = { 'Apartamento': t('Apartamento', 'Apartment'), 'Moradia': t('Moradia', 'House'), 'Estabelecimento de Hospedagem/Hostel': t('Hospedagem / hostel', 'Guesthouse / hostel'), 'Quartos': t('Quartos', 'Rooms') };
   const fr: any[] = A.freguesias;
-  const nCentro = fr.filter((x) => centro(x.freguesia)).reduce((a, x) => a + x.n, 0);
-  const uCentro = fr.filter((x) => centro(x.freguesia)).reduce((a, x) => a + x.utentes, 0);
+  const centro = fr.filter((x) => x.centro);
+  const nCentro = centro.reduce((a, x) => a + x.n, 0), cCentro = centro.reduce((a, x) => a + x.camas, 0);
   const curto = (f: string) => f.replace('União das freguesias de ', '').replace('Braga (São José de São Lázaro e São João do Souto)', 'Braga (S. José S. Lázaro e S. João Souto)');
-  const freg = fr.slice(0, 10).map((x) => ({ freguesia: curto(x.freguesia), n: x.n, utentes: x.utentes }));
-  const anos = (A.porAno as any[]).map((x) => ({ ano: x.ano, n: x.n }));
+  const freg = fr.slice(0, 10).map((x) => ({ freguesia: curto(x.freguesia), n: x.n, camas: x.camas }));
+  const anos = (A.porAno as any[]).filter((x) => +x.ano >= 2010).map((x) => ({ ano: x.ano, n: x.n }));
   const mods = Object.entries(A.modalidades as Record<string, number>).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ mod: MOD[k] || k, v }));
-  const pico = [...anos].sort((a, b) => b.n - a.n)[0];
-  // mapa de pontos (projeção simples)
+  const E = A.estados;
   const pts: number[][] = A.pontos.filter((p: number[]) => p[0] > 41.4 && p[0] < 41.7 && p[1] > -8.6 && p[1] < -8.2);
+  const pc = (a: number, b: number) => Math.round((a / Math.max(1, b)) * 100);
   return (
     <>
-      <SectionTitle sub={A.fonte}>{t(`${Math.round((nCentro / A.total) * 100)}% do Alojamento Local de Braga está nas quatro freguesias do centro`, `${Math.round((nCentro / A.total) * 100)}% of Braga’s short-term rentals are in the four central parishes`)}</SectionTitle>
+      <SectionTitle sub={A.fonte}>{t(`${A.total} alojamentos locais ativos; ${pc(nCentro, A.total)}% estão nas quatro freguesias do centro`, `${A.total} active short-term rentals; ${pc(nCentro, A.total)}% are in the four central parishes`)}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
-        <KPI label={t('Estabelecimentos ativos', 'Active establishments')} value={fmt(A.total)} sub={t(`${fmt(A.utentes)} utentes (capacidade)`, `${fmt(A.utentes)} guests (capacity)`)} color={C.accent} />
-        <KPI label={t('No centro da cidade', 'In the city centre')} value={fmt(nCentro)} sub={t(`${fmt(uCentro)} utentes · ${Math.round((uCentro / Math.max(1, A.utentes)) * 100)}% da capacidade`, `${fmt(uCentro)} guests · ${Math.round((uCentro / Math.max(1, A.utentes)) * 100)}% of capacity`)} color={C.orange} />
-        <KPI label={t('Apartamentos', 'Apartments')} value={`${Math.round(((A.modalidades.Apartamento || 0) / A.total) * 100)}%`} sub={t(`${fmt(A.modalidades.Apartamento || 0)} estabelecimentos`, `${fmt(A.modalidades.Apartamento || 0)} establishments`)} color={C.purple} />
-        <KPI label={t('Capacidade média', 'Average capacity')} value={(A.utentes / Math.max(1, A.comUtentes)).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} sub={t('utentes por estabelecimento', 'guests per establishment')} color={C.cyan} />
-        <KPI label={t('Selo Clean & Safe', 'Clean & Safe label')} value={fmt(A.seloCleanSafe)} sub={t(`${Math.round((A.seloCleanSafe / A.total) * 100)}% dos estabelecimentos`, `${Math.round((A.seloCleanSafe / A.total) * 100)}% of establishments`)} color={C.positive} />
+        <KPI label={t('Alojamentos locais ativos', 'Active short-term rentals')} value={fmt(A.total)} sub={t(`${fmt(A.camas)} camas · ${fmt(A.quartos)} quartos`, `${fmt(A.camas)} beds · ${fmt(A.quartos)} rooms`)} color={C.accent} />
+        <KPI label={t('No centro da cidade', 'In the city centre')} value={`${pc(nCentro, A.total)}%`} sub={t(`${fmt(nCentro)} alojamentos · ${pc(cCentro, A.camas)}% das camas`, `${fmt(nCentro)} rentals · ${pc(cCentro, A.camas)}% of beds`)} color={C.orange} />
+        <KPI label={t('Apartamentos', 'Apartments')} value={`${pc(A.modalidades['Apartamento'] || 0, A.total)}%`} sub={t(`${fmt(A.modalidades['Apartamento'] || 0)} alojamentos`, `${fmt(A.modalidades['Apartamento'] || 0)} rentals`)} color={C.purple} />
+        <KPI label={t('Cessaram atividade', 'Ceased activity')} value={fmt(E.cessadosPermanente + E.cessadosTemporario)} sub={t(`${E.cessadosPermanente} de vez · ${E.cessadosTemporario} temporariamente · ${fmt(A.camasCessadas)} camas`, `${E.cessadosPermanente} permanently · ${E.cessadosTemporario} temporarily · ${fmt(A.camasCessadas)} beds`)} color={C.negative} />
+        <KPI label={t('Camas por alojamento', 'Beds per rental')} value={(A.camas / Math.max(1, A.total)).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} sub={t('em média', 'on average')} color={C.cyan} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={t('Onde estão: cada ponto é um estabelecimento', 'Where they are: each dot is an establishment')}>
+        <Card title={t('Onde estão: cada ponto é um registo', 'Where they are: each dot is a registration')}>
           <MapaAL pontos={pts} />
-          <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t('Aproxima com os botões + e − ou com dois dedos. Algumas coordenadas do registo são aproximadas (ao código postal), por isso vários alojamentos podem aparecer no mesmo ponto.', 'Zoom with + and − or pinch. Some registry coordinates are approximate (postcode level), so several establishments may share the same dot.')}</div>
+          <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t(`O mapa usa as coordenadas do registo nacional (${A.fonteMapa}, ${fmt(A.registosRNAL)} registos), porque a base municipal não tem localização. Algumas coordenadas são só ao nível do código postal.`, `The map uses national registry coordinates (${A.fonteMapa}, ${fmt(A.registosRNAL)} records), since the municipal database has no location. Some coordinates are postcode-level only.`)}</div>
         </Card>
-        <Card title={t('Por freguesia (estabelecimentos)', 'By parish (establishments)')}>
+        <Card title={t('Por freguesia (alojamentos ativos)', 'By parish (active rentals)')}>
           <ResponsiveContainer width="100%" height={420}>
             <BarChart data={freg} layout="vertical" margin={{ top: 4, right: 20, left: 8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <YAxis type="category" dataKey="freguesia" width={180} stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
-              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any, it: any) => [`${fmt(v)} · ${fmt(it?.payload?.utentes)} ${t('utentes', 'guests')}`, t('Estabelecimentos', 'Establishments')]} />
-              <Bar dataKey="n" name={t('Estabelecimentos', 'Establishments')} fill={C.orange} radius={[0, 4, 4, 0]} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any, it: any) => [`${fmt(v)} · ${fmt(it?.payload?.camas)} ${t('camas', 'beds')}`, t('Alojamentos', 'Rentals')]} />
+              <Bar dataKey="n" name={t('Alojamentos', 'Rentals')} fill={C.orange} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={t('Ano de registo dos estabelecimentos ativos', 'Registration year of active establishments')}>
+        <Card title={t('Ano de início de atividade (alojamentos ativos)', 'Year activity began (active rentals)')}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={anos} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
               <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
-              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Registos', 'Registrations')]} />
-              <Bar dataKey="n" name={t('Registos', 'Registrations')} fill={C.accent} radius={[4, 4, 0, 0]} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Alojamentos', 'Rentals')]} />
+              <Bar dataKey="n" name={t('Alojamentos', 'Rentals')} fill={C.accent} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Só conta os estabelecimentos ainda ativos. O ano com mais registos foi ${pico?.ano} (${pico?.n}); 2024 teve apenas ${anos.find((x) => x.ano === '2024')?.n ?? '—'}, o que coincide com as restrições ao Alojamento Local de 2023–2024.`, `Only active establishments are counted. The year with most registrations was ${pico?.ano} (${pico?.n}); 2024 had only ${anos.find((x) => x.ano === '2024')?.n ?? '—'}, coinciding with the 2023–2024 restrictions on short-term rentals.`)}</div>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t('Só conta os alojamentos ainda ativos, pelo ano em que começaram a atividade. O registo do ano em curso está incompleto.', 'Only rentals still active, by the year they began operating. The current year is incomplete.')}</div>
         </Card>
-        <Card title={t('Por modalidade', 'By type')}>
+        <Card title={t('Por modalidade (alojamentos ativos)', 'By type (active rentals)')}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={mods} layout="vertical" margin={{ top: 4, right: 20, left: 8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
-              <YAxis type="category" dataKey="mod" width={110} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
-              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Estabelecimentos', 'Establishments')]} />
-              <Bar dataKey="v" name={t('Estabelecimentos', 'Establishments')} fill={C.purple} radius={[0, 4, 4, 0]} />
+              <YAxis type="category" dataKey="mod" width={140} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
+              <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Alojamentos', 'Rentals')]} />
+              <Bar dataKey="v" name={t('Alojamentos', 'Rentals')} fill={C.purple} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Base municipal: ${fmt(A.registados)} alojamentos locais registados, dos quais ${fmt(E.ativos)} ativos. ${E.semEstado} registos não têm estado indicado e não entram nas contas.`, `Municipal database: ${fmt(A.registados)} registered rentals, ${fmt(E.ativos)} active. ${E.semEstado} records have no status and are excluded.`)}</div>
         </Card>
       </div>
     </>
