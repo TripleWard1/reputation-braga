@@ -191,7 +191,7 @@ export default function Apresentacao({ locations, onClose }: { locations: LocMin
               {[d.a, d.b].map((c) => (
                 <div key={c.titulo} className="apr-lista">
                   <div className="cab" style={{ color: c.cor }}>{c.titulo}</div>
-                  {c.itens.length ? c.itens.map(([nome, sub], k) => <div key={nome} className="item" style={{ animationDelay: `${k * 100}ms` }}><span style={{ color: c.cor }}>{k + 1}</span><strong>{nome}</strong><em>{sub}</em></div>) : <div className="item"><strong>—</strong></div>}
+                  {c.itens.length ? c.itens.map(([nome, sub], k) => <div key={nome} className="item" style={{ animationDelay: `${k * 100}ms` }}><span style={{ color: c.cor }}>{k + 1}</span><strong>{nome}</strong><em>{sub}</em></div>) : <div className="item"><strong>-</strong></div>}
                 </div>
               ))}
             </div>
