@@ -17,7 +17,6 @@ import {
 } from '@/app/lib/reviews';
 import { TEMAS, temaStats, excertos, numeros, ranking, numerosCoerentes, numerosPermitidos, resumoModelo, tagValida, indiceDestino } from '@/app/lib/temas';
 import { obterFotoBraga } from '@/app/lib/foto-braga';
-import Apresentacao from '@/app/components/Apresentacao';
 import { VisaoGeral, LocaisLista, FichaLocal, MapaView, CompararView, TemasView, RelatorioView, MercadosView, ProdutosView, type Intervencao, type Afluencia, type Atributos, type WikiDados } from '@/app/components/Reputacao';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -561,7 +560,7 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
   return (
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px', marginBottom: 14 }}>
       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
-        {t('Evolução da reputação - últimos 3 anos (estrelas reais do Google)', 'Reputation trend - last 3 years (real Google stars)')}
+        {t('Evolução da reputação — últimos 3 anos (estrelas reais do Google)', 'Reputation trend — last 3 years (real Google stars)')}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 14 }}>
         {kpis.map(([l, v, sub]) => (
@@ -599,10 +598,10 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
       </div>
       {(recent.length > 0 || previous.length > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-          {([[t('Problemas - últimos 12 meses', 'Issues - last 12 months'), recent, C.negative], [t('Problemas - período anterior (12–36 meses)', 'Issues - previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
+          {([[t('Problemas — últimos 12 meses', 'Issues — last 12 months'), recent, C.negative], [t('Problemas — período anterior (12–36 meses)', 'Issues — previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
             <div key={title} style={{ background: C.bg, borderRadius: 8, padding: '12px 14px' }}>
               <div style={{ fontSize: 11, color, fontWeight: 600, marginBottom: 6 }}>{title}</div>
-              {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>-</div>}
+              {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>—</div>}
             </div>
           ))}
         </div>
@@ -661,7 +660,6 @@ export default function Home() {
   const [fotoBraga, setFotoBraga] = useState<string | null>(null);
   // Seta para voltar ao topo (aparece quando se desce na página)
   const [verTopo, setVerTopo] = useState(false);
-  const [apresentar, setApresentar] = useState(false);
   useEffect(() => { const f = () => setVerTopo(window.scrollY > 700); f(); window.addEventListener('scroll', f, { passive: true }); return () => window.removeEventListener('scroll', f); }, []);
   useEffect(() => { let vivo = true; obterFotoBraga().then((f) => { if (vivo) setFotoBraga(f); }); return () => { vivo = false; }; }, []);
   // Fotografia do Posto de Turismo para o topo do Observatório
@@ -756,7 +754,6 @@ export default function Home() {
         .rbs-indice .rbs-media { font-size: 15px !important; margin-top: 2px !important; }
         .rbs-lang { grid-column: 1 / -1; margin-top: 0 !important; }
         .rbs-foot { display: none !important; }
-        .rbs-apresentar { display: none !important; }
         .rb-main { margin-left: 0 !important; }
         .rb-main > :not(.rbx) [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
         .rb-main [style*="padding: 28px 30px"] { padding: 18px 16px !important; }
@@ -1182,7 +1179,7 @@ RULES:
       }
       setImpGroups([]);
       setImpMsg('✓ ' + lines.join(' · '));
-      showToast(todo.some((g) => g.reviews.length) ? t('✓ Comentários importados - falta analisar com IA', '✓ Reviews imported - now run the AI analysis') : t('✓ Informação do local atualizada', '✓ Place information updated'));
+      showToast(todo.some((g) => g.reviews.length) ? t('✓ Comentários importados — falta analisar com IA', '✓ Reviews imported — now run the AI analysis') : t('✓ Informação do local atualizada', '✓ Place information updated'));
     } catch (err: any) {
       setImpMsg(t('Erro na importação: ', 'Import error: ') + (err?.message || '') + (lines.length ? ` · ${t('já gravado', 'already saved')}: ${lines.join(' · ')}` : ''));
     } finally {
@@ -1195,7 +1192,7 @@ RULES:
     setAnalyzing(loc.id);
     setError(null);
     try {
-      // 1) Estatísticas reconstruídas (regra "Sem texto") - fonte única de todos os números
+      // 1) Estatísticas reconstruídas (regra "Sem texto") — fonte única de todos os números
       showToast(t(`A preparar ${loc.name}…`, `Preparing ${loc.name}…`));
       const st0 = loc.reviewStats!;
       const stats = semIndefinidos(await rebuildStats(loc.id, { placeId: st0.placeId, placeTitle: st0.placeTitle, source: st0.source })) as ReviewStats;
@@ -1218,7 +1215,7 @@ Para cada comentário, indica de 0 a 3 temas referidos, cada um seguido de + (el
 Temas:
 ${listaTemas}
 
-Responde APENAS com JSON: {"r":[{"i":0,"t":["paisagem+","acesso-"]}]} - um item por comentário, com o mesmo número "i".
+Responde APENAS com JSON: {"r":[{"i":0,"t":["paisagem+","acesso-"]}]} — um item por comentário, com o mesmo número "i".
 
 Comentários:
 ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)}`).join('\n')}` }], true);
@@ -1236,7 +1233,7 @@ ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)
         all = all.map((r) => (tags[r.id] ? { ...r, tg: tags[r.id], c: 1 } : r));
       }
 
-      // 3) Estado de cada tema - calculado, não escrito pela IA
+      // 3) Estado de cada tema — calculado, não escrito pela IA
       const { temas, textRec, textPrev } = temaStats(all);
       const ativos = temas.filter((z) => z.estado);
 
@@ -1252,7 +1249,7 @@ ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)
       ].filter(Boolean).join('\n');
       const temasTxt = ativos.map((z) => {
         const ex = excertos(all, z.id, z.estado === 'forte' ? '+' : '-');
-        return `- ${z.id} (${TEMAS.find((y) => y.id === z.id)!.pt}) - estado: ${z.estado}${ex.length ? `\n  excertos: ${ex.map((e) => `"${e}"`).join(' | ')}` : ''}`;
+        return `- ${z.id} (${TEMAS.find((y) => y.id === z.id)!.pt}) — estado: ${z.estado}${ex.length ? `\n  excertos: ${ex.map((e) => `"${e}"`).join(' | ')}` : ''}`;
       }).join('\n') || '(nenhum tema com expressão suficiente)';
 
       // Leitura por blocos (como na versão original): ~150 comentários equilibrados, separados por período,
@@ -1285,7 +1282,7 @@ ${b.items.map((r) => `[${r.s}★ · ${r.d.slice(0, 7)}] ${r.t.replace(/\s+/g, ' 
       const raw2 = await groqChat([{ role: 'user', content:
 `És analista de reputação turística do Município de Braga. Local: "${loc.name}" (${loc.category}).
 
-NÚMEROS (já calculados - usa-os exatamente assim; não calcules nem escrevas outros números; não compares com outros locais nem fales de rankings ou de respostas aos comentários):
+NÚMEROS (já calculados — usa-os exatamente assim; não calcules nem escrevas outros números; não compares com outros locais nem fales de rankings ou de respostas aos comentários):
 ${numerosTxt}
 
 TEMAS (estado calculado comparando os últimos 12 meses com os 12–36 meses anteriores: persistente = crítica nos dois períodos; novo = só no recente; deixou = só no anterior; forte = elogio frequente):
@@ -1324,7 +1321,7 @@ Em problemasRecentes e problemasAnteriores, indica até 6 problemas em cada, do 
       const perRec = periodo(ai.problemasRecentes, ['novo', 'persiste']);
       const perAnt = periodo(ai.problemasAnteriores, ['deixou', 'persiste']);
 
-      // 6) Análise - mantém os campos antigos para Comparar, Problemas, Relatório e Mapa
+      // 6) Análise — mantém os campos antigos para Comparar, Problemas, Relatório e Mapa
       const nomeTema = (id: string) => TEMAS.find((y) => y.id === id)!.pt;
       const comEstado = (e: string[]) => temasV2.filter((z) => e.includes(String(z.estado)));
       const ws = windowStats(stats)!;
@@ -1964,12 +1961,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           })}
         </nav>
 
-        <div className="rbs-apresentar" style={{ padding: '0 10px 12px' }}>
-          <button onClick={() => setApresentar(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', height: 42, borderRadius: 8, border: '1px solid rgba(138,176,230,.35)', background: 'rgba(138,176,230,.12)', color: '#ECEDEF', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#8AB0E6" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-            {t('Modo apresentação', 'Presentation mode')}
-          </button>
-        </div>
         <div className="rbs-foot" style={{ padding: '14px 18px 18px', borderTop: '1px solid #23262C', fontSize: 11.5, color: '#6F747D', lineHeight: 1.5 }}>
           {t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}
         </div>
@@ -2063,7 +2054,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             onOpen={(id) => { setDetailId(id); setView('detalhe'); }}
           />
         )}
-        {apresentar && <Apresentacao locations={locations} onClose={() => setApresentar(false)} />}
         <button className={`rb-topo${verTopo ? ' on' : ''}`} aria-label={t('Voltar ao topo', 'Back to top')} title={t('Voltar ao topo', 'Back to top')} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
         </button>
@@ -2078,8 +2068,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>{t('Importar comentários do Google Maps', 'Import Google Maps reviews')}</h3>
             <p style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.6, margin: '0 0 16px' }}>
-              {t('Ficheiro JSON ou CSV exportado (ex.: Apify - Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.',
-                 'Exported JSON or CSV file (e.g. Apify - Google Maps Reviews Scraper). Only reviews under 3 years old are kept, duplicates are ignored and author names are not stored. A file may contain several places. Manually pasted reviews for those places are replaced.')}
+              {t('Ficheiro JSON ou CSV exportado (ex.: Apify — Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.',
+                 'Exported JSON or CSV file (e.g. Apify — Google Maps Reviews Scraper). Only reviews under 3 years old are kept, duplicates are ignored and author names are not stored. A file may contain several places. Manually pasted reviews for those places are replaced.')}
             </p>
             <input type="file" accept=".json,.csv,.jsonl,.txt" onChange={onImportFile} disabled={impBusy}
               style={{ fontSize: 13, color: C.text }} />
@@ -2098,7 +2088,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     <select value={g.target} disabled={impBusy}
                       onChange={(e) => { const v = e.target.value; setImpGroups((prev) => prev.map((x, i) => (i === gi ? { ...x, target: v } : x))); }}
                       style={{ flex: '0 1 260px', padding: '8px 10px', borderRadius: 8, border: `1px solid ${g.target ? C.accent : C.border}`, background: C.card, color: C.text, fontSize: 12.5 }}>
-                      <option value="">{t('- Ignorar -', '- Skip -')}</option>
+                      <option value="">{t('— Ignorar —', '— Skip —')}</option>
                       <option value="__new__">{t('+ Criar novo local', '+ Create new place')}</option>
                       {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
