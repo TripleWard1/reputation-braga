@@ -13,6 +13,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// Autenticação do administrador (necessária para gravar, segundo as regras do Firestore)
-import { getAuth } from 'firebase/auth';
-export const auth = getAuth(app);
+// Autenticação do administrador (necessária para gravar, segundo as regras do Firestore).
+// Só é iniciada no browser e quando é pedida: durante a compilação (servidor) não existe, e
+// se a configuração estiver incompleta devolve null em vez de partir a aplicação.
+import { getAuth, type Auth } from 'firebase/auth';
+let authInstancia: Auth | null = null;
+export function obterAuth(): Auth | null {
+  if (typeof window === 'undefined') return null;
+  if (authInstancia) return authInstancia;
+  try { authInstancia = getAuth(app); } catch { authInstancia = null; }
+  return authInstancia;
+}

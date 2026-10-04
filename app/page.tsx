@@ -6,7 +6,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip,
   LineChart, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
-import { db, auth } from './firebase';
+import { db, obterAuth } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ModoAdmin } from '@/app/components/modo';
 import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc, getDoc } from 'firebase/firestore';
@@ -673,14 +673,16 @@ export default function Home() {
   const [fbSessao, setFbSessao] = useState<boolean | null>(null);
   useEffect(() => {
     fetch('/api/sessao', { cache: 'no-store' }).then((r) => r.json()).then((d) => setSessao({ admin: !!d.admin, protecao: !!d.protecao })).catch(() => setSessao({ admin: false, protecao: true }));
-    const parar = onAuthStateChanged(auth, (u) => setFbSessao(!!u));
+    const a = obterAuth();
+    if (!a) { setFbSessao(false); return; } // autenticação indisponível (ex.: chave do Firebase em falta)
+    const parar = onAuthStateChanged(a, (u) => setFbSessao(!!u));
     return () => parar();
   }, []);
   const admin = !!sessao?.admin;
   const sessaoFirebaseEmFalta = admin && !!sessao?.protecao && !!process.env.NEXT_PUBLIC_ADMIN_EMAIL && fbSessao === false;
   const sair = async () => {
     try { await fetch('/api/sair', { method: 'POST' }); } catch { /* segue */ }
-    try { await signOut(auth); } catch { /* segue */ }
+    try { const a = obterAuth(); if (a) await signOut(a); } catch { /* segue */ }
     window.location.href = '/';
   };
   const voltarAEntrar = async () => {
@@ -2031,7 +2033,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       <main id="conteudo" tabIndex={-1} className="rb-main" style={{ marginLeft: 232, flex: 1, minHeight: '100vh', minWidth: 0, outline: 'none' }}>
         {sessaoFirebaseEmFalta && (
           <div role="alert" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '14px 20px 0', padding: '12px 16px', borderRadius: 8, background: 'rgba(237,160,107,.12)', border: '1px solid rgba(237,160,107,.4)', color: '#ECEDEF', fontSize: 14 }}>
-            <span>{t('A sessão de edição expirou: as alterações não serão gravadas até voltar a entrar.', 'Your editing session expired: changes will not be saved until you sign in again.')}</span>
+            <span>{t('Sem sessão de edição no Firebase: as alterações não serão gravadas. Volte a entrar; se o aviso continuar, confirme a configuração do Firebase na Vercel.', 'No Firebase editing session: changes will not be saved. Sign in again; if this persists, check the Firebase settings on Vercel.')}</span>
             <button type="button" onClick={voltarAEntrar} style={{ padding: '7px 14px', borderRadius: 999, border: 0, background: '#EDA06B', color: '#0F1216', fontFamily: 'inherit', fontWeight: 700, cursor: 'pointer' }}>{t('Voltar a entrar', 'Sign in again')}</button>
           </div>
         )}

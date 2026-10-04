@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/app/firebase';
+import { obterAuth } from '@/app/firebase';
 
 const LOGO_URL = 'https://i.imgur.com/Vij12Qd.png';
 const FOTO_LOGIN = '/login-avenida.jpg';
@@ -71,8 +71,9 @@ export default function LoginPage() {
       if (res.ok) {
         // Sessão no Firebase com a mesma palavra-passe: é o que as regras do Firestore exigem para gravar.
         const email = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-        if (email) {
-          try { await signInWithEmailAndPassword(auth, email, password); } catch { /* conta ainda não criada no Firebase: entra na mesma; gravar depende das regras */ }
+        const a = obterAuth();
+        if (email && a) {
+          try { await signInWithEmailAndPassword(a, email, password); } catch { /* conta ainda não criada no Firebase: entra na mesma; gravar depende das regras */ }
         }
         window.location.href = '/';
       } else {
