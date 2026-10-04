@@ -19,7 +19,7 @@ import {
 } from '@/app/lib/reviews';
 import { TEMAS, temaStats, excertos, numeros, ranking, numerosCoerentes, numerosPermitidos, resumoModelo, tagValida, indiceDestino } from '@/app/lib/temas';
 import { obterFotoBraga } from '@/app/lib/foto-braga';
-import { VisaoGeral, LocaisLista, FichaLocal, MapaView, CompararView, TemasView, RelatorioView, MercadosView, ProdutosView, type Intervencao, type Afluencia, type Atributos, type WikiDados } from '@/app/components/Reputacao';
+import { VisaoGeral, LocaisLista, FichaLocal, MapaView, TemasView, RelatorioView, MercadosView, ProdutosView, type Intervencao, type Afluencia, type Atributos, type WikiDados } from '@/app/components/Reputacao';
 
 // O Observatório só é descarregado quando é aberto (a app arranca mais depressa, sobretudo no telemóvel)
 const ObservatorioView = dynamic(() => import('@/app/components/ObservatorioView'), {
@@ -568,7 +568,7 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
   return (
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px', marginBottom: 14 }}>
       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
-        {t('Evolução da reputação - últimos 3 anos (estrelas reais do Google)', 'Reputation trend - last 3 years (real Google stars)')}
+        {t('Evolução da reputação — últimos 3 anos (estrelas reais do Google)', 'Reputation trend — last 3 years (real Google stars)')}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 14 }}>
         {kpis.map(([l, v, sub]) => (
@@ -606,10 +606,10 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
       </div>
       {(recent.length > 0 || previous.length > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-          {([[t('Problemas - últimos 12 meses', 'Issues - last 12 months'), recent, C.negative], [t('Problemas - período anterior (12–36 meses)', 'Issues - previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
+          {([[t('Problemas — últimos 12 meses', 'Issues — last 12 months'), recent, C.negative], [t('Problemas — período anterior (12–36 meses)', 'Issues — previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
             <div key={title} style={{ background: C.bg, borderRadius: 8, padding: '12px 14px' }}>
               <div style={{ fontSize: 11, color, fontWeight: 600, marginBottom: 6 }}>{title}</div>
-              {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>-</div>}
+              {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>—</div>}
             </div>
           ))}
         </div>
@@ -668,6 +668,16 @@ export default function Home() {
   const [fotoBraga, setFotoBraga] = useState<string | null>(null);
   // Seta para voltar ao topo (aparece quando se desce na página)
   const [verTopo, setVerTopo] = useState(false);
+  // Telemóvel: painel "Mais" da barra de navegação inferior
+  const [maisAberto, setMaisAberto] = useState(false);
+  useEffect(() => {
+    if (!maisAberto) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setMaisAberto(false); };
+    const antes = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', esc);
+    return () => { window.removeEventListener('keydown', esc); document.body.style.overflow = antes; };
+  }, [maisAberto]);
   // Modo público vs administração: o servidor diz se há sessão; o Firebase confirma a autenticação para gravar
   const [sessao, setSessao] = useState<{ admin: boolean; protecao: boolean } | null>(null);
   const [fbSessao, setFbSessao] = useState<boolean | null>(null);
@@ -763,7 +773,25 @@ export default function Home() {
       @keyframes rbPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
       @keyframes rbShimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+      .rb-baixo, .rb-mais-fundo { display: none; }
       @media (max-width: 820px) {
+        .rb-sidebar { display: none !important; }
+        .rb-baixo { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 150; background: rgba(21,23,27,.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid #2D3139; padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); }
+        .rb-baixo button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; padding: 4px 2px; border: 0; background: transparent; color: #A3A8B1; font: 600 11px 'Public Sans', system-ui, sans-serif; cursor: pointer; position: relative; border-radius: 10px; }
+        .rb-baixo button.on { color: #ECEDEF; }
+        .rb-baixo button.on svg { color: #8AB0E6; }
+        .rb-baixo button.on::before { content: ''; position: absolute; top: -6px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: #8AB0E6; }
+        .rb-baixo span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .rb-mais-fundo { display: block; position: fixed; inset: 0; z-index: 160; background: rgba(8,9,11,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: rbFadeUp .2s ease both; }
+        .rb-mais { position: fixed; left: 0; right: 0; bottom: 0; max-height: 86vh; overflow-y: auto; background: #1C1F24; border-top: 1px solid #2D3139; border-radius: 18px 18px 0 0; padding: 8px 18px calc(22px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -20px 60px rgba(0,0,0,.5); color: #ECEDEF; }
+        .rb-mais-pega { width: 40px; height: 4px; border-radius: 999px; background: #3A404B; margin: 4px auto 12px; }
+        .rb-mais-lista { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 16px; }
+        .rb-mais-lista button { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 10px 12px; border-radius: 12px; border: 1px solid #2D3139; background: #22262D; color: #ECEDEF; font: 600 14px 'Public Sans', system-ui, sans-serif; text-align: left; cursor: pointer; }
+        .rb-mais-lista button.on { border-color: #8AB0E6; background: #22324A; }
+        .rb-mais-lista button svg { color: #8AB0E6; flex-shrink: 0; }
+        .rb-main { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+        .rb-topo { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important; }
+        .rb-toast { bottom: calc(86px + env(safe-area-inset-bottom, 0px)) !important; }
         .rb-app { flex-direction: column !important; }
         .rb-sidebar { position: static !important; width: 100% !important; bottom: auto !important; border-right: none !important; border-bottom: 1px solid #1a1d28 !important; }
         .rb-sidebar > div:first-child { padding: 14px 16px !important; }
@@ -1210,7 +1238,7 @@ RULES:
       }
       setImpGroups([]);
       setImpMsg('✓ ' + lines.join(' · '));
-      showToast(todo.some((g) => g.reviews.length) ? t('✓ Comentários importados - falta analisar com IA', '✓ Reviews imported - now run the AI analysis') : t('✓ Informação do local atualizada', '✓ Place information updated'));
+      showToast(todo.some((g) => g.reviews.length) ? t('✓ Comentários importados — falta analisar com IA', '✓ Reviews imported — now run the AI analysis') : t('✓ Informação do local atualizada', '✓ Place information updated'));
     } catch (err: any) {
       setImpMsg(t('Erro na importação: ', 'Import error: ') + (err?.message || '') + (lines.length ? ` · ${t('já gravado', 'already saved')}: ${lines.join(' · ')}` : ''));
     } finally {
@@ -1223,7 +1251,7 @@ RULES:
     setAnalyzing(loc.id);
     setError(null);
     try {
-      // 1) Estatísticas reconstruídas (regra "Sem texto") - fonte única de todos os números
+      // 1) Estatísticas reconstruídas (regra "Sem texto") — fonte única de todos os números
       showToast(t(`A preparar ${loc.name}…`, `Preparing ${loc.name}…`));
       const st0 = loc.reviewStats!;
       const stats = semIndefinidos(await rebuildStats(loc.id, { placeId: st0.placeId, placeTitle: st0.placeTitle, source: st0.source })) as ReviewStats;
@@ -1246,7 +1274,7 @@ Para cada comentário, indica de 0 a 3 temas referidos, cada um seguido de + (el
 Temas:
 ${listaTemas}
 
-Responde APENAS com JSON: {"r":[{"i":0,"t":["paisagem+","acesso-"]}]} - um item por comentário, com o mesmo número "i".
+Responde APENAS com JSON: {"r":[{"i":0,"t":["paisagem+","acesso-"]}]} — um item por comentário, com o mesmo número "i".
 
 Comentários:
 ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)}`).join('\n')}` }], true);
@@ -1264,7 +1292,7 @@ ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)
         all = all.map((r) => (tags[r.id] ? { ...r, tg: tags[r.id], c: 1 } : r));
       }
 
-      // 3) Estado de cada tema - calculado, não escrito pela IA
+      // 3) Estado de cada tema — calculado, não escrito pela IA
       const { temas, textRec, textPrev } = temaStats(all);
       const ativos = temas.filter((z) => z.estado);
 
@@ -1280,7 +1308,7 @@ ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)
       ].filter(Boolean).join('\n');
       const temasTxt = ativos.map((z) => {
         const ex = excertos(all, z.id, z.estado === 'forte' ? '+' : '-');
-        return `- ${z.id} (${TEMAS.find((y) => y.id === z.id)!.pt}) - estado: ${z.estado}${ex.length ? `\n  excertos: ${ex.map((e) => `"${e}"`).join(' | ')}` : ''}`;
+        return `- ${z.id} (${TEMAS.find((y) => y.id === z.id)!.pt}) — estado: ${z.estado}${ex.length ? `\n  excertos: ${ex.map((e) => `"${e}"`).join(' | ')}` : ''}`;
       }).join('\n') || '(nenhum tema com expressão suficiente)';
 
       // Leitura por blocos (como na versão original): ~150 comentários equilibrados, separados por período,
@@ -1313,7 +1341,7 @@ ${b.items.map((r) => `[${r.s}★ · ${r.d.slice(0, 7)}] ${r.t.replace(/\s+/g, ' 
       const raw2 = await groqChat([{ role: 'user', content:
 `És analista de reputação turística do Município de Braga. Local: "${loc.name}" (${loc.category}).
 
-NÚMEROS (já calculados - usa-os exatamente assim; não calcules nem escrevas outros números; não compares com outros locais nem fales de rankings ou de respostas aos comentários):
+NÚMEROS (já calculados — usa-os exatamente assim; não calcules nem escrevas outros números; não compares com outros locais nem fales de rankings ou de respostas aos comentários):
 ${numerosTxt}
 
 TEMAS (estado calculado comparando os últimos 12 meses com os 12–36 meses anteriores: persistente = crítica nos dois períodos; novo = só no recente; deixou = só no anterior; forte = elogio frequente):
@@ -1352,7 +1380,7 @@ Em problemasRecentes e problemasAnteriores, indica até 6 problemas em cada, do 
       const perRec = periodo(ai.problemasRecentes, ['novo', 'persiste']);
       const perAnt = periodo(ai.problemasAnteriores, ['deixou', 'persiste']);
 
-      // 6) Análise - mantém os campos antigos para Comparar, Problemas, Relatório e Mapa
+      // 6) Análise — mantém os campos antigos para Comparar, Problemas, Relatório e Mapa
       const nomeTema = (id: string) => TEMAS.find((y) => y.id === id)!.pt;
       const comEstado = (e: string[]) => temasV2.filter((z) => e.includes(String(z.estado)));
       const ws = windowStats(stats)!;
@@ -1783,9 +1811,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     { id: 'produtos', label: t('Produtos turísticos', 'Tourism products'), icon: '▤' },
     { id: 'locais', label: t('Locais', 'Places'), icon: '⊞' },
     { id: 'mapa', label: t('Mapa', 'Map'), icon: '◎' },
-    { id: 'comparar', label: t('Comparar', 'Compare'), icon: '⊟' },
     { id: 'mercados', label: t('Mercados', 'Markets'), icon: '◍' },
-    { id: 'problemas', label: t('Problemas', 'Issues'), icon: '▦' },
+    { id: 'problemas', label: t('Temas', 'Themes'), icon: '▦' },
     { id: 'relatorio', label: t('Relatório', 'Report'), icon: '≡' },
   ];
 
@@ -2081,9 +2108,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         )}
 
         {/* ── COMPARAR ── */}
-        {view === 'comparar' && (
-          <CompararView locations={locations} catLabel={catLabel} onOpen={(id) => { setDetailId(id); setView('detalhe'); }} />
-        )}
 
         {/* ── PRODUTOS TURÍSTICOS ── */}
         {view === 'produtos' && <ProdutosView />}
@@ -2124,6 +2148,70 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             onOpen={(id) => { setDetailId(id); setView('detalhe'); }}
           />
         )}
+        {/* ═══ TELEMÓVEL: barra de navegação inferior + painel "Mais" ═══ */}
+        {(() => {
+          const PRINCIPAIS: ViewType[] = ['overview', 'observatorio', 'locais', 'mapa'];
+          const curto: Record<string, string> = { overview: t('Início', 'Home'), observatorio: t('Observatório', 'Observatory'), locais: t('Locais', 'Places'), mapa: t('Mapa', 'Map') };
+          const ativo: ViewType = view === 'detalhe' ? 'locais' : view;
+          const visiveis = NAV.filter((item) => admin || item.id !== 'relatorio');
+          const outros = visiveis.filter((x) => PRINCIPAIS.indexOf(x.id) === -1);
+          const maisAtivo = outros.some((x) => x.id === ativo);
+          const ir = (id: ViewType) => { setView(id); setMaisAberto(false); window.scrollTo({ top: 0 }); };
+          const icone = (id: string) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={NAV_ICON[id] || ''} /></svg>;
+          return (
+            <>
+              <nav className="rb-baixo" aria-label={t('Navegação principal', 'Main navigation')}>
+                {PRINCIPAIS.map((id) => (
+                  <button key={id} type="button" className={ativo === id ? 'on' : ''} aria-current={ativo === id ? 'page' : undefined} onClick={() => ir(id)}>
+                    {icone(id)}<span>{curto[id]}</span>
+                  </button>
+                ))}
+                <button type="button" className={maisAtivo || maisAberto ? 'on' : ''} aria-haspopup="dialog" aria-expanded={maisAberto} onClick={() => setMaisAberto(true)}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+                  <span>{t('Mais', 'More')}</span>
+                </button>
+              </nav>
+              {maisAberto && (
+                <div className="rb-mais-fundo" onClick={() => setMaisAberto(false)}>
+                  <div className="rb-mais" role="dialog" aria-modal="true" aria-label={t('Mais secções', 'More sections')} onClick={(e) => e.stopPropagation()}>
+                    <div className="rb-mais-pega" />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                      <img src={LOGO_URL} alt="Visit Braga" style={{ height: 26, width: 'auto' }} />
+                      <button type="button" onClick={() => setMaisAberto(false)} aria-label={t('Fechar', 'Close')} style={{ width: 40, height: 40, borderRadius: 999, border: '1px solid #2D3139', background: 'transparent', color: '#A3A8B1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                      </button>
+                    </div>
+                    {destino && (
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 14, padding: '12px 14px', borderRadius: 12, background: 'rgba(138,176,230,.1)', border: '1px solid rgba(138,176,230,.25)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: '#8AB0E6' }}>{t('Índice do destino', 'Destination index')}</span>
+                        <strong style={{ fontSize: 20, marginLeft: 'auto' }}>{destino.idx.toLocaleString(lang === 'en' ? 'en-GB' : 'pt-PT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}<span style={{ fontSize: 13, color: '#A3A8B1', fontWeight: 500 }}>/10</span></strong>
+                      </div>
+                    )}
+                    <div className="rb-mais-lista">
+                      {outros.map((x) => (
+                        <button key={x.id} type="button" className={ativo === x.id ? 'on' : ''} aria-current={ativo === x.id ? 'page' : undefined} onClick={() => ir(x.id)}>
+                          {icone(x.id)}{x.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', paddingTop: 14, borderTop: '1px solid #2D3139' }}>
+                      <div style={{ display: 'flex', gap: 6 }} role="group" aria-label={t('Língua', 'Language')}>
+                        {(['pt', 'en'] as Lang[]).map((l) => (
+                          <button key={l} type="button" onClick={() => changeLang(l)} aria-pressed={lang === l} style={{ minWidth: 52, height: 40, borderRadius: 999, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer', border: `1px solid ${lang === l ? '#8AB0E6' : '#2D3139'}`, background: lang === l ? 'rgba(138,176,230,.16)' : 'transparent', color: lang === l ? '#ECEDEF' : '#A3A8B1' }}>{l.toUpperCase()}</button>
+                        ))}
+                      </div>
+                      {admin ? (
+                        sessao?.protecao ? <button type="button" onClick={sair} style={{ height: 40, padding: '0 16px', borderRadius: 999, border: '1px solid #2D3139', background: 'transparent', color: '#A3A8B1', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>{t('Sair da administração', 'Sign out of admin')}</button> : null
+                      ) : (
+                        <a href="/login" style={{ display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 16px', borderRadius: 999, border: '1px solid rgba(138,176,230,.35)', background: 'rgba(138,176,230,.12)', color: '#ECEDEF', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>{t('Entrar (administração)', 'Sign in (admin)')}</a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
         <button className={`rb-topo${verTopo ? ' on' : ''}`} aria-label={t('Voltar ao topo', 'Back to top')} title={t('Voltar ao topo', 'Back to top')} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
         </button>
@@ -2138,8 +2226,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>{t('Importar comentários do Google Maps', 'Import Google Maps reviews')}</h3>
             <p style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.6, margin: '0 0 16px' }}>
-              {t('Ficheiro JSON ou CSV exportado (ex.: Apify - Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.',
-                 'Exported JSON or CSV file (e.g. Apify - Google Maps Reviews Scraper). Only reviews under 3 years old are kept, duplicates are ignored and author names are not stored. A file may contain several places. Manually pasted reviews for those places are replaced.')}
+              {t('Ficheiro JSON ou CSV exportado (ex.: Apify — Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.',
+                 'Exported JSON or CSV file (e.g. Apify — Google Maps Reviews Scraper). Only reviews under 3 years old are kept, duplicates are ignored and author names are not stored. A file may contain several places. Manually pasted reviews for those places are replaced.')}
             </p>
             <input type="file" accept=".json,.csv,.jsonl,.txt" onChange={onImportFile} disabled={impBusy}
               style={{ fontSize: 13, color: C.text }} />
@@ -2158,7 +2246,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     <select value={g.target} disabled={impBusy}
                       onChange={(e) => { const v = e.target.value; setImpGroups((prev) => prev.map((x, i) => (i === gi ? { ...x, target: v } : x))); }}
                       style={{ flex: '0 1 260px', padding: '8px 10px', borderRadius: 8, border: `1px solid ${g.target ? C.accent : C.border}`, background: C.card, color: C.text, fontSize: 12.5 }}>
-                      <option value="">{t('- Ignorar -', '- Skip -')}</option>
+                      <option value="">{t('— Ignorar —', '— Skip —')}</option>
                       <option value="__new__">{t('+ Criar novo local', '+ Create new place')}</option>
                       {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
@@ -2415,7 +2503,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
       {/* ═══ TOAST ═══ */}
       {toast && (
-        <div style={{
+        <div className="rb-toast" role="status" aria-live="polite" style={{
           position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
           background: C.card, border: `1px solid ${C.accent}50`,
           borderRadius: 10, padding: '12px 22px', color: C.text, fontSize: 13,
