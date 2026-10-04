@@ -206,9 +206,9 @@ const OBS_CSS = `
 .obs-sub:hover { color: #ECEDEF; border-color: #8AB0E6; }
 .obs-sub.on { color: #0F1216; background: #8AB0E6; border-color: #8AB0E6; font-weight: 700; }
 .obs-menu-m { display: none; }
-.obs-folha-fundo { position: fixed; inset: 0; z-index: 60; background: rgba(8,9,11,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: obsFade .2s ease both; }
+.obs-folha-fundo { position: fixed; inset: 0; z-index: 1200; background: rgba(8,9,11,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: obsFade .2s ease both; }
 @keyframes obsFade { from { opacity: 0; } to { opacity: 1; } }
-.obs-folha { position: fixed; left: 0; right: 0; bottom: 0; max-height: 84vh; overflow-y: auto; background: #1C1F24; border-top: 1px solid #2D3139; border-radius: 18px 18px 0 0; padding: 8px 18px calc(22px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -20px 60px rgba(0,0,0,.5); animation: obsSobe .28s cubic-bezier(.2,.7,.2,1) both; font-family: 'Public Sans', system-ui, sans-serif; }
+.obs-folha { position: fixed; left: 0; right: 0; bottom: 0; max-height: 84vh; overflow-y: auto; overscroll-behavior: contain; background: #1C1F24; border-top: 1px solid #2D3139; border-radius: 18px 18px 0 0; padding: 8px 18px calc(22px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -20px 60px rgba(0,0,0,.5); animation: obsSobe .28s cubic-bezier(.2,.7,.2,1) both; font-family: 'Public Sans', system-ui, sans-serif; }
 @keyframes obsSobe { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 .obs-folha-pega { width: 40px; height: 4px; border-radius: 999px; background: #3A404B; margin: 4px auto 10px; }
 .obs-folha-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: #ECEDEF; font-size: 16px; }

@@ -259,6 +259,16 @@ const ESTILO = `
 .rb-vg-logo img { width: clamp(240px, 34vw, 480px); height: auto; display: block; filter: drop-shadow(0 4px 18px rgba(0,0,0,.25)); }
 @media (max-width: 900px) { .rb-vg-logo { position: relative; top: auto; margin: 4px 0 22px; } .rb-vg-logo img { width: 220px; } }
 @media print { .rb-vg-logo { display: none; } }
+.rb-vg-placa { display: none; }
+@media (max-width: 900px) {
+  .rb-vg-top { margin-bottom: 44px !important; justify-content: flex-start !important; }
+  .rb-vg-top > div:first-child { display: none !important; }
+  .rb-vg-placa { display: inline-flex; align-items: center; background: rgba(255,255,255,.95); border-radius: 12px; padding: 10px 14px; box-shadow: 0 12px 30px -12px rgba(0,0,0,.7); }
+  .rb-vg-placa img { height: 22px; width: auto; display: block; }
+  .rb-vg-logo { display: none !important; }
+  .rb-kicker { display: flex; align-items: center; gap: 10px; }
+  .rb-kicker::before { content: ''; width: 22px; height: 2px; border-radius: 2px; background: var(--rb-accent); }
+}
 .rb-only-m { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .rb-sec, .rb-rise, .rb-dot { opacity: 1 !important; transform: none !important; transition: none !important; }
@@ -1514,8 +1524,9 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
   };
 
   const topoFoto = (
-    <div className="rb-hero-top">
+    <div className="rb-hero-top rb-vg-top">
       <div style={{ fontSize: 14, color: 'var(--rb-text2)' }}>{t('Reputação · Visão geral', 'Reputation · Overview')}</div>
+      <div className="rb-vg-placa"><img src="/visit-braga-logo.png" alt="Visit Braga" /></div>
     </div>
   );
 
@@ -1525,7 +1536,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
         <HeroFoto src={fundo} mini={FOTO_VISAO_MINI} altura={fundo ? 560 : 380}>
           {topoFoto}
           <div className="rb-enter" style={{ maxWidth: 760 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>Braga</div>
+            <div className="rb-kicker" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>Braga</div>
             <h1 className="rb-hero-h1">{t('Ainda sem dados suficientes', 'Not enough data yet')}</h1>
             <p style={{ fontSize: 16, color: 'var(--rb-text2)', lineHeight: 1.6, margin: '0 0 20px' }}>{t(`Importa os comentários do Google Maps e analisa os locais. A partir de ${MIN_ROBUSTO} avaliações por local, o destino aparece aqui.`, `Import the Google Maps reviews and analyse the places. From ${MIN_ROBUSTO} reviews per place, the destination appears here.`)}</p>
             {admin && <button className="rb-chip warn" onClick={props.onImport}>{t('Importar comentários', 'Import reviews')} <Seta /></button>}
@@ -1616,7 +1627,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
         {topoFoto}
         <div className="rb-vg-logo"><img className="rb-enter" src="/visit-braga-logo.png" alt="Visit Braga" /></div>
         <div className="rb-enter" style={{ maxWidth: 880 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>Braga</div>
+          <div className="rb-kicker" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>Braga</div>
           <h1 className="rb-hero-h1">{titulo}</h1>
           <p style={{ fontSize: 15, color: 'var(--rb-text2)', lineHeight: 1.55, margin: 0, maxWidth: 680 }}>{t(`Avaliações do Google Maps nos últimos 3 anos · médias ponderadas pelo número de avaliações de cada local.`, `Google Maps reviews over the last 3 years · averages weighted by each place’s number of reviews.`)}</p>
         </div>
