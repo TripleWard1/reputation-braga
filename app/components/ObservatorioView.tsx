@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { comRecuperacao } from '@/app/lib/carregar';
 import Perguntar from './obs/Perguntar';
 
 import { useState, useEffect, useRef } from 'react';
@@ -16,31 +17,31 @@ import { C, PAL, SUS_PAL, YEAR_COLORS } from './obs/comum';
 
 // Cada separador é um ficheiro próprio, descarregado só quando é aberto (mais rápido, sobretudo no telemóvel)
 const ACarregar = () => <div className="obs-carregar" role="status" aria-live="polite"><span className="obs-carregar-pt" aria-hidden="true" />{t('A carregar…', 'Loading…')}</div>;
-const Leituras = dynamic(() => import('./obs/Leituras'), { ssr: false, loading: ACarregar });
-const Acessibilidade = dynamic(() => import('./obs/Acessibilidade'), { ssr: false, loading: ACarregar });
-const Aeroporto = dynamic(() => import('./obs/Aeroporto'), { ssr: false, loading: ACarregar });
-const AlojamentoLocal = dynamic(() => import('./obs/AlojamentoLocal'), { ssr: false, loading: ACarregar });
-const AnimacaoTuristica = dynamic(() => import('./obs/AnimacaoTuristica'), { ssr: false, loading: ACarregar });
-const Balcao = dynamic(() => import('./obs/Balcao'), { ssr: false, loading: ACarregar });
-const Caminhos = dynamic(() => import('./obs/Caminhos'), { ssr: false, loading: ACarregar });
-const Cartoes = dynamic(() => import('./obs/Cartoes'), { ssr: false, loading: ACarregar });
-const Cruzamentos = dynamic(() => import('./obs/Cruzamentos'), { ssr: false, loading: ACarregar });
-const Cultura = dynamic(() => import('./obs/Cultura'), { ssr: false, loading: ACarregar });
-const Digital = dynamic(() => import('./obs/Digital'), { ssr: false, loading: ACarregar });
-const Economia = dynamic(() => import('./obs/Economia'), { ssr: false, loading: ACarregar });
-const Emprego = dynamic(() => import('./obs/Emprego'), { ssr: false, loading: ACarregar });
-const EstimativaDormidas = dynamic(() => import('./obs/EstimativaDormidas'), { ssr: false, loading: ACarregar });
-const FerramentasDigitais = dynamic(() => import('./obs/FerramentasDigitais'), { ssr: false, loading: ACarregar });
-const Geral = dynamic(() => import('./obs/Geral'), { ssr: false, loading: ACarregar });
-const Hotelaria = dynamic(() => import('./obs/Hotelaria'), { ssr: false, loading: ACarregar });
-const LojasHistoria = dynamic(() => import('./obs/LojasHistoria'), { ssr: false, loading: ACarregar });
-const Mercados = dynamic(() => import('./obs/Mercados'), { ssr: false, loading: ACarregar });
-const Meteorologia = dynamic(() => import('./obs/Meteorologia'), { ssr: false, loading: ACarregar });
-const Mobilidade = dynamic(() => import('./obs/Mobilidade'), { ssr: false, loading: ACarregar });
-const PerfilTurista = dynamic(() => import('./obs/PerfilTurista'), { ssr: false, loading: ACarregar });
-const Procura = dynamic(() => import('./obs/Procura'), { ssr: false, loading: ACarregar });
-const Sustentabilidade = dynamic(() => import('./obs/Sustentabilidade'), { ssr: false, loading: ACarregar });
-const Taxa = dynamic(() => import('./obs/Taxa'), { ssr: false, loading: ACarregar });
+const Leituras = dynamic(comRecuperacao(() => import('./obs/Leituras')), { ssr: false, loading: ACarregar });
+const Acessibilidade = dynamic(comRecuperacao(() => import('./obs/Acessibilidade')), { ssr: false, loading: ACarregar });
+const Aeroporto = dynamic(comRecuperacao(() => import('./obs/Aeroporto')), { ssr: false, loading: ACarregar });
+const AlojamentoLocal = dynamic(comRecuperacao(() => import('./obs/AlojamentoLocal')), { ssr: false, loading: ACarregar });
+const AnimacaoTuristica = dynamic(comRecuperacao(() => import('./obs/AnimacaoTuristica')), { ssr: false, loading: ACarregar });
+const Balcao = dynamic(comRecuperacao(() => import('./obs/Balcao')), { ssr: false, loading: ACarregar });
+const Caminhos = dynamic(comRecuperacao(() => import('./obs/Caminhos')), { ssr: false, loading: ACarregar });
+const Cartoes = dynamic(comRecuperacao(() => import('./obs/Cartoes')), { ssr: false, loading: ACarregar });
+const Cruzamentos = dynamic(comRecuperacao(() => import('./obs/Cruzamentos')), { ssr: false, loading: ACarregar });
+const Cultura = dynamic(comRecuperacao(() => import('./obs/Cultura')), { ssr: false, loading: ACarregar });
+const Digital = dynamic(comRecuperacao(() => import('./obs/Digital')), { ssr: false, loading: ACarregar });
+const Economia = dynamic(comRecuperacao(() => import('./obs/Economia')), { ssr: false, loading: ACarregar });
+const Emprego = dynamic(comRecuperacao(() => import('./obs/Emprego')), { ssr: false, loading: ACarregar });
+const EstimativaDormidas = dynamic(comRecuperacao(() => import('./obs/EstimativaDormidas')), { ssr: false, loading: ACarregar });
+const FerramentasDigitais = dynamic(comRecuperacao(() => import('./obs/FerramentasDigitais')), { ssr: false, loading: ACarregar });
+const Geral = dynamic(comRecuperacao(() => import('./obs/Geral')), { ssr: false, loading: ACarregar });
+const Hotelaria = dynamic(comRecuperacao(() => import('./obs/Hotelaria')), { ssr: false, loading: ACarregar });
+const LojasHistoria = dynamic(comRecuperacao(() => import('./obs/LojasHistoria')), { ssr: false, loading: ACarregar });
+const Mercados = dynamic(comRecuperacao(() => import('./obs/Mercados')), { ssr: false, loading: ACarregar });
+const Meteorologia = dynamic(comRecuperacao(() => import('./obs/Meteorologia')), { ssr: false, loading: ACarregar });
+const Mobilidade = dynamic(comRecuperacao(() => import('./obs/Mobilidade')), { ssr: false, loading: ACarregar });
+const PerfilTurista = dynamic(comRecuperacao(() => import('./obs/PerfilTurista')), { ssr: false, loading: ACarregar });
+const Procura = dynamic(comRecuperacao(() => import('./obs/Procura')), { ssr: false, loading: ACarregar });
+const Sustentabilidade = dynamic(comRecuperacao(() => import('./obs/Sustentabilidade')), { ssr: false, loading: ACarregar });
+const Taxa = dynamic(comRecuperacao(() => import('./obs/Taxa')), { ssr: false, loading: ACarregar });
 
 const LOGO = 'https://i.imgur.com/Vij12Qd.png';
 
@@ -97,7 +98,20 @@ const OBS_CSS = `
 .obs-leit-valor { font-size: 30px; font-weight: 700; color: #ECEDEF; letter-spacing: -0.02em; line-height: 1.1; }
 .obs-leit-frase { margin: 0; flex: 1; font-size: 13.5px; line-height: 1.55; color: #A3A8B1; }
 .obs-leit-ir { align-self: flex-start; margin-top: 6px; }
-@media (max-width: 760px) { .obs-perg { padding: 16px 14px 4px; } .obs-perg-form { flex-direction: column; } .obs-perg-form button { width: 100%; } .obs-leit-titulo { font-size: 19px; } }
+.obs-perg-bico { display: none; }
+@media (max-width: 760px) {
+  .obs-perg { padding: 12px 12px 2px; }
+  .obs-perg-in { padding: 12px; border-radius: 12px; }
+  .obs-perg-titulo { font-size: 13.5px; margin-bottom: 8px; }
+  .obs-perg-form input { height: 42px; font-size: 14px; padding: 0 12px; }
+  .obs-perg-form button { width: 42px; height: 42px; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .obs-perg-btxt { display: none; } .obs-perg-bico { display: block; }
+  .obs-perg-ex { flex-wrap: nowrap; overflow-x: auto; margin: 8px -12px 0; padding: 0 12px 2px; scrollbar-width: none; }
+  .obs-perg-ex::-webkit-scrollbar { display: none; }
+  .obs-perg-ex button { flex: 0 0 auto; white-space: nowrap; font-size: 12.5px; padding: 6px 11px; }
+  .obs-perg-resp { padding: 12px 14px; } .obs-perg-texto { font-size: 14.5px; }
+  .obs-leit-titulo { font-size: 19px; }
+}
 @media (prefers-reduced-motion: reduce) { .obs-perg-resp, .obs-leit-cartao { animation: none !important; transition: none !important; } }
 .obs-sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .obs-dl { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 999px; border: 1px solid #2D3139; background: transparent; color: #A3A8B1; font: 600 12px 'Public Sans', system-ui, sans-serif; cursor: pointer; transition: color .2s ease, border-color .2s ease, background .2s ease; }
@@ -114,7 +128,7 @@ const OBS_CSS = `
 .obs-hero-shade { position: absolute; inset: 0; background: linear-gradient(0deg, #15171B 0%, rgba(21,23,27,.66) 45%, rgba(21,23,27,.25) 100%); }
 .obs-hero-in { position: relative; width: 100%; max-width: 1760px; margin: 0 auto; padding: 72px 40px 32px; animation: obsIn .8s cubic-bezier(.2,.7,.2,1) both; }
 .obs-h1 { font-size: clamp(32px, 4.4vw, 52px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.05; margin: 10px 0 14px; text-shadow: 0 2px 24px rgba(0,0,0,.35); }
-.obs-tabs { position: sticky; top: 0; z-index: 6; background: rgba(21,23,27,.88); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid #2D3139; }
+.obs-tabs { position: sticky; top: 0; z-index: 50; box-shadow: 0 10px 24px -14px rgba(0,0,0,.8); background: rgba(28,31,36,.94); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid #2D3139; }
 .obs-tabs-in { max-width: 1760px; margin: 0 auto; padding: 10px 40px; display: flex; align-items: flex-start; gap: 12px; }
 .obs-tabs-list { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
 .obs-tabs-list::-webkit-scrollbar { display: none; }
@@ -186,11 +200,11 @@ const OBS_CSS = `
 .obs-grupo.on { background: #22324A; color: #ECEDEF; font-weight: 600; border-color: rgba(138,176,230,.35); }
 .obs-grupo.on svg { color: #8AB0E6; }
 .obs-grupo:focus-visible, .obs-sub:focus-visible, .obs-menu-m:focus-visible { outline: 2px solid #8AB0E6; outline-offset: 2px; }
-.obs-sub-in { max-width: 1760px; margin: 0 auto; padding: 0 40px; display: flex; gap: 26px; border-top: 1px solid rgba(255,255,255,.05); overflow-x: auto; scrollbar-width: none; }
+.obs-sub-in { max-width: 1760px; margin: 0 auto; padding: 0 40px; display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,.05); overflow-x: auto; scrollbar-width: none; }
 .obs-sub-in::-webkit-scrollbar { display: none; }
-.obs-sub { flex: 0 0 auto; height: 42px; padding: 0 2px; background: none; border: 0; border-bottom: 2px solid transparent; color: #A3A8B1; font: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: color .2s ease, border-color .2s ease; }
-.obs-sub:hover { color: #ECEDEF; }
-.obs-sub.on { color: #ECEDEF; font-weight: 600; border-bottom-color: #8AB0E6; }
+.obs-sub { flex: 0 0 auto; height: 34px; margin: 8px 0; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,.04); border: 1px solid #3A404B; color: #C9CDD3; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: color .2s ease, border-color .2s ease, background .2s ease; }
+.obs-sub:hover { color: #ECEDEF; border-color: #8AB0E6; }
+.obs-sub.on { color: #0F1216; background: #8AB0E6; border-color: #8AB0E6; font-weight: 700; }
 .obs-menu-m { display: none; }
 .obs-folha-fundo { position: fixed; inset: 0; z-index: 60; background: rgba(8,9,11,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: obsFade .2s ease both; }
 @keyframes obsFade { from { opacity: 0; } to { opacity: 1; } }
@@ -207,11 +221,12 @@ const OBS_CSS = `
 .obs-folha-itens button.on { border-color: #8AB0E6; background: #22324A; font-weight: 600; }
 @media (max-width: 820px) {
   .obs-grupos { display: none; }
-  .obs-menu-m { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 6px 14px; border-radius: 12px; border: 1px solid #2D3139; background: #1C1F24; color: #ECEDEF; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .obs-menu-m { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; padding: 8px 16px; border-radius: 14px; border: 1.5px solid rgba(138,176,230,.6); background: linear-gradient(135deg, #22324A, #1C2433); color: #ECEDEF; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 22px -12px rgba(138,176,230,.55); }
+  .obs-menu-m > svg:last-child { color: #8AB0E6; width: 22px; height: 22px; }
   .obs-menu-m small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8AB0E6; margin-bottom: 1px; }
   .obs-menu-m > svg:first-child { color: #8AB0E6; flex-shrink: 0; }
-  .obs-sub-in { padding: 0 14px; gap: 20px; }
-  .obs-sub { height: 40px; font-size: 13px; }
+  .obs-sub-in { padding: 0 12px 2px; gap: 8px; }
+  .obs-sub { height: 34px; font-size: 13px; padding: 0 13px; }
 }
 @media (max-width: 760px) {
   .obs { overflow-x: clip; }

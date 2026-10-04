@@ -11,6 +11,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ModoAdmin } from '@/app/components/modo';
 import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc, getDoc } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
+import { comRecuperacao } from '@/app/lib/carregar';
 import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
 import { dispAnalysis, setTransNotify, invalidateTrans } from '@/app/lib/ai-translate';
 import {
@@ -22,7 +23,7 @@ import { obterFotoBraga } from '@/app/lib/foto-braga';
 import { VisaoGeral, LocaisLista, FichaLocal, MapaView, TemasView, RelatorioView, MercadosView, ProdutosView, type Intervencao, type Afluencia, type Atributos, type WikiDados } from '@/app/components/Reputacao';
 
 // O Observatório só é descarregado quando é aberto (a app arranca mais depressa, sobretudo no telemóvel)
-const ObservatorioView = dynamic(() => import('@/app/components/ObservatorioView'), {
+const ObservatorioView = dynamic(comRecuperacao(() => import('@/app/components/ObservatorioView')), {
   ssr: false,
   loading: () => <div role="status" aria-live="polite" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A3A8B1', fontSize: 14 }}>A carregar o Observatório…</div>,
 });
@@ -773,16 +774,17 @@ export default function Home() {
       @keyframes rbPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
       @keyframes rbShimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+      .leaflet-container { z-index: 0; isolation: isolate; }
       .rb-baixo, .rb-mais-fundo { display: none; }
       @media (max-width: 820px) {
         .rb-sidebar { display: none !important; }
-        .rb-baixo { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 150; background: rgba(21,23,27,.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid #2D3139; padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); }
+        .rb-baixo { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; background: rgba(21,23,27,.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid #2D3139; padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); }
         .rb-baixo button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; padding: 4px 2px; border: 0; background: transparent; color: #A3A8B1; font: 600 11px 'Public Sans', system-ui, sans-serif; cursor: pointer; position: relative; border-radius: 10px; }
         .rb-baixo button.on { color: #ECEDEF; }
         .rb-baixo button.on svg { color: #8AB0E6; }
         .rb-baixo button.on::before { content: ''; position: absolute; top: -6px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: #8AB0E6; }
         .rb-baixo span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .rb-mais-fundo { display: block; position: fixed; inset: 0; z-index: 160; background: rgba(8,9,11,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: rbFadeUp .2s ease both; }
+        .rb-mais-fundo { display: block; position: fixed; inset: 0; z-index: 1100; background: rgba(8,9,11,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: rbFadeUp .2s ease both; }
         .rb-mais { position: fixed; left: 0; right: 0; bottom: 0; max-height: 86vh; overflow-y: auto; background: #1C1F24; border-top: 1px solid #2D3139; border-radius: 18px 18px 0 0; padding: 8px 18px calc(22px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -20px 60px rgba(0,0,0,.5); color: #ECEDEF; }
         .rb-mais-pega { width: 40px; height: 4px; border-radius: 999px; background: #3A404B; margin: 4px auto 12px; }
         .rb-mais-lista { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 16px; }
@@ -2150,8 +2152,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         )}
         {/* ═══ TELEMÓVEL: barra de navegação inferior + painel "Mais" ═══ */}
         {(() => {
-          const PRINCIPAIS: ViewType[] = ['overview', 'observatorio', 'locais', 'mapa'];
-          const curto: Record<string, string> = { overview: t('Início', 'Home'), observatorio: t('Observatório', 'Observatory'), locais: t('Locais', 'Places'), mapa: t('Mapa', 'Map') };
+          const PRINCIPAIS: ViewType[] = ['overview', 'observatorio', 'locais', 'produtos'];
+          const curto: Record<string, string> = { overview: t('Início', 'Home'), observatorio: t('Observatório', 'Observatory'), locais: t('Locais', 'Places'), produtos: t('Produtos', 'Products') };
           const ativo: ViewType = view === 'detalhe' ? 'locais' : view;
           const visiveis = NAV.filter((item) => admin || item.id !== 'relatorio');
           const outros = visiveis.filter((x) => PRINCIPAIS.indexOf(x.id) === -1);

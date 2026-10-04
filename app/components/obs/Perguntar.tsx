@@ -43,8 +43,11 @@ export default function Perguntar({ onIrPara, reputacao, nomeSeparador }: { onIr
         <form className="obs-perg-form" onSubmit={(e) => { e.preventDefault(); perguntar(pergunta); }}>
           <label htmlFor="obs-perg-campo" className="obs-sr">{t('Escreva a sua pergunta sobre o turismo em Braga', 'Write your question about tourism in Braga')}</label>
           <input id="obs-perg-campo" ref={campo} value={pergunta} onChange={(e) => setPergunta(e.target.value)} maxLength={400} autoComplete="off"
-            placeholder={t('Ex.: quantos espanhóis ficaram em Braga no 1.º semestre?', 'E.g. how many Spanish guests stayed in Braga in H1?')} />
-          <button type="submit" disabled={aCarregar || pergunta.trim().length < 3}>{aCarregar ? t('A procurar…', 'Searching…') : t('Perguntar', 'Ask')}</button>
+            placeholder={t('Escreva uma pergunta…', 'Ask a question…')} />
+          <button type="submit" disabled={aCarregar || pergunta.trim().length < 3} aria-label={t('Perguntar', 'Ask')}>
+            <span className="obs-perg-btxt">{aCarregar ? t('A procurar…', 'Searching…') : t('Perguntar', 'Ask')}</span>
+            <svg className="obs-perg-bico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </button>
         </form>
         {!resp && !aCarregar && !erro && (
           <div className="obs-perg-ex" aria-label={t('Exemplos de perguntas', 'Example questions')}>
