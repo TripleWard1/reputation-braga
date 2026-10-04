@@ -261,13 +261,15 @@ const ESTILO = `
 @media print { .rb-vg-logo { display: none; } }
 .rb-vg-placa { display: none; }
 @media (max-width: 900px) {
-  .rb-vg-top { margin-bottom: 44px !important; justify-content: flex-start !important; }
+  /* Telemóvel: logótipo centrado numa placa branca; sem o "BRAGA" (repetia o logótipo e não se lia sobre o céu) */
+  .rb-vg-top { margin-bottom: 40px !important; justify-content: center !important; }
   .rb-vg-top > div:first-child { display: none !important; }
-  .rb-vg-placa { display: inline-flex; align-items: center; background: rgba(255,255,255,.95); border-radius: 12px; padding: 10px 14px; box-shadow: 0 12px 30px -12px rgba(0,0,0,.7); }
-  .rb-vg-placa img { height: 22px; width: auto; display: block; }
+  .rb-vg-placa { display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.96); border-radius: 14px; padding: 12px 20px; box-shadow: 0 14px 34px -14px rgba(0,0,0,.75); }
+  .rb-vg-placa img { height: 26px; width: auto; display: block; }
   .rb-vg-logo { display: none !important; }
-  .rb-kicker { display: flex; align-items: center; gap: 10px; }
-  .rb-kicker::before { content: ''; width: 22px; height: 2px; border-radius: 2px; background: var(--rb-accent); }
+  .rb-kicker { display: none !important; }
+  /* Texto legível sobre fotografias claras (céu, nuvens) */
+  .rb-hero-shade { background: linear-gradient(0deg, var(--rb-bg) 0%, rgba(21,23,27,.78) 45%, rgba(21,23,27,.5) 75%, rgba(21,23,27,.35) 100%) !important; }
 }
 .rb-only-m { display: none; }
 @media (prefers-reduced-motion: reduce) {
