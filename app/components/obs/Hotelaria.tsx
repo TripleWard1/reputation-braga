@@ -8,7 +8,7 @@ import { HOTELARIA } from '@/app/lib/hotelaria-dados';
 import { SETOR_SUSTENTAVEL } from '@/app/lib/setor-sustentavel-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// ═══ Hotelaria (oferta do visitbraga.travel) — só leitura ═══
+// ═══ Hotelaria (oferta do visitbraga.travel) - só leitura ═══
 export default function Hotelaria() {
   const Hh = HOTELARIA;
   const todos: any[] = [...Hh.hoteis.map((x: any) => ({ ...x, tipo: t('Hotel', 'Hotel') })), ...Hh.outros.map((x: any) => ({ ...x, tipo: t('Aparthotel / rural', 'Aparthotel / rural') }))];
@@ -65,11 +65,11 @@ export default function Hotelaria() {
             <tbody>{lista.map((x) => (
               <tr key={x.nome} style={{ borderTop: `1px solid ${C.border}` }}>
                 <td style={{ padding: '9px 6px', color: C.text, fontWeight: 600 }}>{x.nome}<div style={{ fontSize: 11.5, color: C.textDim, fontWeight: 400 }}>{x.tipo}</div></td>
-                <td data-l={t('Categoria', 'Category')} style={{ padding: '9px 6px', color: '#F2C14E', whiteSpace: 'nowrap' }}>{x.estrelas ? '★'.repeat(x.estrelas) : <span style={{ color: C.textDim }}>—</span>}</td>
+                <td data-l={t('Categoria', 'Category')} style={{ padding: '9px 6px', color: '#F2C14E', whiteSpace: 'nowrap' }}>{x.estrelas ? '★'.repeat(x.estrelas) : <span style={{ color: C.textDim }}>-</span>}</td>
                 <td data-l={t('Capacidade', 'Capacity')} style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{fmt(x.capacidade)}</td>
                 <td data-l={t('Quartos', 'Rooms')} style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{fmt(x.unidades)}</td>
                 <td data-l={t('Adaptados', 'Adapted')} style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 700, color: x.adaptadas === 0 ? C.negative : C.positive }}>{x.adaptadas}</td>
-                <td data-l={t('Certificação ambiental', 'Environmental certification')} style={{ padding: '9px 6px' }}>{seloDe(x.nome) ? <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 9px', borderRadius: 999, color: C.positive, border: `1px solid ${C.positive}66`, background: C.positiveBg, whiteSpace: 'nowrap' }}>{seloDe(x.nome)}</span> : <span style={{ color: C.textDim }}>—</span>}</td>
+                <td data-l={t('Certificação ambiental', 'Environmental certification')} style={{ padding: '9px 6px' }}>{seloDe(x.nome) ? <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 9px', borderRadius: 999, color: C.positive, border: `1px solid ${C.positive}66`, background: C.positiveBg, whiteSpace: 'nowrap' }}>{seloDe(x.nome)}</span> : <span style={{ color: C.textDim }}>-</span>}</td>
               </tr>
             ))}</tbody>
           </table>

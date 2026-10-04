@@ -184,7 +184,7 @@ function TabelaAcessivel({ titulo, linhas }: { titulo: string; linhas: Linha[] }
     <table className="obs-sr">
       <caption>{titulo}</caption>
       <thead><tr>{cab.map((c) => <th key={c} scope="col">{c}</th>)}</tr></thead>
-      <tbody>{linhas.slice(0, 80).map((r, i) => <tr key={i}>{cab.map((c) => <td key={c}>{r[c] == null ? '—' : typeof r[c] === 'number' ? (r[c] as number).toLocaleString(t('pt-PT', 'en-GB')) : String(r[c])}</td>)}</tr>)}</tbody>
+      <tbody>{linhas.slice(0, 80).map((r, i) => <tr key={i}>{cab.map((c) => <td key={c}>{r[c] == null ? '-' : typeof r[c] === 'number' ? (r[c] as number).toLocaleString(t('pt-PT', 'en-GB')) : String(r[c])}</td>)}</tr>)}</tbody>
     </table>
   );
 }

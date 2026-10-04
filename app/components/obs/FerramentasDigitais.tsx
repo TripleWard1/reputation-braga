@@ -6,7 +6,7 @@ import { t } from '@/app/lib/i18n';
 import { FERRAMENTAS_DIGITAIS } from '@/app/lib/ferramentas-digitais-dados';
 import { BarrasPct, C, Card, KPI, SectionTitle, fmt } from './comum';
 
-// ═══ Ferramentas digitais: TOMI, SmartGuide e Super Fan — só leitura ═══
+// ═══ Ferramentas digitais: TOMI, SmartGuide e Super Fan - só leitura ═══
 export default function FerramentasDigitais() {
   const admin = useAdmin();
   const F = FERRAMENTAS_DIGITAIS;

@@ -6,7 +6,7 @@ import { t } from '@/app/lib/i18n';
 import { AEROPORTO_PORTO } from '@/app/lib/alojamento-aeroporto-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// ═══ Aeroporto do Porto (INE) — só leitura; cruzado com as dormidas de Braga ═══
+// ═══ Aeroporto do Porto (INE) - só leitura; cruzado com as dormidas de Braga ═══
 export default function Aeroporto() {
   const M = AEROPORTO_PORTO.meses;
   const MC = [t('jan', 'Jan'), t('fev', 'Feb'), t('mar', 'Mar'), t('abr', 'Apr'), t('mai', 'May'), t('jun', 'Jun'), t('jul', 'Jul'), t('ago', 'Aug'), t('set', 'Sep'), t('out', 'Oct'), t('nov', 'Nov'), t('dez', 'Dec')];
@@ -44,7 +44,7 @@ export default function Aeroporto() {
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} interval={2} />
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '—' : `${String(v).replace('.', ',')}%`, n]} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '-' : `${String(v).replace('.', ',')}%`, n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Line type="monotone" dataKey="aeroporto" name={t('Aeroporto do Porto', 'Porto airport')} stroke={C.accent} strokeWidth={2} dot={false} connectNulls />
             <Line type="monotone" dataKey="braga" name={t('Dormidas em Braga', 'Braga overnight stays')} stroke={C.orange} strokeWidth={2} dot={false} connectNulls />

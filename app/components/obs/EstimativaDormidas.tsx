@@ -36,7 +36,7 @@ export default function EstimativaDormidas() {
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${Math.round(v / 1000)}k`} />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [v == null ? '—' : fmt(v), n]} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [v == null ? '-' : fmt(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar dataKey="real" name={t(`${E.ano} (INE)`, `${E.ano} (INE)`)} fill={C.accent} radius={[4, 4, 0, 0]} />
             <Bar dataKey="estimativa" name={t(`${E.ano} (estimativa)`, `${E.ano} (estimate)`)} fill={C.orange} fillOpacity={0.6} radius={[4, 4, 0, 0]} />
