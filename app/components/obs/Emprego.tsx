@@ -5,7 +5,7 @@ import { t } from '@/app/lib/i18n';
 import { EMPREGO } from '@/app/lib/emprego-dados';
 import { BarrasPct, C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// ═══ Emprego no turismo (INE, SCIE) - só leitura ═══
+// ═══ Emprego no turismo (INE, SCIE) — só leitura ═══
 export default function Emprego() {
   const R = EMPREGO.regioes, S = EMPREGO.separacao, SB = EMPREGO.serieBraga;
   const cresc = SB ? ((SB.turismo[SB.turismo.length - 1] / SB.turismo[0]) - 1) * 100 : 0;

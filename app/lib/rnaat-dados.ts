@@ -1,4 +1,4 @@
-// Empresas de animação turística (RNAAT) com sede no concelho de Braga - base de dados do Município.
+// Empresas de animação turística (RNAAT) com sede no concelho de Braga — base de dados do Município.
 // Sem contactos nem moradas: a plataforma é pública e muitos registos são de pessoas em nome individual. Gerado a partir do Excel. Não editar à mão.
 export interface EmpresaRNAAT { registo: string; nome: string; marca: string; ano: number | null; atividades: { natureza: string[]; maritimo: string[]; cultural: string[]; reconhecidas: string[] } }
 export const RNAAT_FONTE = 'Registo Nacional dos Agentes de Animação Turística (RNAAT) · base de dados do Município de Braga';

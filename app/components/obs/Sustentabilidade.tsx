@@ -6,7 +6,7 @@ import { AL_BRAGA } from '@/app/lib/alojamento-aeroporto-dados';
 import { SETOR_SUSTENTAVEL } from '@/app/lib/setor-sustentavel-dados';
 import { Badge, C, Card, HBars, KPI, MiniPie, SectionTitle, fmt } from './comum';
 
-// ═══ O setor turístico: negócios certificados e retrato do TIA - só leitura ═══
+// ═══ O setor turístico: negócios certificados e retrato do TIA — só leitura ═══
 function SetorSustentavel() {
   const D = SETOR_SUSTENTAVEL, T = D.tia;
   const porSelo = (D.certificados as any[]).reduce((o: Record<string, number>, c) => { o[c.selo] = (o[c.selo] || 0) + 1; return o; }, {});

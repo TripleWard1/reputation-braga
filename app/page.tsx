@@ -647,6 +647,22 @@ export default function Home() {
   const [view, setView] = useState<ViewType>('overview');
   const [selId, setSelId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  // Ligações diretas: ?vista=observatorio&separador=mobilidade · ?local=<id> (o ?r= dos relatórios públicos continua igual)
+  const [separadorInicial, setSeparadorInicial] = useState<string | undefined>(undefined);
+  const leuEndereco = useRef(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || leuEndereco.current) return;
+    leuEndereco.current = true;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('r')) return;
+    const VISTAS: Record<string, ViewType> = { inicio: 'overview', observatorio: 'observatorio', produtos: 'produtos', locais: 'locais', mapa: 'mapa', mercados: 'mercados', temas: 'problemas', relatorio: 'relatorio' };
+    const local = q.get('local');
+    const vista = q.get('vista');
+    if (local) { setDetailId(local); setView('detalhe'); }
+    else if (vista && VISTAS[vista]) { setView(VISTAS[vista]); }
+    const sep = q.get('separador');
+    if (sep) setSeparadorInicial(sep);
+  }, []);
   const [editId, setEditId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -690,6 +706,20 @@ export default function Home() {
     return () => parar();
   }, []);
   const admin = !!sessao?.admin;
+  // Mantém o endereço sincronizado com o que está aberto (para copiar e partilhar)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !leuEndereco.current) return;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('r')) return;
+    const NOMES: Partial<Record<ViewType, string>> = { overview: 'inicio', observatorio: 'observatorio', produtos: 'produtos', locais: 'locais', mapa: 'mapa', mercados: 'mercados', problemas: 'temas', relatorio: 'relatorio' };
+    const nova = new URLSearchParams();
+    if (view === 'detalhe' && detailId) nova.set('local', detailId);
+    else { const nomeVista = NOMES[view as ViewType]; if (nomeVista && view !== 'overview') nova.set('vista', nomeVista); }
+    if (view === 'observatorio' && q.get('separador')) nova.set('separador', q.get('separador')!);
+    const texto = nova.toString();
+    const destino = window.location.pathname + (texto ? `?${texto}` : '');
+    if (destino !== window.location.pathname + window.location.search) window.history.replaceState(null, '', destino);
+  }, [view, detailId]);
   const sessaoFirebaseEmFalta = admin && !!sessao?.protecao && !!process.env.NEXT_PUBLIC_ADMIN_EMAIL && fbSessao === false;
   const sair = async () => {
     try { await fetch('/api/sair', { method: 'POST' }); } catch { /* segue */ }
@@ -833,11 +863,27 @@ export default function Home() {
     setTimeout(() => setToast(null), 2800);
   }, []);
 
-  // ── Load from Firestore ──
+  // ── Carregar os locais: o público recebe a versão leve (sem textos dos comentários, em cache);
+  //    o administrador lê tudo do Firestore (precisa dos textos para analisar) ──
+  const carregou = useRef(false);
   useEffect(() => {
+    if (sessao === null || carregou.current) return;
+    carregou.current = true;
     const t0 = Date.now();
     const MIN_SPLASH = 1600; // tempo mínimo de ecrã de entrada (ms)
     (async () => {
+      if (!sessao.admin) {
+        try {
+          const r = await fetch('/api/publico/locais');
+          const j = r.ok ? await r.json() : null;
+          if (j && Array.isArray(j.locais)) {
+            setLocations(j.locais as Location[]);
+            const elapsed = Date.now() - t0;
+            setTimeout(() => setLoading(false), Math.max(0, MIN_SPLASH - elapsed));
+            return;
+          }
+        } catch { /* segue para a leitura direta */ }
+      }
       try {
         const snap = await getDocs(collection(db, 'locations'));
         const locs: Location[] = [];
@@ -857,7 +903,7 @@ export default function Home() {
       const elapsed = Date.now() - t0;
       setTimeout(() => setLoading(false), Math.max(0, MIN_SPLASH - elapsed));
     })();
-  }, []);
+  }, [sessao]);
 
   // ── Idioma (PT/EN) ──
   useEffect(() => {
@@ -2055,6 +2101,10 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         </div>
         <div className="rbs-foot" style={{ padding: '14px 18px 18px', borderTop: '1px solid #23262C', fontSize: 11.5, color: '#8A909B', lineHeight: 1.5 }}>
           {t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}
+          <div style={{ marginTop: 8, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <a href="/acessibilidade" style={{ color: '#A3A8B1' }}>{t('Acessibilidade', 'Accessibility')}</a>
+            <a href="/privacidade" style={{ color: '#A3A8B1' }}>{t('Privacidade', 'Privacy')}</a>
+          </div>
         </div>
       </aside>
 
@@ -2125,6 +2175,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             reputacaoLocais={analyzed.length}
             reputacaoReviews={totalReviews}
             reputacaoResumo={reputacaoResumo}
+            separadorInicial={separadorInicial}
           />
         )}
 
@@ -2207,6 +2258,10 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                       ) : (
                         <a href="/login" style={{ display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 16px', borderRadius: 999, border: '1px solid rgba(138,176,230,.35)', background: 'rgba(138,176,230,.12)', color: '#ECEDEF', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>{t('Entrar (administração)', 'Sign in (admin)')}</a>
                       )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 16, fontSize: 13 }}>
+                      <a href="/acessibilidade" style={{ color: '#A3A8B1' }}>{t('Acessibilidade', 'Accessibility')}</a>
+                      <a href="/privacidade" style={{ color: '#A3A8B1' }}>{t('Privacidade', 'Privacy')}</a>
                     </div>
                   </div>
                 </div>

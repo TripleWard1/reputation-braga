@@ -113,6 +113,10 @@ const OBS_CSS = `
   .obs-leit-titulo { font-size: 19px; }
 }
 @media (prefers-reduced-motion: reduce) { .obs-perg-resp, .obs-leit-cartao { animation: none !important; transition: none !important; } }
+.obs-copiar { display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid #3A404B; background: transparent; color: #C9CDD3; font: 600 13px 'Public Sans', system-ui, sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.obs-copiar:hover { border-color: #8AB0E6; color: #ECEDEF; }
+@media (max-width: 820px) { .obs-copiar { width: 54px; height: 54px; padding: 0; justify-content: center; border-radius: 14px; } .obs-copiar span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); } }
+@media print { .obs-copiar { display: none !important; } }
 .obs-sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .obs-dl { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 999px; border: 1px solid #2D3139; background: transparent; color: #A3A8B1; font: 600 12px 'Public Sans', system-ui, sans-serif; cursor: pointer; transition: color .2s ease, border-color .2s ease, background .2s ease; }
 .obs-dl:hover { color: #ECEDEF; border-color: #8AB0E6; background: rgba(138,176,230,.1); }
@@ -256,11 +260,31 @@ const OBS_CSS = `
 `;
 
 type Tab = 'geral' | 'procura' | 'estimativa' | 'mobilidade' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
+const IDS_TAB: string[] = ['geral', 'procura', 'estimativa', 'mobilidade', 'economia', 'emprego', 'cartoes', 'perfil', 'animacao', 'ferramentas', 'hotelaria', 'cultura', 'lojas', 'alojamento', 'aeroporto', 'mercados', 'balcao', 'taxa', 'sustentabilidade', 'digital', 'acessibilidade', 'meteo', 'caminhos', 'cruzamentos'];
 
-interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; reputacaoResumo?: string; }
+interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; reputacaoResumo?: string; separadorInicial?: string; }
 
-export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, reputacaoReviews, fotoTopo, reputacaoResumo }: Props) {
+export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, reputacaoReviews, fotoTopo, reputacaoResumo, separadorInicial }: Props) {
   const [tab, setTab] = useState<Tab>('geral');
+  const [copiado, setCopiado] = useState(false);
+  // Ligações diretas: abre no separador indicado no endereço e mantém o endereço atualizado
+  const aplicouInicial = useRef(false);
+  useEffect(() => {
+    if (aplicouInicial.current || !separadorInicial) return;
+    aplicouInicial.current = true;
+    setTab((t0) => (IDS_TAB.indexOf(separadorInicial) >= 0 ? (separadorInicial as Tab) : t0));
+  }, [separadorInicial]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('r')) return;
+    q.set('vista', 'observatorio');
+    if (tab === 'geral') q.delete('separador'); else q.set('separador', tab);
+    window.history.replaceState(null, '', `${window.location.pathname}?${q.toString()}`);
+  }, [tab]);
+  const copiarLigacao = async () => {
+    try { await navigator.clipboard.writeText(window.location.href); setCopiado(true); setTimeout(() => setCopiado(false), 2200); } catch { /* sem acesso à área de transferência */ }
+  };
   const [foto, setFoto] = useState<string | null>(null);
   // Ao mudar de separador, se estiveres mais abaixo, a página volta ao início do conteúdo (menu visível no topo)
   const primeiroTab = useRef(true);
@@ -788,6 +812,10 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={grupoAtual.icon} /></svg>
             <span style={{ minWidth: 0, flex: 1, textAlign: 'left' }}><small>{grupoAtual.label}</small>{tabLabel}</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <button type="button" className="obs-copiar" onClick={copiarLigacao} aria-live="polite" title={t('Copiar a ligação direta para este separador', 'Copy the direct link to this tab')}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.07 0l3-3a5 5 0 00-7.07-7.07l-1.5 1.5M14 11a5 5 0 00-7.07 0l-3 3a5 5 0 007.07 7.07l1.5-1.5" /></svg>
+            <span>{copiado ? t('Ligação copiada', 'Link copied') : t('Copiar ligação', 'Copy link')}</span>
           </button>
           {tab !== 'meteo' && (
             <button className="obs-pdf" onClick={() => {

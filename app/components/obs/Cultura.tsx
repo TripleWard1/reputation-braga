@@ -5,7 +5,7 @@ import { t } from '@/app/lib/i18n';
 import { BILHETEIRA, BILHETEIRA_FONTE } from '@/app/lib/bilheteira-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// ═══ Cultura: bilheteira do Theatro Circo, gnration e BMA (FazCultura) - só leitura ═══
+// ═══ Cultura: bilheteira do Theatro Circo, gnration e BMA (FazCultura) — só leitura ═══
 export default function Cultura() {
   const ents = ['theatro circo', 'gnration', 'bma'].filter((k) => BILHETEIRA[k]);
   const CORES_E: Record<string, string> = { 'theatro circo': C.accent, gnration: C.positive, bma: C.orange };

@@ -5,7 +5,7 @@ import { RNAAT } from '@/app/lib/rnaat-dados';
 import { PERFIL_TURISTA } from '@/app/lib/perfil-turista-dados';
 import { BarrasPct, C, Card, KPI, SectionTitle } from './comum';
 
-// ═══ Perfil do turista (estudo por inquérito) - só leitura ═══
+// ═══ Perfil do turista (estudo por inquérito) — só leitura ═══
 export default function PerfilTurista() {
   const P = PERFIL_TURISTA;
   const intl = P.origem.slice(0, 4).reduce((a: number, x: any) => a + x[1], 0);

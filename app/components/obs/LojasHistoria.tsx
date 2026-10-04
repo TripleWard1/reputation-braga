@@ -74,7 +74,7 @@ function CartaoLoja({ l, ano }: { l: { nome: string; ano: number | null; morada:
   );
 }
 
-// ═══ Lojas com História (rede municipal) - só leitura ═══
+// ═══ Lojas com História (rede municipal) — só leitura ═══
 export default function LojasHistoria() {
   const [setor, setSetor] = useState<string | null>(null);
   const [q, setQ] = useState('');
