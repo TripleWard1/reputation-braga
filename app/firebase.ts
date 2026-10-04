@@ -12,3 +12,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+
+// Autenticação do administrador (necessária para gravar, segundo as regras do Firestore)
+import { getAuth } from 'firebase/auth';
+export const auth = getAuth(app);

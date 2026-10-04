@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REPUTAÇÃO - Visão Geral, lista de Locais e Ficha do local
+// REPUTAÇÃO — Visão Geral, lista de Locais e Ficha do local
 // Segue o mockup aprovado (versão escura). Na impressão/PDF usa a versão clara.
 // Todos os números vêm de app/lib/temas.ts → numeros() (fonte única).
 // ═══════════════════════════════════════════════════════════════════════════
@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, RefObject } from 'react';
 import { doc, getDoc, setDoc, getDocs, collection, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useAdmin } from './modo';
 import { t } from '@/app/lib/i18n';
 import { dispAnalysis } from '@/app/lib/ai-translate';
 import { limparFotoBraga } from '@/app/lib/foto-braga';
@@ -333,7 +334,7 @@ function Faixa({ x, a }: { x: Numeros | null; a?: any }) {
     <div className="rb-strip rb-rise">
       <div>
         <div className="rb-lab">{t('Índice de reputação', 'Reputation index')}</div>
-        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>-</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
+        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>—</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
         <div className="rb-sub">{insuf ? t(`Dados insuficientes · menos de ${MIN_ROBUSTO} avaliações`, `Insufficient data · fewer than ${MIN_ROBUSTO} reviews`) : `${x.robustez === 'alta' ? t('Robustez alta', 'High robustness') : t('Robustez média', 'Medium robustness')} · ${fmt(x.textN)} ${t('com texto', 'with text')}`}{x.basis === 'ia' ? ` · ${t('estimado pela IA', 'AI estimate')}` : ''}</div>
       </div>
       <div>
@@ -568,7 +569,7 @@ function MercadosDetalhe({ lista }: { lista: Mercado[] }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr)', gap: '8px 12px', marginTop: 10, alignItems: 'start' }}>
             <span style={{ fontSize: 13, color: 'var(--rb-good)', fontWeight: 700, paddingTop: 3 }}>{t('Valoriza', 'Values')}</span>
-            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>-</span>}</div>
+            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>—</span>}</div>
             <span style={{ fontSize: 13, color: 'var(--rb-bad)', fontWeight: 700, paddingTop: 3 }}>{t('Critica', 'Criticises')}</span>
             <div>{m.critica.length ? m.critica.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-bad)', 'var(--rb-bad-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>{t('sem críticas relevantes', 'no relevant criticism')}</span>}</div>
           </div>
@@ -627,7 +628,7 @@ function AfluenciaMapa({ a }: { a: Afluencia }) {
 
 
 
-// ─── PATRIMÓNIO MUNDIAL (só no Bom Jesus) - informação técnica, sem história ─────
+// ─── PATRIMÓNIO MUNDIAL (só no Bom Jesus) — informação técnica, sem história ─────
 const eBomJesus = (nome: string) => /bom jesus/i.test(nome);
 function LogoUnesco({ tam = 56 }: { tam?: number }) {
   return (
@@ -923,6 +924,9 @@ export function FichaLocal(props: {
   onSaveWiki?: (id: string, w: WikiDados) => Promise<void> | void;
 }) {
   const { loc, locations, readOnly } = props;
+  // Botões de alteração só para o administrador (o modo só leitura dos links públicos continua igual)
+  const admin = useAdmin();
+  const soLeitura = !!readOnly || !admin;
   const x = numeros(loc);
   const ws = windowStats(loc.reviewStats);
   const a: any = loc.analysis ? dispAnalysis(loc) : null;
@@ -958,13 +962,13 @@ export function FichaLocal(props: {
       const data = (d.data() as any).data || null;
       setFoto(data);
       // cria a miniatura se ainda não existir (fotografias carregadas antes desta versão)
-      if (data && !readOnly) {
+      if (data && !soLeitura) {
         const th = await getDoc(doc(db, 'locationThumbs', loc.id));
         if (!th.exists()) await setDoc(doc(db, 'locationThumbs', loc.id), { data: await reduzir(data, 560, 0.74) });
       }
     }).catch(() => {});
     return () => { vivo = false; };
-  }, [loc.id, readOnly]);
+  }, [loc.id, soLeitura]);
 
   const carregarFoto = async (f: File) => {
     setACarregar(true);
@@ -1023,9 +1027,9 @@ export function FichaLocal(props: {
             {' / '}<span>{props.catLabel(loc.category)}</span>
           </div>
           <div className="rb-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {!readOnly && <button className="rb-btn" onClick={() => props.onShare?.(loc.id)}>{props.copied ? t('Link copiado', 'Link copied') : t('Link partilhável', 'Shareable link')}</button>}
+            {!soLeitura && <button className="rb-btn" onClick={() => props.onShare?.(loc.id)}>{props.copied ? t('Link copiado', 'Link copied') : t('Link partilhável', 'Shareable link')}</button>}
             <button className="rb-btn" onClick={() => window.print()}>{t('Exportar PDF', 'Export PDF')}</button>
-            {!readOnly && <button className="rb-btn p" disabled={!!props.analyzing} onClick={() => props.onReanalyze?.(loc.id)}>{props.analyzing === loc.id ? t('A analisar…', 'Analysing…') : t('Reanalisar', 'Re-analyse')}</button>}
+            {!soLeitura && <button className="rb-btn p" disabled={!!props.analyzing} onClick={() => props.onReanalyze?.(loc.id)}>{props.analyzing === loc.id ? t('A analisar…', 'Analysing…') : t('Reanalisar', 'Re-analyse')}</button>}
           </div>
         </div>
         <div className="rb-enter" style={{ maxWidth: 820 }}>
@@ -1043,7 +1047,7 @@ export function FichaLocal(props: {
         </div>
       </HeroFoto>
       <div className="rb-wrap rb-enter" style={{ paddingTop: 0, animationDelay: '120ms' }}>
-        {!readOnly && (
+        {!soLeitura && (
           <div className="rb-noprint" style={{ display: 'flex', justifyContent: 'flex-end', margin: '-6px 0 14px' }}>
             <button className="rb-chip ghost" disabled={aCarregar} onClick={() => fileRef.current?.click()}>
               {aCarregar ? t('A carregar…', 'Uploading…') : foto ? t('Substituir fotografia', 'Replace photo') : t('Carregar fotografia do local', 'Upload photo of the place')}
@@ -1064,7 +1068,7 @@ export function FichaLocal(props: {
             <button className="rb-chip warn rb-noprint" onClick={() => ir('rb-evolucao')}>{t('Ver evolução', 'See trend')} <Seta /></button>
           </div>
         )}
-        {!readOnly && v2 && x && v2.n !== x.n && (
+        {!soLeitura && v2 && x && v2.n !== x.n && (
           <div className="rb-noprint" style={{ marginTop: 16, fontSize: 14, color: 'var(--rb-text2)' }}>
             {t(`Há avaliações novas desde a última análise (${fmt(v2.n)} → ${fmt(x.n)}). Os números estão atualizados; reanalisa para atualizar os textos e os temas.`, `There are new reviews since the last analysis (${fmt(v2.n)} → ${fmt(x.n)}). Numbers are current; re-analyse to update texts and themes.`)}
           </div>
@@ -1117,7 +1121,7 @@ export function FichaLocal(props: {
                     <span style={{ color: col.cor, fontWeight: 700, fontSize: 16, lineHeight: 1.4, flexShrink: 0 }}>{col.sinal}</span>
                     <span style={{ fontSize: 15, lineHeight: 1.55 }}>{p}</span>
                   </div>
-                )) : <p className="rb-sub">-</p>}
+                )) : <p className="rb-sub">—</p>}
                 {col.cit.length > 0 && (
                   <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--rb-line)' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--rb-text2)' }}>{t('Nas palavras dos visitantes', 'In visitors’ own words')}</div>
@@ -1134,7 +1138,7 @@ export function FichaLocal(props: {
           </section>
         )}
 
-        {/* Problemas por período - detalhe da leitura + números dos temas */}
+        {/* Problemas por período — detalhe da leitura + números dos temas */}
         {a && (() => {
           const per = v2?.periodos
             ? { recentes: (v2.periodos.recentes || []) as { problema: string; detalhe: string; estado: string }[], anteriores: (v2.periodos.anteriores || []) as { problema: string; detalhe: string; estado: string }[] }
@@ -1277,7 +1281,7 @@ export function FichaLocal(props: {
 
         {bilheteiraDe(loc.name) && <SecaoBilheteira b={bilheteiraDe(loc.name)!} stats={loc.reviewStats} />}
 
-        <SecaoWiki loc={loc} readOnly={readOnly} onSave={props.onSaveWiki ? (w) => props.onSaveWiki!(loc.id, w) : undefined} />
+        <SecaoWiki loc={loc} readOnly={soLeitura} onSave={props.onSaveWiki ? (w) => props.onSaveWiki!(loc.id, w) : undefined} />
 
         {/* O que o Google diz sobre o local ("Acerca de" e horário) */}
         {loc.atributos && ((loc.atributos.secoes || []).length > 0 || (loc.atributos.horario || []).length > 0) && (() => {
@@ -1340,7 +1344,7 @@ export function FichaLocal(props: {
           </div>
         </section>
 
-        {/* 10. Sugestões (indicativas - o Município não gere o local) */}
+        {/* 10. Sugestões (indicativas — o Município não gere o local) */}
         <section id="rb-recomendacoes" className="rb-sec">
           <Titulo h={t('O que os comentários sugerem', 'What the reviews suggest')} cap={t('Possíveis melhorias identificadas pela IA a partir dos comentários dos visitantes · a título indicativo', 'Possible improvements identified by AI from visitor reviews · for guidance only')} />
           {recs.length ? (
@@ -1357,7 +1361,7 @@ export function FichaLocal(props: {
         </section>
 
         {/* Gestão do local */}
-        {!readOnly && (
+        {!soLeitura && (
           <div className="rb-noprint" style={{ marginTop: 48, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
             <span style={{ color: 'var(--rb-text2)', marginRight: 6 }}>{t('Gestão do local:', 'Manage place:')}</span>
             <button className="rb-chip ghost" onClick={props.onImport}>{t('Importar comentários', 'Import reviews')}</button>
@@ -1384,6 +1388,7 @@ export function LocaisLista(props: {
   locations: LocV[]; analyzing: string | null; batchRun: { i: number; total: number; name: string } | null; catLabel: (c: string) => string;
   onOpen: (id: string) => void; onImport: () => void; onAnalyzeAll: () => void; onAdd: () => void; onStopBatch?: () => void; pendentesLote?: number; onContinueBatch?: () => void;
 }) {
+  const admin = useAdmin();
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('');
   const mini = useMiniaturas();
@@ -1415,7 +1420,7 @@ export function LocaisLista(props: {
             <h1 className="rb-h1-m" style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.02em', margin: '8px 0 0' }}>{t('Locais', 'Places')}</h1>
             <p className="rb-cap" style={{ fontSize: 14 }}>{t(`${props.locations.length} locais monitorizados · do índice mais alto para o mais baixo · locais com menos de ${MIN_ROBUSTO} avaliações ficam no fim, sem índice`, `${props.locations.length} places monitored · highest to lowest index · places with fewer than ${MIN_ROBUSTO} reviews are listed last, without an index`)}</p>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {admin && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="rb-btn" onClick={props.onImport}>{t('Importar comentários', 'Import reviews')}</button>
             {props.batchRun ? (
               <button className="rb-btn" onClick={props.onStopBatch} style={{ borderColor: 'var(--rb-warn)', color: 'var(--rb-warn)' }}>{t(`Parar (${props.batchRun.i}/${props.batchRun.total})`, `Stop (${props.batchRun.i}/${props.batchRun.total})`)}</button>
@@ -1426,7 +1431,7 @@ export function LocaisLista(props: {
               </>
             )}
             <button className="rb-btn p" onClick={props.onAdd}>{t('Adicionar local', 'Add place')}</button>
-          </div>
+          </div>}
         </div>
         {props.batchRun && (
           <div style={{ marginTop: 20, background: 'var(--rb-accent-bg)', borderRadius: 4, padding: '12px 16px', fontSize: 14.5 }}>
@@ -1451,9 +1456,9 @@ export function LocaisLista(props: {
               return (
                 <tr key={o.l.id} className="rb-row" onClick={() => props.onOpen(o.l.id)}>
                   <td><div style={{ display: 'flex', gap: 16, alignItems: 'center' }}><Miniatura src={mini[o.l.id]} /><div><div style={{ fontWeight: 700 }}>{o.l.name}</div><div style={{ fontSize: 13, color: 'var(--rb-text2)' }}>{props.catLabel(o.l.category)}{props.analyzing === o.l.id ? ` · ${t('a analisar…', 'analysing…')}` : ''}</div><div className="rb-only-m" style={{ fontSize: 13, marginTop: 4, lineHeight: 1.4 }}>{situacao(o)}</div></div></div></td>
-                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>-</span> : fmt(o.x!.idx, 1)}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '-'}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '-'}</td>
+                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>—</span> : fmt(o.x!.idx, 1)}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '—'}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '—'}</td>
                   <td className="rb-hide-m" style={{ paddingLeft: 24, fontSize: 14 }}>{situacao(o)}</td>
                 </tr>
               );
@@ -1467,7 +1472,7 @@ export function LocaisLista(props: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VISÃO GERAL - o destino num relance (sem rankings)
+// VISÃO GERAL — o destino num relance (sem rankings)
 // ═══════════════════════════════════════════════════════════════════════════
 const MES_LONGO_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const MES_LONGO_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -1477,6 +1482,7 @@ const FOTO_VISAO = '/visao-geral.jpg';
 const FOTO_VISAO_MINI = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA4KCw0LCQ4NDA0QDw4RFiQXFhQUFiwgIRokNC43NjMuMjI6QVNGOj1OPjIySGJJTlZYXV5dOEVmbWVabFNbXVn/2wBDAQ8QEBYTFioXFypZOzI7WVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVn/wAARCAARACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCZJVlMbpGY1Y8DOc1sGWC7tWijRiqnnADHP1rkbIagpj+UBVx94D15rThtryJi6XioTknC5qlWaepLpJrQTUoreDCQMXlZcndxtOeuPzrFe2mkVpPtO3H8AJBP0q9Jb3LtMftG+QMc7h9446/SqUltc4wJSvIwBnp/n+dROrKT3KhTjFbGzF0px70UVkaFQ/8AH4f+uY/nT3oooA//2Q==';
 
 export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => void; onOpenList: () => void; onImport: () => void; onObservatorio?: () => void }) {
+  const admin = useAdmin();
   const { locations } = props;
   const mini = useMiniaturas();
   const [fundo, setFundo] = useState<string | null>(FOTO_VISAO);
@@ -1519,7 +1525,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>Braga</div>
             <h1 className="rb-hero-h1">{t('Ainda sem dados suficientes', 'Not enough data yet')}</h1>
             <p style={{ fontSize: 16, color: 'var(--rb-text2)', lineHeight: 1.6, margin: '0 0 20px' }}>{t(`Importa os comentários do Google Maps e analisa os locais. A partir de ${MIN_ROBUSTO} avaliações por local, o destino aparece aqui.`, `Import the Google Maps reviews and analyse the places. From ${MIN_ROBUSTO} reviews per place, the destination appears here.`)}</p>
-            <button className="rb-chip warn" onClick={props.onImport}>{t('Importar comentários', 'Import reviews')} <Seta /></button>
+            {admin && <button className="rb-chip warn" onClick={props.onImport}>{t('Importar comentários', 'Import reviews')} <Seta /></button>}
           </div>
         </HeroFoto>
       </div>
@@ -1628,7 +1634,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
       </HeroFoto>
 
       <div className="rb-wrap" style={{ paddingTop: 20 }}>
-        {/* Turismo em Braga - o essencial do Observatório (mesmas contas; os dados não são alterados) */}
+        {/* Turismo em Braga — o essencial do Observatório (mesmas contas; os dados não são alterados) */}
         {(() => {
           const S: any = SEMESTRE_2026 as any;
           const H1 = (MESES as any[]).slice(0, 6);
@@ -1821,14 +1827,14 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SEPARADORES COMPLEMENTARES - Mapa, Comparar, Temas (Problemas) e Relatório
+// SEPARADORES COMPLEMENTARES — Mapa, Comparar, Temas (Problemas) e Relatório
 // Mesma identidade da Visão Geral e dos Locais; números da fonte única (numeros()).
 // ═══════════════════════════════════════════════════════════════════════════
 const ESTILO_EXTRA = `
 .rbx .leaflet-container { background: #15171B; font-family: 'Public Sans', system-ui, sans-serif; border-radius: 6px; }
 .rbx .leaflet-control-zoom a { background: #1C1F24; color: #ECEDEF; border-color: #2D3139; }
 .rbx .rb-osm-escuro { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.4); }
-.rbx .leaflet-control-attribution { background: rgba(21,23,27,.7) !important; color: #6F747D !important; }
+.rbx .leaflet-control-attribution { background: rgba(21,23,27,.7) !important; color: #8A909B !important; }
 .rbx .leaflet-control-attribution a { color: #A3A8B1 !important; }
 .rbm-pin { position: relative; width: 44px; height: 44px; border-radius: 50%; background: rgba(21,23,27,.9); border: 2px solid var(--c); box-shadow: 0 0 0 4px rgba(0,0,0,.25), 0 0 18px var(--c); display: flex; align-items: center; justify-content: center; color: #ECEDEF; font: 700 13px 'Public Sans', system-ui, sans-serif; transition: transform .2s ease; }
 .rbm-pin:hover, .rbm-pin.sel { transform: scale(1.15); }
@@ -1885,6 +1891,7 @@ const escH = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').repla
 
 // ─── MAPA ───────────────────────────────────────────────────────────────────
 export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => string; onOpen: (id: string) => void; onMove: (id: string, c: [number, number]) => void; coordsDe: (l: LocV) => [number, number] | null }) {
+  const admin = useAdmin();
   const caixa = useRef<HTMLDivElement>(null);
   const mapa = useRef<any>(null);
   const marcadores = useRef<Record<string, any>>({});
@@ -1962,7 +1969,7 @@ export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => st
       <div className="rb-wrap" style={{ maxWidth: 1400 }}>
         <Cabecalho kicker={t('Reputação', 'Reputation')} titulo={t('Mapa de reputação', 'Reputation map')}
           sub={t(`${comCoords.length} locais no mapa${nAl ? ` · ${nAl} com alerta no último trimestre` : ''} · a nota dentro de cada ponto é o índice /10`, `${comCoords.length} places on the map${nAl ? ` · ${nAl} with an alert last quarter` : ''} · the number in each point is the /10 index`)}
-          direita={<button className={`rb-chip${mover ? ' warn' : ' ghost'}`} onClick={() => setMover((v) => !v)}>{mover ? t('Concluir reposicionamento', 'Finish repositioning') : t('Reposicionar marcadores', 'Reposition markers')}</button>} />
+          direita={admin ? <button className={`rb-chip${mover ? ' warn' : ' ghost'}`} onClick={() => setMover((v) => !v)}>{mover ? t('Concluir reposicionamento', 'Finish repositioning') : t('Reposicionar marcadores', 'Reposition markers')}</button> : undefined} />
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 13, color: 'var(--rb-text2)', margin: '18px 0 14px' }}>
           {[['#8AB0E6', t('Índice 9 ou mais', 'Index 9 or more')], ['#B7CDF0', t('8 a 9', '8 to 9')], ['#EDA06B', t('Abaixo de 8', 'Below 8')], ['#6F747D', t('Dados insuficientes', 'Insufficient data')]].map(([c, l]) => (
             <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: 999, border: `2px solid ${c}`, boxShadow: `0 0 8px ${c}` }} />{l}</span>
@@ -1980,7 +1987,7 @@ export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => st
                   <span style={{ display: 'block', fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.l.name}</span>
                   <span style={{ display: 'block', fontSize: 12, color: d.al ? 'var(--rb-warn)' : 'var(--rb-text2)', marginTop: 2 }}>{d.al ? t('Alerta no último trimestre', 'Alert last quarter') : props.catLabel(d.l.category)}</span>
                 </span>
-                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '-'}</span>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '—'}</span>
               </button>
             ))}
             {dados.length > comCoords.length && <div className="rb-sub" style={{ padding: '12px 14px', marginTop: 0 }}>{t(`${dados.length - comCoords.length} locais sem coordenadas (edita o local para as indicar).`, `${dados.length - comCoords.length} places without coordinates (edit the place to add them).`)}</div>}
@@ -2036,7 +2043,7 @@ function LinhasComparadas({ series, rotulo, casas = 2, zero = false }: { series:
       {hover != null && (
         <div className="rb-tip" style={{ left: `${(X(hover) / W) * 100}%`, top: 0, transform: `translate(${hover > qs.length / 2 ? '-105%' : '5%'}, 0)` }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>{lab(qs[hover])}</div>
-          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, casas) : '-'}</strong></div>; })}
+          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, casas) : '—'}</strong></div>; })}
         </div>
       )}
     </div>
@@ -2096,7 +2103,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: CORES_CMP[i] }}>{props.catLabel(d.l.category)}</div>
                       <button onClick={() => props.onOpen(d.l.id)} style={{ background: 'none', border: 0, padding: 0, color: 'var(--rb-text)', font: 'inherit', fontSize: 17, fontWeight: 700, textAlign: 'left', cursor: 'pointer', margin: '6px 0 14px', lineHeight: 1.3 }}>{d.l.name}</button>
                       <div className="rb-lab">{t('Índice', 'Index')}</div>
-                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>-</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
+                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>—</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
                       <div className="rb-sub">{insuf ? t('Dados insuficientes', 'Insufficient data') : ''}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--rb-line)' }}>
                         <div><div className="rb-lab">{t('Média', 'Average')}</div><div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}><Conta v={d.x!.avg} d={2} /> <span style={{ color: 'var(--rb-star)', fontSize: 16 }}>★</span></div></div>
@@ -2137,7 +2144,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                           <div style={{ height: 8, background: 'var(--rb-muted)', borderRadius: 999, overflow: 'hidden' }}>
                             {typeof v === 'number' && <div className="rb-bar" style={{ width: `${v * 10}%`, height: '100%', background: CORES_CMP[i], borderRadius: 999, transitionDelay: `${i * 90}ms` }} />}
                           </div>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '-'}</span>
+                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '—'}</span>
                         </div>
                       );
                     })}
@@ -2155,7 +2162,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                   <tbody>{TEMAS.map((tm) => (
                     <tr key={tm.id} style={{ cursor: 'default' }}>
                       <td className="rb-fixa" style={{ fontWeight: 600 }}>{temaNome(tm.id)}</td>
-                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>-</span>}</td>; })}
+                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>; })}
                     </tr>
                   ))}</tbody>
                 </table>
@@ -2234,8 +2241,8 @@ export function TemasView(props: { locations: LocV[]; catLabel: (c: string) => s
                 <div className="rb-rise" style={{ marginTop: 16, background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '18px 22px' }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{temaNome(foco)}</div>
                   <div style={{ fontSize: 14, color: 'var(--rb-text2)', marginTop: 8, lineHeight: 1.6 }}>
-                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '-'}<br />
-                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '-'}
+                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '—'}<br />
+                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '—'}
                   </div>
                 </div>
               ); })()}
@@ -2365,7 +2372,7 @@ export function RelatorioView(props: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MERCADOS - procura (INE, balcão) × voz e satisfação (comentários)
+// MERCADOS — procura (INE, balcão) × voz e satisfação (comentários)
 // Só LÊ os dados do Observatório; não os altera.
 // ═══════════════════════════════════════════════════════════════════════════
 const LINGUA_PAIS: Record<string, string> = {
@@ -2456,9 +2463,9 @@ export function MercadosView(props: { locations: LocV[] }) {
                 <tr key={z.lg} className="rb-row" onClick={() => setSel(z.lg)} style={lgSel === z.lg ? { background: 'var(--rb-accent-bg)' } : undefined}>
                   <td><strong>{nomeLingua(z.lg)}</strong><div style={{ fontSize: 12, color: 'var(--rb-text2)', marginTop: 2 }}>{z.lg === 'pt' ? t(`Brasil e outros lusófonos (sem residentes em Portugal)${z.porPais.length ? ' · ' + z.porPais.map(([p2, v2]) => `${p2} ${fmt(totDorm ? (v2 / totDorm) * 100 : 0, 1)}%`).join(' · ') : ''}`, 'Brazil and other Portuguese-speaking countries (excl. residents in Portugal)') : z.porPais.length ? z.porPais.sort((a2, b2) => b2[1] - a2[1]).slice(0, 4).map(([p2, v2]) => `${p2} ${fmt(totDorm ? (v2 / totDorm) * 100 : 0, 1)}%`).join(' · ') : t('sem dormidas no top do INE', 'not in INE top markets')}</div></td>
                   <td data-label={t('Dormidas de estrangeiros · jan–jun 2026', 'Foreign stays · Jan–Jun 2026')}>{barra(z.pd, '#8AB0E6')}</td>
-                  <td data-label={t('Comentários em línguas estrangeiras', 'Reviews in foreign languages')}>{z.pr >= 0 ? barra(z.pr, '#7CC79A') : <span style={{ fontSize: 12.5, color: 'var(--rb-text2)' }}>{t('- (junta residentes em Portugal e brasileiros)', '- (mixes Portuguese residents and Brazilians)')}</span>}</td>
+                  <td data-label={t('Comentários em línguas estrangeiras', 'Reviews in foreign languages')}>{z.pr >= 0 ? barra(z.pr, '#7CC79A') : <span style={{ fontSize: 12.5, color: 'var(--rb-text2)' }}>{t('— (junta residentes em Portugal e brasileiros)', '— (mixes Portuguese residents and Brazilians)')}</span>}</td>
                   <td data-label={t('Atendimentos a estrangeiros no Posto', 'Foreign visitors at the Tourist Office')}>{barra(z.pb, '#E9C46A')}</td>
-                  <td className="n" data-label={t('Satisfação', 'Satisfaction')}>{z.avg != null && z.n >= 10 ? <><strong style={{ fontSize: 15 }}>{fmt(z.avg, 2)}</strong> <span style={{ color: 'var(--rb-star)' }}>★</span><div style={{ fontSize: 12, color: z.avg >= mediaGeral ? 'var(--rb-good)' : 'var(--rb-bad)' }}>{z.avg >= mediaGeral ? '+' : ''}{fmt(z.avg - mediaGeral, 2)} {t('vs média', 'vs average')}</div></> : <span style={{ color: 'var(--rb-text2)' }}>-</span>}</td>
+                  <td className="n" data-label={t('Satisfação', 'Satisfaction')}>{z.avg != null && z.n >= 10 ? <><strong style={{ fontSize: 15 }}>{fmt(z.avg, 2)}</strong> <span style={{ color: 'var(--rb-star)' }}>★</span><div style={{ fontSize: 12, color: z.avg >= mediaGeral ? 'var(--rb-good)' : 'var(--rb-bad)' }}>{z.avg >= mediaGeral ? '+' : ''}{fmt(z.avg - mediaGeral, 2)} {t('vs média', 'vs average')}</div></> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>
                 </tr>
               ))}</tbody>
             </table>
@@ -2489,7 +2496,7 @@ export function MercadosView(props: { locations: LocV[] }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PRODUTOS TURÍSTICOS - portefólio da Divisão (mapas, brochuras, roteiros)
+// PRODUTOS TURÍSTICOS — portefólio da Divisão (mapas, brochuras, roteiros)
 // Base fixa aqui; links e capas editáveis na própria página (Firestore: 'produtos', 'produtosCapas').
 // ═══════════════════════════════════════════════════════════════════════════
 type Lingua = 'pt' | 'es' | 'fr' | 'en' | 'pt-en';
@@ -2518,6 +2525,7 @@ const COR_LINGUA: Partial<Record<Lingua, string>> = { es: '#fff116', en: '#ee1d2
 const urlValido = (u: string) => !u || /^https?:\/\/\S+$/i.test(u.trim());
 
 function CartaoProduto({ p, guardado, onGuardar }: { p: ProdutoBase; guardado: Partial<Record<Lingua, Edicao>>; onGuardar: (l: Lingua, e: Edicao) => Promise<void> }) {
+  const admin = useAdmin();
   const [capa, setCapa] = useState<string | null | undefined>(undefined);
   const [pronta, setPronta] = useState(false);
   const [aGravarCapa, setAGravarCapa] = useState(false);
@@ -2554,7 +2562,7 @@ function CartaoProduto({ p, guardado, onGuardar }: { p: ProdutoBase; guardado: P
         {capa && <img src={capa} alt={p.nome} onLoad={() => setPronta(true)} style={{ opacity: pronta ? 1 : 0 }} />}
         <div className="rb-produto-fade" />
         <span className="rb-produto-tipo">{t(p.tipo, p.tipo === 'Mapa' ? 'Map' : p.tipo === 'Brochura' ? 'Brochure' : 'Itinerary')}</span>
-        <button className="rb-produto-btncapa" disabled={aGravarCapa} onClick={() => input.current?.click()}>{aGravarCapa ? t('A guardar…', 'Saving…') : capa ? t('Mudar capa', 'Change cover') : t('+ Capa', '+ Cover')}</button>
+        {admin && <button className="rb-produto-btncapa" disabled={aGravarCapa} onClick={() => input.current?.click()}>{aGravarCapa ? t('A guardar…', 'Saving…') : capa ? t('Mudar capa', 'Change cover') : t('+ Capa', '+ Cover')}</button>}
         <input ref={input} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const fl = e.target.files?.[0]; e.target.value = ''; if (fl) carregarCapa(fl); }} />
       </div>
       <div className="rb-produto-corpo">
@@ -2582,7 +2590,7 @@ function CartaoProduto({ p, guardado, onGuardar }: { p: ProdutoBase; guardado: P
                         : <span style={{ color: 'var(--rb-text2)' }}>{t('PDF por carregar', 'PDF not added yet')}</span>}
                       {e.pagina && <a href={e.pagina} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 10, fontSize: 12.5, color: 'var(--rb-accent)', textDecoration: 'none' }}>{t('Página', 'Page')} ↗</a>}
                     </span>
-                    <button className="rb-chip ghost" style={{ height: 30, fontSize: 12.5 }} onClick={() => abrirEdicao(l)}>{t('Editar', 'Edit')}</button>
+                    {admin && <button className="rb-chip ghost" style={{ height: 30, fontSize: 12.5 }} onClick={() => abrirEdicao(l)}>{t('Editar', 'Edit')}</button>}
                   </>
                 )}
               </div>

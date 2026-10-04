@@ -6,9 +6,11 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip,
   LineChart, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
-import { db } from './firebase';
+import { db, auth } from './firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { ModoAdmin } from '@/app/components/modo';
 import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc, getDoc } from 'firebase/firestore';
-import ObservatorioView from '@/app/components/ObservatorioView';
+import dynamic from 'next/dynamic';
 import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
 import { dispAnalysis, setTransNotify, invalidateTrans } from '@/app/lib/ai-translate';
 import {
@@ -18,6 +20,12 @@ import {
 import { TEMAS, temaStats, excertos, numeros, ranking, numerosCoerentes, numerosPermitidos, resumoModelo, tagValida, indiceDestino } from '@/app/lib/temas';
 import { obterFotoBraga } from '@/app/lib/foto-braga';
 import { VisaoGeral, LocaisLista, FichaLocal, MapaView, CompararView, TemasView, RelatorioView, MercadosView, ProdutosView, type Intervencao, type Afluencia, type Atributos, type WikiDados } from '@/app/components/Reputacao';
+
+// O Observatório só é descarregado quando é aberto (a app arranca mais depressa, sobretudo no telemóvel)
+const ObservatorioView = dynamic(() => import('@/app/components/ObservatorioView'), {
+  ssr: false,
+  loading: () => <div role="status" aria-live="polite" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A3A8B1', fontSize: 14 }}>A carregar o Observatório…</div>,
+});
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -560,7 +568,7 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
   return (
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px', marginBottom: 14 }}>
       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
-        {t('Evolução da reputação - últimos 3 anos (estrelas reais do Google)', 'Reputation trend - last 3 years (real Google stars)')}
+        {t('Evolução da reputação — últimos 3 anos (estrelas reais do Google)', 'Reputation trend — last 3 years (real Google stars)')}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 14 }}>
         {kpis.map(([l, v, sub]) => (
@@ -598,10 +606,10 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
       </div>
       {(recent.length > 0 || previous.length > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-          {([[t('Problemas - últimos 12 meses', 'Issues - last 12 months'), recent, C.negative], [t('Problemas - período anterior (12–36 meses)', 'Issues - previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
+          {([[t('Problemas — últimos 12 meses', 'Issues — last 12 months'), recent, C.negative], [t('Problemas — período anterior (12–36 meses)', 'Issues — previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
             <div key={title} style={{ background: C.bg, borderRadius: 8, padding: '12px 14px' }}>
               <div style={{ fontSize: 11, color, fontWeight: 600, marginBottom: 6 }}>{title}</div>
-              {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>-</div>}
+              {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>—</div>}
             </div>
           ))}
         </div>
@@ -660,6 +668,25 @@ export default function Home() {
   const [fotoBraga, setFotoBraga] = useState<string | null>(null);
   // Seta para voltar ao topo (aparece quando se desce na página)
   const [verTopo, setVerTopo] = useState(false);
+  // Modo público vs administração: o servidor diz se há sessão; o Firebase confirma a autenticação para gravar
+  const [sessao, setSessao] = useState<{ admin: boolean; protecao: boolean } | null>(null);
+  const [fbSessao, setFbSessao] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetch('/api/sessao', { cache: 'no-store' }).then((r) => r.json()).then((d) => setSessao({ admin: !!d.admin, protecao: !!d.protecao })).catch(() => setSessao({ admin: false, protecao: true }));
+    const parar = onAuthStateChanged(auth, (u) => setFbSessao(!!u));
+    return () => parar();
+  }, []);
+  const admin = !!sessao?.admin;
+  const sessaoFirebaseEmFalta = admin && !!sessao?.protecao && !!process.env.NEXT_PUBLIC_ADMIN_EMAIL && fbSessao === false;
+  const sair = async () => {
+    try { await fetch('/api/sair', { method: 'POST' }); } catch { /* segue */ }
+    try { await signOut(auth); } catch { /* segue */ }
+    window.location.href = '/';
+  };
+  const voltarAEntrar = async () => {
+    try { await fetch('/api/sair', { method: 'POST' }); } catch { /* segue */ }
+    window.location.href = '/login';
+  };
   useEffect(() => { const f = () => setVerTopo(window.scrollY > 700); f(); window.addEventListener('scroll', f, { passive: true }); return () => window.removeEventListener('scroll', f); }, []);
   useEffect(() => { let vivo = true; obterFotoBraga().then((f) => { if (vivo) setFotoBraga(f); }); return () => { vivo = false; }; }, []);
   // Fotografia do Posto de Turismo para o topo do Observatório
@@ -807,10 +834,12 @@ export default function Home() {
     const initial: Lang = saved === 'en' ? 'en' : 'pt';
     setLang(initial);
     setLangGlobal(initial);
+    document.documentElement.lang = initial === 'en' ? 'en' : 'pt-PT';
   }, []);
   const changeLang = (l: Lang) => {
     setLang(l);
     setLangGlobal(l);
+    if (typeof document !== 'undefined') document.documentElement.lang = l === 'en' ? 'en' : 'pt-PT';
     if (typeof window !== 'undefined') localStorage.setItem('rb-lang', l);
   };
 
@@ -1179,7 +1208,7 @@ RULES:
       }
       setImpGroups([]);
       setImpMsg('✓ ' + lines.join(' · '));
-      showToast(todo.some((g) => g.reviews.length) ? t('✓ Comentários importados - falta analisar com IA', '✓ Reviews imported - now run the AI analysis') : t('✓ Informação do local atualizada', '✓ Place information updated'));
+      showToast(todo.some((g) => g.reviews.length) ? t('✓ Comentários importados — falta analisar com IA', '✓ Reviews imported — now run the AI analysis') : t('✓ Informação do local atualizada', '✓ Place information updated'));
     } catch (err: any) {
       setImpMsg(t('Erro na importação: ', 'Import error: ') + (err?.message || '') + (lines.length ? ` · ${t('já gravado', 'already saved')}: ${lines.join(' · ')}` : ''));
     } finally {
@@ -1192,7 +1221,7 @@ RULES:
     setAnalyzing(loc.id);
     setError(null);
     try {
-      // 1) Estatísticas reconstruídas (regra "Sem texto") - fonte única de todos os números
+      // 1) Estatísticas reconstruídas (regra "Sem texto") — fonte única de todos os números
       showToast(t(`A preparar ${loc.name}…`, `Preparing ${loc.name}…`));
       const st0 = loc.reviewStats!;
       const stats = semIndefinidos(await rebuildStats(loc.id, { placeId: st0.placeId, placeTitle: st0.placeTitle, source: st0.source })) as ReviewStats;
@@ -1215,7 +1244,7 @@ Para cada comentário, indica de 0 a 3 temas referidos, cada um seguido de + (el
 Temas:
 ${listaTemas}
 
-Responde APENAS com JSON: {"r":[{"i":0,"t":["paisagem+","acesso-"]}]} - um item por comentário, com o mesmo número "i".
+Responde APENAS com JSON: {"r":[{"i":0,"t":["paisagem+","acesso-"]}]} — um item por comentário, com o mesmo número "i".
 
 Comentários:
 ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)}`).join('\n')}` }], true);
@@ -1233,7 +1262,7 @@ ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)
         all = all.map((r) => (tags[r.id] ? { ...r, tg: tags[r.id], c: 1 } : r));
       }
 
-      // 3) Estado de cada tema - calculado, não escrito pela IA
+      // 3) Estado de cada tema — calculado, não escrito pela IA
       const { temas, textRec, textPrev } = temaStats(all);
       const ativos = temas.filter((z) => z.estado);
 
@@ -1249,7 +1278,7 @@ ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)
       ].filter(Boolean).join('\n');
       const temasTxt = ativos.map((z) => {
         const ex = excertos(all, z.id, z.estado === 'forte' ? '+' : '-');
-        return `- ${z.id} (${TEMAS.find((y) => y.id === z.id)!.pt}) - estado: ${z.estado}${ex.length ? `\n  excertos: ${ex.map((e) => `"${e}"`).join(' | ')}` : ''}`;
+        return `- ${z.id} (${TEMAS.find((y) => y.id === z.id)!.pt}) — estado: ${z.estado}${ex.length ? `\n  excertos: ${ex.map((e) => `"${e}"`).join(' | ')}` : ''}`;
       }).join('\n') || '(nenhum tema com expressão suficiente)';
 
       // Leitura por blocos (como na versão original): ~150 comentários equilibrados, separados por período,
@@ -1282,7 +1311,7 @@ ${b.items.map((r) => `[${r.s}★ · ${r.d.slice(0, 7)}] ${r.t.replace(/\s+/g, ' 
       const raw2 = await groqChat([{ role: 'user', content:
 `És analista de reputação turística do Município de Braga. Local: "${loc.name}" (${loc.category}).
 
-NÚMEROS (já calculados - usa-os exatamente assim; não calcules nem escrevas outros números; não compares com outros locais nem fales de rankings ou de respostas aos comentários):
+NÚMEROS (já calculados — usa-os exatamente assim; não calcules nem escrevas outros números; não compares com outros locais nem fales de rankings ou de respostas aos comentários):
 ${numerosTxt}
 
 TEMAS (estado calculado comparando os últimos 12 meses com os 12–36 meses anteriores: persistente = crítica nos dois períodos; novo = só no recente; deixou = só no anterior; forte = elogio frequente):
@@ -1321,7 +1350,7 @@ Em problemasRecentes e problemasAnteriores, indica até 6 problemas em cada, do 
       const perRec = periodo(ai.problemasRecentes, ['novo', 'persiste']);
       const perAnt = periodo(ai.problemasAnteriores, ['deixou', 'persiste']);
 
-      // 6) Análise - mantém os campos antigos para Comparar, Problemas, Relatório e Mapa
+      // 6) Análise — mantém os campos antigos para Comparar, Problemas, Relatório e Mapa
       const nomeTema = (id: string) => TEMAS.find((y) => y.id === id)!.pt;
       const comEstado = (e: string[]) => temasV2.filter((z) => e.includes(String(z.estado)));
       const ws = windowStats(stats)!;
@@ -1691,6 +1720,23 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
   const insightDeduped = Array.from(new Set(allInsights)).slice(0, 9);
 
   const totalReviews = analyzed.reduce((s, l) => s + (l.analysis?.reviewCount || l.reviews.length), 0);
+  // Resumo da reputação para "Pergunte ao Observatório" (mesmas funções da Visão Geral; só texto agregado)
+  const reputacaoResumo = (() => {
+    try {
+      const linhas: string[] = [];
+      if (destino) linhas.push(`Destino: índice ${destino.idx.toFixed(1)}/10, ${destino.avg.toFixed(2)} estrelas, ${destino.n} avaliações em ${destino.locais} locais com dados suficientes.`);
+      locations.forEach((l) => {
+        const x = numeros(l);
+        if (!x) return;
+        const temas: any[] = ((l as any).analysis?.v2?.temas || []) as any[];
+        const nome = (id: string) => TEMAS.find((y) => y.id === id)?.pt || id;
+        const probs = temas.filter((z) => z.estado === 'persistente' || z.estado === 'novo').map((z) => nome(z.id));
+        const fortes = temas.filter((z) => z.estado === 'forte').map((z) => nome(z.id));
+        linhas.push(`${l.name}: ${x.robustez === 'insuficiente' ? 'dados insuficientes para índice' : `índice ${x.idx.toFixed(1)}/10`}, ${x.avg.toFixed(2)} estrelas, ${x.n} avaliações, ${Math.round(x.pos)}% positivas${probs.length ? `; problemas: ${probs.join(', ')}` : ''}${fortes.length ? `; pontos fortes: ${fortes.join(', ')}` : ''}`);
+      });
+      return linhas.join('\n');
+    } catch { return ''; }
+  })();
 
   // ── Prioridades: locais que exigem atenção (score mais baixo primeiro) ──
   const priorityLocs = [...analyzed]
@@ -1862,9 +1908,11 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
   // ─── NORMAL APP VIEW ───
   return (
+    <ModoAdmin.Provider value={admin}>
     <div className="rb-app" style={{ background: '#15171B', minHeight: '100vh', display: 'flex', color: C.text }}>
 
       {/* ═══ SIDEBAR (nova identidade: fotografia de Braga, índice do destino em destaque) ═══ */}
+      <a href="#conteudo" className="rb-saltar">{t('Saltar para o conteúdo', 'Skip to content')}</a>
       <aside className="rb-sidebar" style={{
         width: 232, flexShrink: 0, background: '#101215', borderRight: '1px solid #23262C',
         display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 20,
@@ -1933,7 +1981,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         </div>
 
         <nav style={{ padding: '12px 10px', flex: 1 }}>
-          {NAV.map((item) => {
+          {NAV.filter((item) => admin || item.id !== 'relatorio').map((item) => {
             const isActive = view === item.id || (item.id === 'locais' && view === 'detalhe');
             const ic = NAV_ICON[item.id];
             return (
@@ -1961,13 +2009,32 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           })}
         </nav>
 
-        <div className="rbs-foot" style={{ padding: '14px 18px 18px', borderTop: '1px solid #23262C', fontSize: 11.5, color: '#6F747D', lineHeight: 1.5 }}>
+        <div className="rbs-conta" style={{ padding: '0 10px 12px' }}>
+          {admin ? (
+            sessao?.protecao ? <button type="button" onClick={sair} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: 40, borderRadius: 8, border: '1px solid #2D3139', background: 'transparent', color: '#A3A8B1', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg>
+              {t('Sair da administração', 'Sign out of admin')}
+            </button> : null
+          ) : (
+            <a href="/login" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: 40, borderRadius: 8, border: '1px solid rgba(138,176,230,.35)', background: 'rgba(138,176,230,.12)', color: '#ECEDEF', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8AB0E6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" /></svg>
+              {t('Entrar (administração)', 'Sign in (admin)')}
+            </a>
+          )}
+        </div>
+        <div className="rbs-foot" style={{ padding: '14px 18px 18px', borderTop: '1px solid #23262C', fontSize: 11.5, color: '#8A909B', lineHeight: 1.5 }}>
           {t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}
         </div>
       </aside>
 
       {/* ═══ MAIN ═══ */}
-      <main className="rb-main" style={{ marginLeft: 232, flex: 1, minHeight: '100vh', minWidth: 0 }}>
+      <main id="conteudo" tabIndex={-1} className="rb-main" style={{ marginLeft: 232, flex: 1, minHeight: '100vh', minWidth: 0, outline: 'none' }}>
+        {sessaoFirebaseEmFalta && (
+          <div role="alert" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '14px 20px 0', padding: '12px 16px', borderRadius: 8, background: 'rgba(237,160,107,.12)', border: '1px solid rgba(237,160,107,.4)', color: '#ECEDEF', fontSize: 14 }}>
+            <span>{t('A sessão de edição expirou: as alterações não serão gravadas até voltar a entrar.', 'Your editing session expired: changes will not be saved until you sign in again.')}</span>
+            <button type="button" onClick={voltarAEntrar} style={{ padding: '7px 14px', borderRadius: 999, border: 0, background: '#EDA06B', color: '#0F1216', fontFamily: 'inherit', fontWeight: 700, cursor: 'pointer' }}>{t('Voltar a entrar', 'Sign in again')}</button>
+          </div>
+        )}
 
         {/* ── OVERVIEW ── */}
         {view === 'overview' && (
@@ -2029,6 +2096,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             fotoTopo={fotoPosto}
             reputacaoLocais={analyzed.length}
             reputacaoReviews={totalReviews}
+            reputacaoResumo={reputacaoResumo}
           />
         )}
 
@@ -2057,7 +2125,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         <button className={`rb-topo${verTopo ? ' on' : ''}`} aria-label={t('Voltar ao topo', 'Back to top')} title={t('Voltar ao topo', 'Back to top')} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
         </button>
-        <style>{`.rb-topo{position:fixed;right:26px;bottom:26px;z-index:30;width:50px;height:50px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:#0F1216;background:#8AB0E6;border:2px solid rgba(255,255,255,.35);box-shadow:0 12px 30px -8px rgba(0,0,0,.7),0 0 0 6px rgba(138,176,230,.16);cursor:pointer;opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;transition:opacity .25s ease,transform .25s ease,background .2s ease,box-shadow .2s ease}.rb-topo.on{opacity:1;transform:none;pointer-events:auto}.rb-topo:hover{background:#B7CDF0;box-shadow:0 14px 34px -8px rgba(0,0,0,.75),0 0 0 8px rgba(138,176,230,.22)}.rb-topo:focus-visible{outline:3px solid #ECEDEF;outline-offset:3px}@media (max-width:900px){.rb-topo{right:16px;bottom:18px;width:46px;height:46px}}@media print{.rb-topo{display:none}}`}</style>
+        <style>{`.rb-saltar{position:fixed;left:14px;top:-80px;z-index:400;background:#8AB0E6;color:#0F1216;padding:12px 18px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;transition:top .15s ease}.rb-saltar:focus{top:14px;outline:3px solid #ECEDEF;outline-offset:2px}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid #8AB0E6;outline-offset:2px}@media (prefers-reduced-motion: reduce){.rb-saltar{transition:none}}.rb-topo{position:fixed;right:26px;bottom:26px;z-index:30;width:50px;height:50px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:#0F1216;background:#8AB0E6;border:2px solid rgba(255,255,255,.35);box-shadow:0 12px 30px -8px rgba(0,0,0,.7),0 0 0 6px rgba(138,176,230,.16);cursor:pointer;opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;transition:opacity .25s ease,transform .25s ease,background .2s ease,box-shadow .2s ease}.rb-topo.on{opacity:1;transform:none;pointer-events:auto}.rb-topo:hover{background:#B7CDF0;box-shadow:0 14px 34px -8px rgba(0,0,0,.75),0 0 0 8px rgba(138,176,230,.22)}.rb-topo:focus-visible{outline:3px solid #ECEDEF;outline-offset:3px}@media (max-width:900px){.rb-topo{right:16px;bottom:18px;width:46px;height:46px}}@media print{.rb-topo{display:none}}`}</style>
       </main>
 
       {/* ═══ MODAL: ADD LOCATION ═══ */}
@@ -2068,8 +2136,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>{t('Importar comentários do Google Maps', 'Import Google Maps reviews')}</h3>
             <p style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.6, margin: '0 0 16px' }}>
-              {t('Ficheiro JSON ou CSV exportado (ex.: Apify - Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.',
-                 'Exported JSON or CSV file (e.g. Apify - Google Maps Reviews Scraper). Only reviews under 3 years old are kept, duplicates are ignored and author names are not stored. A file may contain several places. Manually pasted reviews for those places are replaced.')}
+              {t('Ficheiro JSON ou CSV exportado (ex.: Apify — Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.',
+                 'Exported JSON or CSV file (e.g. Apify — Google Maps Reviews Scraper). Only reviews under 3 years old are kept, duplicates are ignored and author names are not stored. A file may contain several places. Manually pasted reviews for those places are replaced.')}
             </p>
             <input type="file" accept=".json,.csv,.jsonl,.txt" onChange={onImportFile} disabled={impBusy}
               style={{ fontSize: 13, color: C.text }} />
@@ -2088,7 +2156,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     <select value={g.target} disabled={impBusy}
                       onChange={(e) => { const v = e.target.value; setImpGroups((prev) => prev.map((x, i) => (i === gi ? { ...x, target: v } : x))); }}
                       style={{ flex: '0 1 260px', padding: '8px 10px', borderRadius: 8, border: `1px solid ${g.target ? C.accent : C.border}`, background: C.card, color: C.text, fontSize: 12.5 }}>
-                      <option value="">{t('- Ignorar -', '- Skip -')}</option>
+                      <option value="">{t('— Ignorar —', '— Skip —')}</option>
                       <option value="__new__">{t('+ Criar novo local', '+ Create new place')}</option>
                       {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
@@ -2356,5 +2424,6 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         </div>
       )}
     </div>
+    </ModoAdmin.Provider>
   );
 }
