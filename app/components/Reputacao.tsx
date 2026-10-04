@@ -264,12 +264,13 @@ const ESTILO = `
   /* Telemóvel: logótipo centrado numa placa branca; sem o "BRAGA" (repetia o logótipo e não se lia sobre o céu) */
   .rb-vg-top { margin-bottom: 40px !important; justify-content: center !important; }
   .rb-vg-top > div:first-child { display: none !important; }
-  .rb-vg-placa { display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.96); border-radius: 14px; padding: 12px 20px; box-shadow: 0 14px 34px -14px rgba(0,0,0,.75); }
-  .rb-vg-placa img { height: 26px; width: auto; display: block; }
+  .rb-vg-placa { display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%; }
+  .rb-vg-placa::before, .rb-vg-placa::after { content: ''; flex: 0 1 36px; height: 1px; background: rgba(236,237,239,.45); }
+  .rb-vg-placa img { height: 28px; width: auto; display: block; filter: drop-shadow(0 2px 10px rgba(0,0,0,.45)); animation: rbFadeUp .7s ease both; }
   .rb-vg-logo { display: none !important; }
   .rb-kicker { display: none !important; }
   /* Texto legível sobre fotografias claras (céu, nuvens) */
-  .rb-hero-shade { background: linear-gradient(0deg, var(--rb-bg) 0%, rgba(21,23,27,.78) 45%, rgba(21,23,27,.5) 75%, rgba(21,23,27,.35) 100%) !important; }
+  .rb-hero-shade { background: linear-gradient(180deg, rgba(21,23,27,.55) 0%, rgba(21,23,27,0) 24%), linear-gradient(0deg, var(--rb-bg) 0%, rgba(21,23,27,.78) 45%, rgba(21,23,27,.5) 75%, rgba(21,23,27,.35) 100%) !important; }
 }
 .rb-only-m { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -1528,7 +1529,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
   const topoFoto = (
     <div className="rb-hero-top rb-vg-top">
       <div style={{ fontSize: 14, color: 'var(--rb-text2)' }}>{t('Reputação · Visão geral', 'Reputation · Overview')}</div>
-      <div className="rb-vg-placa"><img src="/visit-braga-logo.png" alt="Visit Braga" /></div>
+      <div className="rb-vg-placa"><img src="/visit-braga-logo-negativo.png" alt="Visit Braga" /></div>
     </div>
   );
 
