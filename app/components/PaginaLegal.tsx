@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 export type LinguaLegal = 'pt' | 'en' | 'es';
 export type Texto = { pt: ReactNode; en: ReactNode; es: ReactNode };
 
-export function usarLingua(): [LinguaLegal, (l: LinguaLegal) => void] {
+export function useLingua(): [LinguaLegal, (l: LinguaLegal) => void] {
   const [l, setL] = useState<LinguaLegal>('pt');
   useEffect(() => {
     const s = typeof window !== 'undefined' ? localStorage.getItem('rb-lang') : null;

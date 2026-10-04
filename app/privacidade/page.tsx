@@ -1,11 +1,11 @@
 'use client';
 
-import PaginaLegal, { usarLingua } from '@/app/components/PaginaLegal';
+import PaginaLegal, { useLingua } from '@/app/components/PaginaLegal';
 import { CONTACTOS } from '@/app/lib/contactos';
 
 // Aviso de Privacidade (RGPD): o que a plataforma faz realmente com dados, em PT, EN e ES.
 export default function Privacidade() {
-  const [l, mudar] = usarLingua();
+  const [l, mudar] = useLingua();
   const epd = CONTACTOS.emailEPD
     ? <a href={`mailto:${CONTACTOS.emailEPD}`}>{CONTACTOS.emailEPD}</a>
     : <a href={CONTACTOS.site} target="_blank" rel="noopener noreferrer">{CONTACTOS.site.replace('https://', '')}</a>;

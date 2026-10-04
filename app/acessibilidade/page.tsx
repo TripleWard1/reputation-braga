@@ -1,11 +1,11 @@
 'use client';
 
-import PaginaLegal, { usarLingua } from '@/app/components/PaginaLegal';
+import PaginaLegal, { useLingua } from '@/app/components/PaginaLegal';
 import { CONTACTOS } from '@/app/lib/contactos';
 
 // Declaração de Acessibilidade e Usabilidade (Decreto-Lei n.º 83/2018), segundo a estrutura do modelo da AMA.
 export default function Acessibilidade() {
-  const [l, mudar] = usarLingua();
+  const [l, mudar] = useLingua();
   const url = typeof window !== 'undefined' ? window.location.origin : '';
   const data = new Date(CONTACTOS.dataDeclaracao).toLocaleDateString(l === 'pt' ? 'pt-PT' : l === 'es' ? 'es-ES' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const contacto = CONTACTOS.emailAcessibilidade
