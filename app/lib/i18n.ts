@@ -1,13 +1,58 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// i18n - motor de tradução PT/EN do Observatório Visit Braga
+// i18n - motor de tradução PT/EN/ES do Observatório Visit Braga
 // Usa uma variável de módulo (singleton) para que o mesmo t() funcione tanto
 // em componentes React como em funções de módulo (geradores de PDF, helpers).
 // O toggle atualiza esta variável E o estado React (para forçar re-render).
 // ═══════════════════════════════════════════════════════════════════════════
 
-export type Lang = 'pt' | 'en';
+export type Lang = 'pt' | 'en' | 'es';
 
 let LANG: Lang = 'pt';
+
+// ── Espanhol ────────────────────────────────────────────────────────────────
+// A tradução espanhola é gerada pelo administrador (catálogo de todos os textos → IA) e guardada no Firestore.
+// Aqui: correspondência direta para textos fixos e "moldes" para textos com valores ({0}, {1}…).
+// O que ainda não estiver traduzido aparece em português (a língua mais próxima para um leitor espanhol).
+let ES_EXATO: Map<string, string> | null = null;
+let ES_MOLDES: { re: RegExp; es: string }[] = [];
+const ES_CACHE = new Map<string, string>();
+const escaparRe = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Carrega a tradução espanhola: pares [modelo em português, modelo em espanhol]. */
+export function carregarEspanhol(pares: [string, string][]): void {
+  const exato = new Map<string, string>();
+  const moldes: { re: RegExp; es: string }[] = [];
+  for (const [pt, es] of pares) {
+    if (!pt || !es) continue;
+    if (!/\{\d+\}/.test(pt)) { exato.set(pt, es); continue; }
+    const partes = pt.split(/\{\d+\}/);
+    const re = new RegExp('^' + partes.map(escaparRe).join('([\\s\\S]*?)') + '$');
+    moldes.push({ re, es });
+  }
+  // moldes mais específicos (mais texto fixo) primeiro
+  moldes.sort((a, b) => b.re.source.length - a.re.source.length);
+  ES_EXATO = exato;
+  ES_MOLDES = moldes;
+  ES_CACHE.clear();
+}
+export function temEspanhol(): boolean { return !!ES_EXATO && ES_EXATO.size > 0; }
+
+function paraEspanhol(pt: string): string {
+  if (!ES_EXATO) return pt;
+  const guardado = ES_CACHE.get(pt);
+  if (guardado !== undefined) return guardado;
+  let res = ES_EXATO.get(pt);
+  if (res === undefined) {
+    res = pt;
+    for (const m of ES_MOLDES) {
+      const r = m.re.exec(pt);
+      if (r) { res = m.es.replace(/\{(\d+)\}/g, (_x, n) => (r[Number(n) + 1] ?? '')); break; }
+    }
+  }
+  if (ES_CACHE.size > 5000) ES_CACHE.clear();
+  ES_CACHE.set(pt, res);
+  return res;
+}
 
 export function getLang(): Lang {
   return LANG;
@@ -19,7 +64,9 @@ export function setLangGlobal(l: Lang): void {
 
 /** Devolve a string no idioma ativo. Ex.: t('Visão Geral', 'Overview') */
 export function t(pt: string, en: string): string {
-  return LANG === 'en' ? en : pt;
+  if (LANG === 'en') return en;
+  if (LANG === 'es') return paraEspanhol(pt);
+  return pt;
 }
 
 // Dicionário de rótulos vindos dos ficheiros de dados (categorias de gráficos).
@@ -99,5 +146,6 @@ const DL_EN: Record<string, string> = {
 
 /** Traduz um rótulo de dados conhecido; se não constar, devolve-o tal como está. */
 export function dl(label: string): string {
+  if (LANG === 'es') return paraEspanhol(label);
   return t(label, DL_EN[label] ?? label);
 }

@@ -180,11 +180,12 @@ const MAX_PEDIDOS = 8;
 const JANELA_MS = 10 * 60 * 1000;
 function excedeLimite(chave: string): boolean {
   const agora = Date.now();
+  // Apaga os endereços sem pedidos nos últimos 10 minutos (nenhum IP fica guardado mais tempo do que isso)
+  PEDIDOS.forEach((v, k) => { const r = v.filter((x) => agora - x < JANELA_MS); if (r.length) PEDIDOS.set(k, r); else PEDIDOS.delete(k); });
   const lista = (PEDIDOS.get(chave) || []).filter((x) => agora - x < JANELA_MS);
   if (lista.length >= MAX_PEDIDOS) { PEDIDOS.set(chave, lista); return true; }
   lista.push(agora);
   PEDIDOS.set(chave, lista);
-  if (PEDIDOS.size > 5000) PEDIDOS.clear();
   return false;
 }
 
@@ -201,8 +202,9 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); } catch { return NextResponse.json({ erro: 'Pedido inválido.' }, { status: 400 }); }
   const pergunta = typeof body?.pergunta === 'string' ? body.pergunta.trim().slice(0, 400) : '';
   const en = body?.lingua === 'en';
+  const es = body?.lingua === 'es';
   const reputacao = typeof body?.reputacao === 'string' ? body.reputacao.slice(0, 6000) : '';
-  if (pergunta.length < 3) return NextResponse.json({ erro: en ? 'Write a question.' : 'Escreva uma pergunta.' }, { status: 400 });
+  if (pergunta.length < 3) return NextResponse.json({ erro: es ? 'Escriba una pregunta.' : en ? 'Write a question.' : 'Escreva uma pergunta.' }, { status: 400 });
 
   const blocos = escolherBlocos(pergunta);
   const qn = norm(pergunta);
@@ -211,7 +213,8 @@ export async function POST(req: NextRequest) {
   const partes = blocos.map(({ b, txt }) => `[${b.id}] ${b.titulo} · fonte: ${b.fonte}\n${txt}`);
   if (usaReputacao) partes.push(`[reputacao] Reputação online dos locais (comentários do Google Maps, últimos 3 anos) · fonte: Google Maps, análise da plataforma\n${reputacao}`);
 
-  const sistema = en
+  const sistemaES = 'Eres el asistente del Observatorio de Turismo de Braga (Ayuntamiento de Braga). Respondes SOLO con los datos de los BLOQUES. Reglas: (1) Usa solo números que estén en los bloques; nunca inventes ni adivines valores. Puedes hacer cálculos sencillos con ellos, indicando que es un cálculo. (2) Si los datos no responden a la pregunta, di claramente que la plataforma no tiene ese dato e indica el dato más cercano disponible. (3) Indica el periodo de cada número. (4) Responde en español de España, de forma directa, en 1 a 4 frases o una lista corta. (5) Devuelve SOLO JSON: {"resposta": string, "fontes": [ids de los bloques usados], "separador": id de la pestaña más útil o null}.';
+  const sistema = es ? sistemaES : en
     ? 'You are the assistant of the Braga Tourism Observatory (Braga City Council). Answer ONLY with the data in the BLOCKS. Rules: (1) Use only numbers present in the blocks; never invent or guess values. You may do simple arithmetic with them, saying it is a calculation. (2) If the data does not answer the question, say clearly that the platform does not have that data and mention the closest available data. (3) State the period of each number. (4) Answer in English, directly, in 1–4 sentences or a short list. (5) Return ONLY JSON: {"resposta": string, "fontes": [block ids used], "separador": id of the most useful tab or null}.'
     : 'És o assistente do Observatório de Turismo de Braga (Município de Braga). Respondes APENAS com os dados dos BLOCOS. Regras: (1) Usa só números que estejam nos blocos; nunca inventes nem adivinhes valores. Podes fazer contas simples com eles, dizendo que é um cálculo. (2) Se os dados não respondem à pergunta, diz claramente que a plataforma não tem esse dado e indica o dado mais próximo que existe. (3) Indica o período de cada número. (4) Responde em português de Portugal, de forma direta, em 1 a 4 frases ou numa lista curta; números com espaço nos milhares e vírgula decimal. (5) Devolve SÓ JSON: {"resposta": string, "fontes": [ids dos blocos usados], "separador": id do separador mais útil ou null}.';
   const utilizador = `${en ? 'QUESTION' : 'PERGUNTA'}: ${pergunta}\n\n${en ? 'TOPICS AVAILABLE ON THE PLATFORM' : 'TEMAS DISPONÍVEIS NA PLATAFORMA'}:\n${indice}\n\n${en ? 'VALID TAB IDS' : 'IDS DE SEPARADOR VÁLIDOS'}: ${IDS_SEPARADORES.join(', ')}\n\nBLOCOS:\n${partes.length ? partes.join('\n\n') : (en ? '(no block matched the question)' : '(nenhum bloco corresponde à pergunta)')}`;
