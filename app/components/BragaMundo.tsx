@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { t, getLang } from '@/app/lib/i18n';
-import { FEIRAS, PROJETOS, DISTINCOES, TIPOS_PROJETO, type Evento, type Texto3, type TipoDistincao, type TipoProjeto } from '@/app/lib/braga-mundo-dados';
+import { FEIRAS, PROJETOS, DISTINCOES, TIPOS_PROJETO, type Distincao, type Evento, type Texto3, type TipoDistincao, type TipoProjeto } from '@/app/lib/braga-mundo-dados';
 
 // "Braga no mundo": distinções do destino, feiras e projetos de cooperação (2023–2027), em PT, EN e ES.
 type Aba = 'distincoes' | 'feiras' | 'projetos';
@@ -23,6 +23,52 @@ function nomePais(cod: string): string {
 const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const futuro = (e: Evento) => (e.fim || e.ini) >= hoje();
 const anoDe = (e: Evento) => Number(e.ini.slice(0, 4));
+function naoFuturo(e: Evento) { return !futuro(e); }
+function emEspanha(e: Evento) { return e.pais === 'es'; }
+function eEuropeu(e: Evento) { return e.tipo === 'europeu'; }
+function noEstrangeiro(e: Evento) { return e.pais !== 'pt'; }
+function emBraga(e: Evento) { return e.cidade === 'Braga'; }
+
+// Filtros e contagens com ciclos simples: o compressor do Next.js (SWC) trocava os nomes das variáveis
+// em funções pequenas aninhadas, o que partia a secção em produção ("a.indexOf is not a function").
+function contarTipos(lista: TipoDistincao[]): number {
+  let n = 0;
+  for (let i = 0; i < DISTINCOES.length; i++) { if (lista.indexOf(DISTINCOES[i].tipo) >= 0) n++; }
+  return n;
+}
+function contarEntidade(entidade: string): number {
+  let n = 0;
+  for (let i = 0; i < DISTINCOES.length; i++) { if (DISTINCOES[i].entidade === entidade) n++; }
+  return n;
+}
+function distincoesDoAno(ano: number): Distincao[] {
+  const r: Distincao[] = [];
+  for (let i = 0; i < DISTINCOES.length; i++) { if (DISTINCOES[i].ano === ano) r.push(DISTINCOES[i]); }
+  return r;
+}
+function todosOsLogos(): { src: string; alt: string }[] {
+  const r: { src: string; alt: string }[] = [];
+  for (let i = 0; i < DISTINCOES.length; i++) {
+    const lista = DISTINCOES[i].logos || [];
+    for (let j = 0; j < lista.length; j++) r.push({ src: lista[j], alt: L(DISTINCOES[i].titulo) });
+  }
+  return r;
+}
+function filtrarEventos(lista: Evento[], ano: number | null, tipo: TipoProjeto | null): Evento[] {
+  const r: Evento[] = [];
+  for (let i = 0; i < lista.length; i++) {
+    const e = lista[i];
+    if (ano !== null && anoDe(e) !== ano) continue;
+    if (tipo !== null && e.tipo !== tipo) continue;
+    r.push(e);
+  }
+  return r;
+}
+function contarEventos(lista: Evento[], teste: (e: Evento) => boolean): number {
+  let n = 0;
+  for (let i = 0; i < lista.length; i++) { if (teste(lista[i])) n++; }
+  return n;
+}
 
 const COR: Record<TipoDistincao, string> = { vencedora: '#E9C46A', certificacao: '#7CC79A', titulo: '#8AB0E6', finalista: '#C9CDD3', emCurso: '#EDA06B', anfitria: '#B79CF0', ativo: '#6FC2D0' };
 const ROTULO: Record<TipoDistincao, Texto3> = {
@@ -49,7 +95,7 @@ function ListaEventos({ eventos, comTipo }: { eventos: Evento[]; comTipo?: boole
   return (
     <>
       {anos.map((ano) => {
-        const doAno = eventos.filter((e) => anoDe(e) === ano).sort((a, b) => a.ini.localeCompare(b.ini));
+        const doAno = filtrarEventos(eventos, ano, null).sort((x, y) => x.ini.localeCompare(y.ini));
         return (
           <section key={ano} className="bm-ano" aria-labelledby={`bm-ano-${ano}`}>
             <h3 id={`bm-ano-${ano}`} className="bm-ano-t">{ano}<span>{doAno.length}</span></h3>
@@ -81,12 +127,11 @@ export default function BragaMundo() {
   const [aba, setAba] = useState<Aba>('distincoes');
   const [anoF, setAnoF] = useState<number | null>(null);
   const [tipoP, setTipoP] = useState<TipoProjeto | null>(null);
-  const feitas = FEIRAS.filter((e) => !futuro(e));
+  const feitas = FEIRAS.filter(naoFuturo);
   const paises = new Set(feitas.map((e) => e.pais));
   const anosF = Array.from(new Set(FEIRAS.map(anoDe))).sort();
   const anosP = Array.from(new Set(PROJETOS.map(anoDe))).sort();
-  const nTipo = (x: TipoDistincao[]) => DISTINCOES.filter((d) => x.indexOf(d.tipo) >= 0).length;
-  const logos = DISTINCOES.flatMap((d) => (d.logos || []).map((src) => ({ src, alt: L(d.titulo) })));
+  const logos = todosOsLogos();
   const anosD = Array.from(new Set(DISTINCOES.map((d) => d.ano))).sort((a, b) => b - a);
   const ABAS: [Aba, string][] = [['distincoes', t('Distinções', 'Distinctions')], ['feiras', t('Feiras', 'Trade fairs')], ['projetos', t('Projetos e cooperação', 'Projects and cooperation')]];
   const mudar = (a: Aba) => { setAba(a); setAnoF(null); setTipoP(null); };
@@ -107,10 +152,10 @@ export default function BragaMundo() {
       {aba === 'distincoes' && (
         <div className="bm-corpo">
           <div className="bm-kpis">
-            <Indicador valor={nTipo(['vencedora'])} rotulo={t('títulos internacionais ganhos', 'international titles won')} cor={COR.vencedora} />
-            <Indicador valor={nTipo(['certificacao'])} rotulo={t('certificação de destino sustentável', 'sustainable destination certification')} cor={COR.certificacao} />
-            <Indicador valor={nTipo(['finalista', 'emCurso'])} rotulo={t('vezes finalista em concursos europeus', 'times a finalist in European competitions')} cor={COR.finalista} />
-            <Indicador valor={DISTINCOES.filter((d) => d.entidade === 'UNESCO').length} rotulo={t('marcos UNESCO: cidade criativa, Património Mundial e conferência mundial', 'UNESCO milestones: creative city, World Heritage and world conference')} cor={COR.titulo} />
+            <Indicador valor={contarTipos(['vencedora'])} rotulo={t('títulos internacionais ganhos', 'international titles won')} cor={COR.vencedora} />
+            <Indicador valor={contarTipos(['certificacao'])} rotulo={t('certificação de destino sustentável', 'sustainable destination certification')} cor={COR.certificacao} />
+            <Indicador valor={contarTipos(['finalista', 'emCurso'])} rotulo={t('vezes finalista em concursos europeus', 'times a finalist in European competitions')} cor={COR.finalista} />
+            <Indicador valor={contarEntidade('UNESCO')} rotulo={t('marcos UNESCO: cidade criativa, Património Mundial e conferência mundial', 'UNESCO milestones: creative city, World Heritage and world conference')} cor={COR.titulo} />
           </div>
           {logos.length > 0 && (
             <ul className="bm-logos" aria-label={t('Selos e logótipos das distinções', 'Distinction seals and logos')}>
@@ -121,7 +166,7 @@ export default function BragaMundo() {
             <section key={ano} className="bm-ano" aria-labelledby={`bm-d-${ano}`}>
               <h3 id={`bm-d-${ano}`} className="bm-ano-t">{ano}</h3>
               <ul className="bm-dist">
-                {DISTINCOES.filter((d) => d.ano === ano).map((d) => (
+                {distincoesDoAno(ano).map((d) => (
                   <li key={d.titulo.pt} className="bm-d" style={{ borderLeftColor: COR[d.tipo] }}>
                     <div className="bm-d-top">
                       <span className="bm-d-tipo" style={{ color: COR[d.tipo], borderColor: `${COR[d.tipo]}66` }}>{L(ROTULO[d.tipo])}</span>
@@ -144,14 +189,14 @@ export default function BragaMundo() {
           <div className="bm-kpis">
             <Indicador valor={feitas.length} rotulo={t('feiras realizadas desde 2023', 'trade fairs attended since 2023')} cor="#8AB0E6" />
             <Indicador valor={paises.size} rotulo={t('países', 'countries')} cor="#7CC79A" />
-            <Indicador valor={`${Math.round((feitas.filter((e) => e.pais === 'es').length / Math.max(1, feitas.length)) * 100)}%`} rotulo={t('em Espanha, o maior mercado externo', 'in Spain, the largest foreign market')} cor="#E9C46A" />
+            <Indicador valor={`${Math.round((contarEventos(feitas, emEspanha) / Math.max(1, feitas.length)) * 100)}%`} rotulo={t('em Espanha, o maior mercado externo', 'in Spain, the largest foreign market')} cor="#E9C46A" />
             <Indicador valor={FEIRAS.length - feitas.length} rotulo={t('feiras previstas', 'planned fairs')} cor="#EDA06B" />
           </div>
           <div className="bm-filtros" role="group" aria-label={t('Filtrar por ano', 'Filter by year')}>
             <button type="button" className={anoF === null ? 'on' : ''} aria-pressed={anoF === null} onClick={() => setAnoF(null)}>{t('Todos', 'All')}</button>
             {anosF.map((a) => <button key={a} type="button" className={anoF === a ? 'on' : ''} aria-pressed={anoF === a} onClick={() => setAnoF(a)}>{a}</button>)}
           </div>
-          <ListaEventos eventos={FEIRAS.filter((e) => anoF === null || anoDe(e) === anoF)} />
+          <ListaEventos eventos={filtrarEventos(FEIRAS, anoF, null)} />
         </div>
       )}
 
@@ -159,9 +204,9 @@ export default function BragaMundo() {
         <div className="bm-corpo">
           <div className="bm-kpis">
             <Indicador valor={PROJETOS.length} rotulo={t('projetos, encontros e ações desde 2023', 'projects, meetings and actions since 2023')} cor="#8AB0E6" />
-            <Indicador valor={PROJETOS.filter((e) => e.tipo === 'europeu').length} rotulo={t('reuniões de projetos europeus', 'EU project meetings')} cor="#7CC79A" />
-            <Indicador valor={PROJETOS.filter((e) => e.pais !== 'pt').length} rotulo={t('no estrangeiro', 'abroad')} cor="#E9C46A" />
-            <Indicador valor={PROJETOS.filter((e) => e.cidade === 'Braga').length} rotulo={t('em Braga, com parceiros de fora', 'in Braga, with visiting partners')} cor="#B79CF0" />
+            <Indicador valor={contarEventos(PROJETOS, eEuropeu)} rotulo={t('reuniões de projetos europeus', 'EU project meetings')} cor="#7CC79A" />
+            <Indicador valor={contarEventos(PROJETOS, noEstrangeiro)} rotulo={t('no estrangeiro', 'abroad')} cor="#E9C46A" />
+            <Indicador valor={contarEventos(PROJETOS, emBraga)} rotulo={t('em Braga, com parceiros de fora', 'in Braga, with visiting partners')} cor="#B79CF0" />
           </div>
           <div className="bm-filtros" role="group" aria-label={t('Filtrar por tipo', 'Filter by type')}>
             <button type="button" className={tipoP === null ? 'on' : ''} aria-pressed={tipoP === null} onClick={() => setTipoP(null)}>{t('Todos', 'All')}</button>
@@ -171,7 +216,7 @@ export default function BragaMundo() {
             <button type="button" className={anoF === null ? 'on' : ''} aria-pressed={anoF === null} onClick={() => setAnoF(null)}>{t('Todos', 'All')}</button>
             {anosP.map((a) => <button key={a} type="button" className={anoF === a ? 'on' : ''} aria-pressed={anoF === a} onClick={() => setAnoF(a)}>{a}</button>)}
           </div>
-          <ListaEventos comTipo eventos={PROJETOS.filter((e) => (anoF === null || anoDe(e) === anoF) && (tipoP === null || e.tipo === tipoP))} />
+          <ListaEventos comTipo eventos={filtrarEventos(PROJETOS, anoF, tipoP)} />
         </div>
       )}
     </div>
