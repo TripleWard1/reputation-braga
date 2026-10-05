@@ -23,6 +23,7 @@ import { obterFotoBraga } from '@/app/lib/foto-braga';
 import { VisaoGeral, LocaisLista, FichaLocal, MapaView, TemasView, RelatorioView, MercadosView, ProdutosView, type Intervencao, type Afluencia, type Atributos, type WikiDados } from '@/app/components/Reputacao';
 
 // O Observatório só é descarregado quando é aberto (a app arranca mais depressa, sobretudo no telemóvel)
+const BragaMundo = dynamic(comRecuperacao(() => import('@/app/components/BragaMundo')), { ssr: false });
 const ObservatorioView = dynamic(comRecuperacao(() => import('@/app/components/ObservatorioView')), {
   ssr: false,
   loading: () => <div role="status" aria-live="polite" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A3A8B1', fontSize: 14 }}>A carregar o Observatório…</div>,
@@ -240,7 +241,7 @@ interface Location {
   wiki?: WikiDados;              // visualizações da Wikipédia por língua (API pública)
 }
 
-type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'benchmark' | 'mercados' | 'relatorio' | 'problemas' | 'observatorio' | 'produtos' | 'detalhe';
+type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'benchmark' | 'mercados' | 'relatorio' | 'problemas' | 'observatorio' | 'produtos' | 'mundo' | 'detalhe';
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -630,6 +631,7 @@ const NAV_ICON: Record<string, string> = {
   overview: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z',
   observatorio: 'M4 20V10M10 20V4M16 20v-7M2 20h20',
   produtos: 'M2 5h7a3 3 0 013 3v13a2 2 0 00-2-2H2zM22 5h-7a3 3 0 00-3 3v13a2 2 0 012-2h8z',
+  mundo: 'M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20',
   locais: 'M12 21s-7-6.2-7-11a7 7 0 1114 0c0 4.8-7 11-7 11zm0-8.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',
   mapa: 'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14',
   comparar: 'M4 5h6v14H4zM14 5h6v14h-6z',
@@ -655,7 +657,7 @@ export default function Home() {
     leuEndereco.current = true;
     const q = new URLSearchParams(window.location.search);
     if (q.get('r')) return;
-    const VISTAS: Record<string, ViewType> = { inicio: 'overview', observatorio: 'observatorio', produtos: 'produtos', locais: 'locais', mapa: 'mapa', mercados: 'mercados', temas: 'problemas', relatorio: 'relatorio' };
+    const VISTAS: Record<string, ViewType> = { inicio: 'overview', observatorio: 'observatorio', produtos: 'produtos', mundo: 'mundo', locais: 'locais', mapa: 'mapa', mercados: 'mercados', temas: 'problemas', relatorio: 'relatorio' };
     const local = q.get('local');
     const vista = q.get('vista');
     if (local) { setDetailId(local); setView('detalhe'); }
@@ -711,7 +713,7 @@ export default function Home() {
     if (typeof window === 'undefined' || !leuEndereco.current) return;
     const q = new URLSearchParams(window.location.search);
     if (q.get('r')) return;
-    const NOMES: Partial<Record<ViewType, string>> = { overview: 'inicio', observatorio: 'observatorio', produtos: 'produtos', locais: 'locais', mapa: 'mapa', mercados: 'mercados', problemas: 'temas', relatorio: 'relatorio' };
+    const NOMES: Partial<Record<ViewType, string>> = { overview: 'inicio', observatorio: 'observatorio', produtos: 'produtos', mundo: 'mundo', locais: 'locais', mapa: 'mapa', mercados: 'mercados', problemas: 'temas', relatorio: 'relatorio' };
     const nova = new URLSearchParams();
     if (view === 'detalhe' && detailId) nova.set('local', detailId);
     else { const nomeVista = NOMES[view as ViewType]; if (nomeVista && view !== 'overview') nova.set('vista', nomeVista); }
@@ -1865,6 +1867,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     { id: 'overview', label: t('Visão Geral', 'Overview'), icon: '◈' },
     { id: 'observatorio', label: t('Observatório', 'Observatory'), icon: '◔' },
     { id: 'produtos', label: t('Produtos turísticos', 'Tourism products'), icon: '▤' },
+    { id: 'mundo', label: t('Braga no mundo', 'Braga in the world'), icon: '◍' },
     { id: 'locais', label: t('Locais', 'Places'), icon: '⊞' },
     { id: 'mapa', label: t('Mapa', 'Map'), icon: '◎' },
     { id: 'mercados', label: t('Mercados', 'Markets'), icon: '◍' },
@@ -2045,10 +2048,10 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 </div>
               </button>
             )}
-            <div className="rbs-lang" style={{ display: 'flex', gap: 6, marginTop: 14 }}>
+            <div className="rbs-lang" role="group" aria-label={t('Língua', 'Language')} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, marginTop: 14 }}>
               {LINGUAS.map((l) => (
-                <button key={l} onClick={() => changeLang(l)} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                <button key={l} onClick={() => changeLang(l)} aria-pressed={lang === l} style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 0, padding: '5px 4px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   border: `1px solid ${lang === l ? '#8AB0E6' : 'rgba(255,255,255,.12)'}`,
                   background: lang === l ? 'rgba(138,176,230,.16)' : 'rgba(21,23,27,.4)',
                   color: lang === l ? '#ECEDEF' : '#A3A8B1', letterSpacing: '0.04em', transition: 'all 0.2s', fontFamily: 'inherit',
@@ -2171,6 +2174,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
         {/* ── PRODUTOS TURÍSTICOS ── */}
         {view === 'produtos' && <ProdutosView />}
+        {view === 'mundo' && <BragaMundo />}
 
         {/* ── MERCADOS: procura e satisfação ── */}
         {view === 'mercados' && <MercadosView locations={locations} />}
