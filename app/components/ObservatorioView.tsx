@@ -17,6 +17,7 @@ import { C, PAL, SUS_PAL, YEAR_COLORS } from './obs/comum';
 
 // Cada separador é um ficheiro próprio, descarregado só quando é aberto (mais rápido, sobretudo no telemóvel)
 const ACarregar = () => <div className="obs-carregar" role="status" aria-live="polite"><span className="obs-carregar-pt" aria-hidden="true" />{t('A carregar…', 'Loading…')}</div>;
+const Insto = dynamic(comRecuperacao(() => import('./obs/Insto')), { ssr: false, loading: ACarregar });
 const Leituras = dynamic(comRecuperacao(() => import('./obs/Leituras')), { ssr: false, loading: ACarregar });
 const Acessibilidade = dynamic(comRecuperacao(() => import('./obs/Acessibilidade')), { ssr: false, loading: ACarregar });
 const Aeroporto = dynamic(comRecuperacao(() => import('./obs/Aeroporto')), { ssr: false, loading: ACarregar });
@@ -95,6 +96,7 @@ const OBS_CSS = `
 .obs-leit-cartao { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border-radius: 10px; background: #1C1F24; border: 1px solid #2D3139; transition: border-color .2s ease, transform .2s ease; }
 .obs-leit-cartao:hover { border-color: #3A404B; transform: translateY(-2px); }
 .obs-leit-tema { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8AB0E6; }
+.obs-leit-per { color: #A3A8B1; font-weight: 600; letter-spacing: 0; text-transform: none; }
 .obs-leit-valor { font-size: 30px; font-weight: 700; color: #ECEDEF; letter-spacing: -0.02em; line-height: 1.1; }
 .obs-leit-frase { margin: 0; flex: 1; font-size: 13.5px; line-height: 1.55; color: #A3A8B1; }
 .obs-leit-ir { align-self: flex-start; margin-top: 6px; }
@@ -262,8 +264,8 @@ const OBS_CSS = `
 @media print { .obs-hero, .obs-tabs { display: none !important; } .obs-body { padding: 0; max-width: none; } .obs-card { opacity: 1 !important; transform: none !important; } }
 `;
 
-type Tab = 'geral' | 'procura' | 'estimativa' | 'mobilidade' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
-const IDS_TAB: string[] = ['geral', 'procura', 'estimativa', 'mobilidade', 'economia', 'emprego', 'cartoes', 'perfil', 'animacao', 'ferramentas', 'hotelaria', 'cultura', 'lojas', 'alojamento', 'aeroporto', 'mercados', 'balcao', 'taxa', 'sustentabilidade', 'digital', 'acessibilidade', 'meteo', 'caminhos', 'cruzamentos'];
+type Tab = 'geral' | 'insto' | 'procura' | 'estimativa' | 'mobilidade' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
+const IDS_TAB: string[] = ['insto', 'geral', 'procura', 'estimativa', 'mobilidade', 'economia', 'emprego', 'cartoes', 'perfil', 'animacao', 'ferramentas', 'hotelaria', 'cultura', 'lojas', 'alojamento', 'aeroporto', 'mercados', 'balcao', 'taxa', 'sustentabilidade', 'digital', 'acessibilidade', 'meteo', 'caminhos', 'cruzamentos'];
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; reputacaoResumo?: string; separadorInicial?: string; }
 
@@ -330,6 +332,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'acessibilidade', label: t('Acessibilidade', 'Accessibility') },
     { id: 'meteo', label: t('Meteorologia', 'Weather') },
     { id: 'caminhos', label: t('Caminhos de Santiago', 'Camino de Santiago') },
+    { id: 'insto', label: t('Rede INSTO', 'INSTO network') },
     { id: 'cruzamentos', label: t('Cruzamentos', 'Cross-analysis') },
   ];
   const tabLabel = TABS.find((t) => t.id === tab)?.label || '';
@@ -338,7 +341,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   const irPara = (id: string) => { const x = TABS.find((y) => y.id === id); if (x) setTab(x.id); };
   // Separadores agrupados por tema (menu mais simples, sobretudo no telemóvel)
   const GRUPOS: { id: string; label: string; icon: string; tabs: Tab[] }[] = [
-    { id: 'resumo', label: t('Resumo', 'Summary'), icon: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z', tabs: ['geral', 'cruzamentos'] },
+    { id: 'resumo', label: t('Resumo', 'Summary'), icon: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z', tabs: ['geral', 'cruzamentos', 'insto'] },
     { id: 'procura', label: t('Procura', 'Demand'), icon: 'M3 17l6-6 4 4 8-8M15 7h6v6', tabs: ['procura', 'estimativa', 'mercados', 'aeroporto', 'caminhos'] },
     { id: 'visitante', label: t('Visitante', 'Visitor'), icon: 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21v-1a6 6 0 0112 0v1M16 3.5a4 4 0 010 7.5M22 21v-1a6 6 0 00-4-5.6', tabs: ['perfil', 'balcao'] },
     { id: 'economia', label: t('Economia', 'Economy'), icon: 'M18 7a7 7 0 100 10M5 10h9M5 14h9', tabs: ['economia', 'emprego', 'cartoes', 'taxa'] },
@@ -892,6 +895,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'lojas' && <LojasHistoria />}
         {tab === 'emprego' && <Emprego />}
         {tab === 'estimativa' && <EstimativaDormidas />}
+        {tab === 'insto' && <Insto irPara={irPara} nomeSeparador={nomeSeparador} />}
         {tab === 'mobilidade' && <Mobilidade />}
         {tab === 'hotelaria' && <Hotelaria />}
         {tab === 'alojamento' && <AlojamentoLocal />}

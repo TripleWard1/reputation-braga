@@ -67,6 +67,12 @@ export default function Leituras({ irPara, nomeSeparador }: { irPara: (id: strin
   const atualizar = () => { const el = faixa.current; if (!el) return; setInicio(el.scrollLeft < 8); setFim(el.scrollLeft + el.clientWidth >= el.scrollWidth - 8); };
   useEffect(() => { atualizar(); window.addEventListener('resize', atualizar); return () => window.removeEventListener('resize', atualizar); }, []);
   const mover = (dir: 1 | -1) => { const el = faixa.current; if (!el) return; el.scrollBy({ left: dir * Math.max(260, el.clientWidth * 0.85), behavior: 'smooth' }); };
+  // Período a que se refere cada leitura (os observatórios de referência mostram-no sempre)
+  const PERIODO: Record<string, string> = {
+    procura: t('1.º semestre de 2026', 'H1 2026'), estimativa: t('estimativa para 2026', '2026 estimate'), mercados: t('1.º semestre de 2026', 'H1 2026'),
+    emprego: String(EMPREGO.ano), alojamento: t('outubro de 2026', 'October 2026'), hotelaria: t('setembro de 2026', 'September 2026'),
+    mobilidade: t('janeiro a setembro de 2026', 'January to September 2026'), perfil: t('inquérito de março', 'March survey'), sustentabilidade: t('Barómetro 2026', '2026 Barometer'),
+  };
   if (!lista.length) return null;
   return (
     <section className="obs-leit" aria-labelledby="obs-leit-titulo">
@@ -83,7 +89,7 @@ export default function Leituras({ irPara, nomeSeparador }: { irPara: (id: strin
       <ul ref={faixa} className="obs-leit-grelha" onScroll={atualizar} tabIndex={0} aria-label={t('Leituras do momento (deslize para o lado)', 'Key readings (scroll sideways)')}>
         {lista.map((l) => (
           <li key={l.id} className="obs-leit-cartao">
-            <div className="obs-leit-tema">{l.tema}</div>
+            <div className="obs-leit-tema">{l.tema}{PERIODO[l.id] && <span className="obs-leit-per"> · {PERIODO[l.id]}</span>}</div>
             <div className="obs-leit-valor">{l.valor}</div>
             <p className="obs-leit-frase">{l.frase}</p>
             {nomeSeparador(l.separador) && <button type="button" className="obs-leit-ir" onClick={() => irPara(l.separador)}>{t('Abrir', 'Open')} «{nomeSeparador(l.separador)}» <span aria-hidden="true">→</span></button>}

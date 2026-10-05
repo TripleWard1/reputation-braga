@@ -11,6 +11,7 @@ import type { CSSProperties, ReactNode, RefObject } from 'react';
 import { doc, getDoc, setDoc, getDocs, collection, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAdmin } from './modo';
+import { descarregarDados, type Linha } from '@/app/lib/exportar-dados';
 import { t } from '@/app/lib/i18n';
 import { dispAnalysis } from '@/app/lib/ai-translate';
 import { limparFotoBraga } from '@/app/lib/foto-braga';
@@ -186,6 +187,11 @@ const ESTILO = `
 .rb-chip.ghost:hover, .rbx .rb-link:hover { border-color: var(--rb-text2); color: var(--rb-text); filter: none; }
 .rb-chip.danger { background: transparent; border-color: var(--rb-bad-bg); color: var(--rb-bad); }
 .rb-chip:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.rb-dados-linha { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.rb-dados { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--rb-line); background: transparent; color: var(--rb-text2); font: 600 12px 'Public Sans', system-ui, sans-serif; cursor: pointer; }
+.rb-dados:hover { color: var(--rb-text); border-color: var(--rb-accent); }
+.rb-sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media print { .rb-dados-linha { display: none !important; } }
 .rb-crumb { background: none; border: 0; padding: 0; font: inherit; color: var(--rb-text2); cursor: pointer; transition: color .2s ease; }
 .rb-hero-top > div:first-child { color: #ECEDEF !important; background: rgba(21,23,27,.62); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; padding: 6px 14px; font-size: 13.5px !important; font-weight: 600; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 6px 18px -8px rgba(0,0,0,.6); }
 .rb-hero-top > div:first-child .rb-crumb { color: #ECEDEF; text-decoration: underline; text-decoration-color: rgba(236,237,239,.35); text-underline-offset: 3px; }
@@ -393,6 +399,27 @@ function Titulo({ h, cap, id, right }: { h: string; cap?: string; id?: string; r
 }
 
 // ─── Gráfico de evolução interativo (desenha-se, área, cursor com detalhe) ───
+// Dados de um gráfico: botão para Excel e tabela para leitores de ecrã (mesmo comportamento do Observatório)
+function DadosGrafico({ titulo, linhas }: { titulo: string; linhas: Linha[] }) {
+  if (!linhas.length) return null;
+  const cab = Object.keys(linhas[0]);
+  return (
+    <>
+      <div className="rb-dados-linha">
+        <button type="button" className="rb-dados" onClick={() => descarregarDados(titulo, [linhas])} title={t('Descarregar os dados deste gráfico em Excel', 'Download this chart’s data as Excel')} aria-label={t(`Descarregar dados em Excel: ${titulo}`, `Download data as Excel: ${titulo}`)}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>
+          <span>{t('Dados', 'Data')}</span>
+        </button>
+      </div>
+      <table className="rb-sr">
+        <caption>{titulo}</caption>
+        <thead><tr>{cab.map((c) => <th key={c} scope="col">{c}</th>)}</tr></thead>
+        <tbody>{linhas.map((r, i) => <tr key={i}>{cab.map((c) => <td key={c}>{r[c] == null ? '—' : String(r[c])}</td>)}</tr>)}</tbody>
+      </table>
+    </>
+  );
+}
+
 function Evolucao({ q, intervencoes, alertaUltimo }: { q: { q: string; avg: number; n: number; negPct?: number }[]; intervencoes: Intervencao[]; alertaUltimo: boolean }) {
   const [hover, setHover] = useState<number | null>(null);
   const idRef = useRef(`rbg${Math.random().toString(36).slice(2, 8)}`);
@@ -426,6 +453,7 @@ function Evolucao({ q, intervencoes, alertaUltimo }: { q: { q: string; avg: numb
   const h = hover != null ? q[hover] : null;
   return (
     <div ref={caixa} style={{ position: 'relative' }}>
+      <DadosGrafico titulo={t('Evolução por trimestre', 'Quarterly trend')} linhas={q.map((z) => ({ [t('Trimestre', 'Quarter')]: z.q, [t('Média (estrelas)', 'Average (stars)')]: Math.round(z.avg * 100) / 100, [t('Avaliações', 'Reviews')]: z.n, [t('% negativas', '% negative')]: z.negPct == null ? null : Math.round(z.negPct * 10) / 10 }))} />
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={t('Média de estrelas por trimestre', 'Average stars per quarter')} style={{ display: 'block', overflow: 'visible', cursor: 'crosshair', touchAction: 'pan-y' }}
         onMouseMove={(e) => mexe(e.clientX, e.currentTarget)} onMouseLeave={() => setHover(null)}
         onTouchStart={(e) => mexe(e.touches[0].clientX, e.currentTarget)} onTouchMove={(e) => mexe(e.touches[0].clientX, e.currentTarget)}>
@@ -2040,6 +2068,7 @@ function LinhasComparadas({ series, rotulo, casas = 2, zero = false }: { series:
   const mexe = (cx: number, el: SVGSVGElement) => { const r = el.getBoundingClientRect(); const px = ((cx - r.left) / r.width) * W; setHover(Math.max(0, Math.min(qs.length - 1, Math.round(((px - L) / (W - L - R)) * (qs.length - 1))))); };
   return (
     <div ref={boxRef} style={{ position: 'relative' }}>
+      <DadosGrafico titulo={t('Comparação ao longo do tempo', 'Comparison over time')} linhas={Array.from(new Set(series.flatMap((x) => x.q.map((z) => z.q)))).sort().map((qq) => { const o: Linha = { [t('Período', 'Period')]: rotulo ? rotulo(qq) : qq }; series.forEach((x) => { const z = x.q.find((y) => y.q === qq); o[x.nome] = z ? Math.round(z.avg * Math.pow(10, casas)) / Math.pow(10, casas) : null; }); return o; })} />
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible', cursor: 'crosshair', touchAction: 'pan-y' }}
         onMouseMove={(e) => mexe(e.clientX, e.currentTarget)} onMouseLeave={() => setHover(null)} onTouchStart={(e) => mexe(e.touches[0].clientX, e.currentTarget)} onTouchMove={(e) => mexe(e.touches[0].clientX, e.currentTarget)}>
         {[lo, (lo + hi) / 2, hi].map((v) => (

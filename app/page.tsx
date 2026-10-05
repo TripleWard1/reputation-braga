@@ -12,7 +12,7 @@ import { ModoAdmin } from '@/app/components/modo';
 import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc, getDoc } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import { comRecuperacao } from '@/app/lib/carregar';
-import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
+import { t, setLangGlobal, carregarEspanhol, temEspanhol, type Lang } from '@/app/lib/i18n';
 import { dispAnalysis, setTransNotify, invalidateTrans } from '@/app/lib/ai-translate';
 import {
   parseReviewFile, groupByPlace, suggestMatch, importIntoLocation, loadWindowReviews, deleteLocationReviews,
@@ -23,6 +23,7 @@ import { obterFotoBraga } from '@/app/lib/foto-braga';
 import { VisaoGeral, LocaisLista, FichaLocal, MapaView, TemasView, RelatorioView, MercadosView, ProdutosView, type Intervencao, type Afluencia, type Atributos, type WikiDados } from '@/app/components/Reputacao';
 
 // O Observatório só é descarregado quando é aberto (a app arranca mais depressa, sobretudo no telemóvel)
+const TraducaoES = dynamic(() => import('@/app/components/TraducaoES'), { ssr: false });
 const ObservatorioView = dynamic(comRecuperacao(() => import('@/app/components/ObservatorioView')), {
   ssr: false,
   loading: () => <div role="status" aria-live="polite" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A3A8B1', fontSize: 14 }}>A carregar o Observatório…</div>,
@@ -913,13 +914,30 @@ export default function Home() {
     setLang(initial);
     setLangGlobal(initial);
     document.documentElement.lang = initial === 'en' ? 'en' : 'pt-PT';
+    if (saved === 'es') changeLang('es');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const changeLang = (l: Lang) => {
+  const [traducaoAberta, setTraducaoAberta] = useState(false);
+  const changeLang = async (l: Lang) => {
+    if (l === 'es' && !temEspanhol()) {
+      try {
+        const r = await fetch('/api/publico/traducao');
+        const j = r.ok ? await r.json() : null;
+        if (j && Array.isArray(j.pares) && j.pares.length) carregarEspanhol(j.pares as [string, string][]);
+      } catch { /* sem tradução: o espanhol mostra o português */ }
+      if (!temEspanhol()) {
+        // Ainda sem tradução gerada: o administrador abre o tradutor; o público recebe um aviso
+        if (sessao?.admin) setTraducaoAberta(true);
+        else showToast(t('A versão em espanhol estará disponível em breve.', 'The Spanish version will be available soon.'));
+        return;
+      }
+    }
     setLang(l);
     setLangGlobal(l);
-    if (typeof document !== 'undefined') document.documentElement.lang = l === 'en' ? 'en' : 'pt-PT';
+    if (typeof document !== 'undefined') document.documentElement.lang = l === 'en' ? 'en' : l === 'es' ? 'es' : 'pt-PT';
     if (typeof window !== 'undefined') localStorage.setItem('rb-lang', l);
   };
+  const LINGUAS: Lang[] = ['pt', 'en', 'es'];
 
   // ── Check URL for public report mode (+ reage ao botão voltar do browser/telemóvel) ──
   useEffect(() => {
@@ -2038,7 +2056,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
               </button>
             )}
             <div className="rbs-lang" style={{ display: 'flex', gap: 6, marginTop: 14 }}>
-              {(['pt', 'en'] as Lang[]).map((l) => (
+              {LINGUAS.map((l) => (
                 <button key={l} onClick={() => changeLang(l)} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   border: `1px solid ${lang === l ? '#8AB0E6' : 'rgba(255,255,255,.12)'}`,
@@ -2047,7 +2065,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                 }}>
                   <span aria-hidden="true" style={{
                     width: 20, height: 14, flexShrink: 0, borderRadius: 2, display: 'block',
-                    backgroundImage: `url(https://flagcdn.com/${l === 'pt' ? 'pt' : 'gb'}.svg)`,
+                    backgroundImage: `url(https://flagcdn.com/${l === 'pt' ? 'pt' : l === 'es' ? 'es' : 'gb'}.svg)`,
                     backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
                   }} />
                   {l.toUpperCase()}
@@ -2087,6 +2105,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         </nav>
 
         <div className="rbs-conta" style={{ padding: '0 10px 12px' }}>
+          {admin && <button type="button" onClick={() => setTraducaoAberta(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: 36, marginBottom: 8, borderRadius: 8, border: '1px solid #2D3139', background: 'transparent', color: '#A3A8B1', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t('Tradução espanhola', 'Spanish translation')}</button>}
           {admin ? (
             sessao?.protecao ? <button type="button" onClick={sair} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: 40, borderRadius: 8, border: '1px solid #2D3139', background: 'transparent', color: '#A3A8B1', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg>
@@ -2249,7 +2268,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', paddingTop: 14, borderTop: '1px solid #2D3139' }}>
                       <div style={{ display: 'flex', gap: 6 }} role="group" aria-label={t('Língua', 'Language')}>
-                        {(['pt', 'en'] as Lang[]).map((l) => (
+                        {LINGUAS.map((l) => (
                           <button key={l} type="button" onClick={() => changeLang(l)} aria-pressed={lang === l} style={{ minWidth: 52, height: 40, borderRadius: 999, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer', border: `1px solid ${lang === l ? '#8AB0E6' : '#2D3139'}`, background: lang === l ? 'rgba(138,176,230,.16)' : 'transparent', color: lang === l ? '#ECEDEF' : '#A3A8B1' }}>{l.toUpperCase()}</button>
                         ))}
                       </div>
@@ -2269,6 +2288,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             </>
           );
         })()}
+        {traducaoAberta && admin && <TraducaoES fechar={() => setTraducaoAberta(false)} />}
         <button className={`rb-topo${verTopo ? ' on' : ''}`} aria-label={t('Voltar ao topo', 'Back to top')} title={t('Voltar ao topo', 'Back to top')} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
         </button>
