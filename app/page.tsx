@@ -9,6 +9,7 @@ import {
 import { db, obterAuth } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ModoAdmin } from '@/app/components/modo';
+import LimiteErro from '@/app/components/LimiteErro';
 import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc, getDoc } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import { comRecuperacao } from '@/app/lib/carregar';
@@ -23,7 +24,10 @@ import { obterFotoBraga } from '@/app/lib/foto-braga';
 import { VisaoGeral, LocaisLista, FichaLocal, MapaView, TemasView, RelatorioView, MercadosView, ProdutosView, type Intervencao, type Afluencia, type Atributos, type WikiDados } from '@/app/components/Reputacao';
 
 // O Observatório só é descarregado quando é aberto (a app arranca mais depressa, sobretudo no telemóvel)
-const BragaMundo = dynamic(comRecuperacao(() => import('@/app/components/BragaMundo')), { ssr: false });
+const BragaMundo = dynamic(comRecuperacao(() => import('@/app/components/BragaMundo')), {
+  ssr: false,
+  loading: () => <div role="status" aria-live="polite" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A3A8B1', fontSize: 14 }}>{t('A carregar…', 'Loading…')}</div>,
+});
 const ObservatorioView = dynamic(comRecuperacao(() => import('@/app/components/ObservatorioView')), {
   ssr: false,
   loading: () => <div role="status" aria-live="polite" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A3A8B1', fontSize: 14 }}>A carregar o Observatório…</div>,
@@ -2121,6 +2125,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
       {/* ═══ MAIN ═══ */}
       <main id="conteudo" tabIndex={-1} className="rb-main" style={{ marginLeft: 232, flex: 1, minHeight: '100vh', minWidth: 0, outline: 'none' }}>
+        <LimiteErro chave={`${view}-${detailId || ''}`}>
         {sessaoFirebaseEmFalta && (
           <div role="alert" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '14px 20px 0', padding: '12px 16px', borderRadius: 8, background: 'rgba(237,160,107,.12)', border: '1px solid rgba(237,160,107,.4)', color: '#ECEDEF', fontSize: 14 }}>
             <span>{t('Sem sessão de edição no Firebase: as alterações não serão gravadas. Volte a entrar; se o aviso continuar, confirme a configuração do Firebase na Vercel.', 'No Firebase editing session: changes will not be saved. Sign in again; if this persists, check the Firebase settings on Vercel.')}</span>
@@ -2285,6 +2290,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
         </button>
         <style>{`.rb-saltar{position:fixed;left:14px;top:-80px;z-index:400;background:#8AB0E6;color:#0F1216;padding:12px 18px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;transition:top .15s ease}.rb-saltar:focus{top:14px;outline:3px solid #ECEDEF;outline-offset:2px}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid #8AB0E6;outline-offset:2px}@media (prefers-reduced-motion: reduce){.rb-saltar{transition:none}}.rb-topo{position:fixed;right:26px;bottom:26px;z-index:30;width:50px;height:50px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:#0F1216;background:#8AB0E6;border:2px solid rgba(255,255,255,.35);box-shadow:0 12px 30px -8px rgba(0,0,0,.7),0 0 0 6px rgba(138,176,230,.16);cursor:pointer;opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;transition:opacity .25s ease,transform .25s ease,background .2s ease,box-shadow .2s ease}.rb-topo.on{opacity:1;transform:none;pointer-events:auto}.rb-topo:hover{background:#B7CDF0;box-shadow:0 14px 34px -8px rgba(0,0,0,.75),0 0 0 8px rgba(138,176,230,.22)}.rb-topo:focus-visible{outline:3px solid #ECEDEF;outline-offset:3px}@media (max-width:900px){.rb-topo{right:16px;bottom:18px;width:46px;height:46px}}@media print{.rb-topo{display:none}}`}</style>
+        </LimiteErro>
       </main>
 
       {/* ═══ MODAL: ADD LOCATION ═══ */}
