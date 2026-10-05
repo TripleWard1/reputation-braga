@@ -8,7 +8,7 @@ import { PERFIL_TURISTA } from '@/app/lib/perfil-turista-dados';
 import { SETOR_SUSTENTAVEL } from '@/app/lib/setor-sustentavel-dados';
 import { C, Card, KPI, SectionTitle, tipStyle } from './comum';
 
-// ═══ Animação turística (RNAAT) — só leitura ═══
+// ═══ Animação turística (RNAAT) - só leitura ═══
 export default function AnimacaoTuristica() {
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState('');

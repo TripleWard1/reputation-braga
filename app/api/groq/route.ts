@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 // Proxy serverless para o Groq. A chave fica SÓ no servidor (GROQ_KEY),
 // nunca é enviada para o browser. O cliente chama /api/groq com { messages }.
 //
-// O MODELO É DECIDIDO AQUI, no servidor — o valor enviado pelo browser é ignorado.
+// O MODELO É DECIDIDO AQUI, no servidor - o valor enviado pelo browser é ignorado.
 // Para mudar de modelo (ex.: quando o Groq descontinuar o atual), basta definir a
-// variável de ambiente GROQ_MODEL na Vercel e fazer redeploy — sem tocar no código.
+// variável de ambiente GROQ_MODEL na Vercel e fazer redeploy - sem tocar no código.
 // Histórico: llama-3.3-70b-versatile foi desligado pelo Groq a 16/08/2026.
 export const runtime = 'nodejs';
 

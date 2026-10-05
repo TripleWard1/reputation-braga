@@ -6,10 +6,10 @@ import { t, dl } from '@/app/lib/i18n';
 import { SIBS_PAISES, SIBS_MENSAL, SIBS_SETORES, SIBS_CONCELHOS, SIBS_PERIODO } from '@/app/lib/sibs-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// ═══ Gastos com cartão (SIBS Analytics) — só leitura dos dados exportados ═══
+// ═══ Gastos com cartão (SIBS Analytics) - só leitura dos dados exportados ═══
 export default function Cartoes() {
   const me = (v: number) => `${(v / 1e6).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} M€`;
-  const pct = (v: number | null | undefined) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })}%`);
+  const pct = (v: number | null | undefined) => (v == null ? '-' : `${v >= 0 ? '+' : ''}${v.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })}%`);
   const paises = [...SIBS_PAISES].filter((p) => p.valor > 0).sort((a, b) => b.valor - a.valor);
   const totEst = paises.reduce((s2, p) => s2 + p.valor, 0);
   const nEst = paises.reduce((s2, p) => s2 + (p.n || 0), 0);
@@ -46,7 +46,7 @@ export default function Cartoes() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
         <KPI label={t('Gasto com cartões estrangeiros', 'Foreign card spending')} value={me(totEst)} sub={braga ? t(`${((totEst / braga.valor) * 100).toLocaleString('pt-PT', { maximumFractionDigits: 1 })}% de todo o gasto com cartão em Braga`, `${((totEst / braga.valor) * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}% of all card spending in Braga`) : ''} color={C.accent} />
         <KPI label={t('Operações', 'Transactions')} value={fmt(nEst)} sub={t(`valor médio ${(totEst / Math.max(1, nEst)).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} €`, `average ${(totEst / Math.max(1, nEst)).toLocaleString('en-GB', { maximumFractionDigits: 1 })} €`)} color={C.info} />
-        <KPI label={t('Maior país', 'Top country')} value={dl(paises[0]?.pais || '—')} sub={paises[0] ? `${me(paises[0].valor)} · ${pct(paises[0].varValor)} ${t('homólogo', 'YoY')}` : ''} color={C.positive} />
+        <KPI label={t('Maior país', 'Top country')} value={dl(paises[0]?.pais || '-')} sub={paises[0] ? `${me(paises[0].valor)} · ${pct(paises[0].varValor)} ${t('homólogo', 'YoY')}` : ''} color={C.positive} />
         <KPI label={t('Países com forte emigração portuguesa', 'Countries with large Portuguese diaspora')} value={`${Math.round((diaspora / Math.max(1, totEst)) * 100)}%`} sub={t('do gasto estrangeiro (França, Suíça, Luxemburgo, Alemanha, Bélgica, Andorra, Reino Unido)', 'of foreign spending (France, Switzerland, Luxembourg, Germany, Belgium, Andorra, UK)')} color={C.orange} />
         {braga && <KPI label={t('Braga entre os concelhos', 'Braga among municipalities')} value={`${posBraga}.º`} sub={t(`${me(braga.valor)} com todos os cartões · ${pct(braga.varValor)} homólogo`, `${me(braga.valor)} with all cards · ${pct(braga.varValor)} YoY`)} color={C.purple} />}
       </div>
@@ -123,7 +123,7 @@ export default function Cartoes() {
             <thead><tr style={{ color: C.textMuted, textAlign: 'left' }}><th style={{ padding: '8px 6px' }}>{t('Concelho', 'Municipality')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Gasto', 'Spending')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Operações', 'Transactions')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Valor médio', 'Average')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Homólogo', 'YoY')}</th></tr></thead>
             <tbody>{comp.map((c) => (
               <tr key={c.concelho} style={{ borderTop: `1px solid ${C.border}`, fontWeight: c.concelho.trim().toLowerCase() === 'braga' ? 700 : 400, color: c.concelho.trim().toLowerCase() === 'braga' ? C.accentLight : C.text }}>
-                <td style={{ padding: '9px 6px' }}>{c.concelho.trim()}</td><td data-l={t('Gasto', 'Spending')} style={{ padding: '9px 6px', textAlign: 'right' }}>{me(c.valor)}</td><td data-l={t('Operações', 'Transactions')} style={{ padding: '9px 6px', textAlign: 'right' }}>{c.n ? fmt(c.n) : '—'}</td><td data-l={t('Valor médio', 'Average')} style={{ padding: '9px 6px', textAlign: 'right' }}>{c.medio ? `${String(c.medio).replace('.', ',')} €` : '—'}</td><td data-l={t('Homólogo', 'YoY')} style={{ padding: '9px 6px', textAlign: 'right', color: (c.varValor || 0) >= 0 ? C.positive : C.negative }}>{pct(c.varValor)}</td>
+                <td style={{ padding: '9px 6px' }}>{c.concelho.trim()}</td><td data-l={t('Gasto', 'Spending')} style={{ padding: '9px 6px', textAlign: 'right' }}>{me(c.valor)}</td><td data-l={t('Operações', 'Transactions')} style={{ padding: '9px 6px', textAlign: 'right' }}>{c.n ? fmt(c.n) : '-'}</td><td data-l={t('Valor médio', 'Average')} style={{ padding: '9px 6px', textAlign: 'right' }}>{c.medio ? `${String(c.medio).replace('.', ',')} €` : '-'}</td><td data-l={t('Homólogo', 'YoY')} style={{ padding: '9px 6px', textAlign: 'right', color: (c.varValor || 0) >= 0 ? C.positive : C.negative }}>{pct(c.varValor)}</td>
               </tr>
             ))}</tbody>
           </table>

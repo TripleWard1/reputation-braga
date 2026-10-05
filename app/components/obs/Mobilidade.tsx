@@ -6,7 +6,7 @@ import { t } from '@/app/lib/i18n';
 import { TUB } from '@/app/lib/tub-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// ═══ Mobilidade: autocarros da TUB nas linhas com interesse turístico — só leitura ═══
+// ═══ Mobilidade: autocarros da TUB nas linhas com interesse turístico - só leitura ═══
 function MiniBarras({ valores, rotulos, cor }: { valores: number[]; rotulos: string[]; cor: string }) {
   const m = Math.max(1, ...valores);
   return (
@@ -70,13 +70,13 @@ export default function Mobilidade() {
                   <td style={{ padding: '8px 6px', color: C.text }}><strong>{x.linha}</strong> · {x.nome}{x.nota && <div style={{ fontSize: 11.5, color: C.textDim }}>{x.nota}</div>}</td>
                   <td data-l={t('Entradas', 'Boardings')} style={{ padding: '8px 6px', textAlign: 'right', color: C.text, fontWeight: 600 }}>{fmt(x.total)}</td>
                   <td data-l={t('Útil', 'Wkday')} style={{ padding: '8px 6px', textAlign: 'right', color: C.textMuted }}>{fmt(x.mediaDia.util)}</td>
-                  <td data-l={t('Sáb', 'Sat')} style={{ padding: '8px 6px', textAlign: 'right', color: C.textMuted }}>{x.mediaDia.sab ? fmt(x.mediaDia.sab) : '—'}</td>
-                  <td data-l={t('Dom', 'Sun')} style={{ padding: '8px 6px', textAlign: 'right', color: C.textMuted }}>{x.mediaDia.dom ? fmt(x.mediaDia.dom) : '—'}</td>
+                  <td data-l={t('Sáb', 'Sat')} style={{ padding: '8px 6px', textAlign: 'right', color: C.textMuted }}>{x.mediaDia.sab ? fmt(x.mediaDia.sab) : '-'}</td>
+                  <td data-l={t('Dom', 'Sun')} style={{ padding: '8px 6px', textAlign: 'right', color: C.textMuted }}>{x.mediaDia.dom ? fmt(x.mediaDia.dom) : '-'}</td>
                 </tr>
               ))}</tbody>
             </table>
           </div>
-          <div style={{ fontSize: 12, color: C.textDim, marginTop: 8 }}>{t('Útil, Sáb e Dom: média de entradas por dia. "—": a linha não circula nesse dia.', 'Wkday, Sat and Sun: average boardings per day. "—": the line does not run that day.')}</div>
+          <div style={{ fontSize: 12, color: C.textDim, marginTop: 8 }}>{t('Útil, Sáb e Dom: média de entradas por dia. "-": a linha não circula nesse dia.', 'Wkday, Sat and Sun: average boardings per day. "-": the line does not run that day.')}</div>
         </Card>
         <Card title={t(`A que horas se usa · linha ${L.linha}`, `When it is used · line ${L.linha}`)} right={
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -104,7 +104,7 @@ export default function Mobilidade() {
         const comVel = dadosH.filter((x) => x.vel != null) as { hora: string; vel: number; atrasos: number }[];
         const lenta = comVel.length ? comVel.reduce((a, x) => (x.vel < a.vel ? x : a)) : null;
         const rapida = comVel.length ? comVel.reduce((a, x) => (x.vel > a.vel ? x : a)) : null;
-        const v1 = (x: number | null | undefined) => (x == null ? '—' : x.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 }));
+        const v1 = (x: number | null | undefined) => (x == null ? '-' : x.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 }));
         const circ = ['40', '41'].filter((l) => O[l]?.veiculosDia);
         return (
           <>
@@ -143,7 +143,7 @@ export default function Mobilidade() {
                     <XAxis dataKey="hora" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
                     <YAxis yAxisId="a" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
                     <YAxis yAxisId="v" orientation="right" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit=" km/h" domain={[0, 'dataMax + 4']} />
-                    <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [v == null ? '—' : n === t('Velocidade', 'Speed') ? `${v1(v)} km/h` : fmt(v), n]} />
+                    <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [v == null ? '-' : n === t('Velocidade', 'Speed') ? `${v1(v)} km/h` : fmt(v), n]} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     <Bar yAxisId="a" dataKey="atrasos" name={t('Chegadas atrasadas', 'Late arrivals')} fill={C.orange} radius={[3, 3, 0, 0]} />
                     <Line yAxisId="v" type="monotone" dataKey="vel" name={t('Velocidade', 'Speed')} stroke={C.accent} strokeWidth={2.5} dot={false} connectNulls />
