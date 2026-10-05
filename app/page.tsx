@@ -1871,7 +1871,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     { id: 'overview', label: t('Visão Geral', 'Overview'), icon: '◈' },
     { id: 'observatorio', label: t('Observatório', 'Observatory'), icon: '◔' },
     { id: 'produtos', label: t('Produtos turísticos', 'Tourism products'), icon: '▤' },
-    { id: 'mundo', label: t('Braga no mundo', 'Braga in the world'), icon: '◍' },
+    { id: 'mundo', label: t('Internacionalização', 'Internationalisation'), icon: '◍' },
     { id: 'locais', label: t('Locais', 'Places'), icon: '⊞' },
     { id: 'mapa', label: t('Mapa', 'Map'), icon: '◎' },
     { id: 'mercados', label: t('Mercados', 'Markets'), icon: '◍' },
@@ -2220,8 +2220,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         )}
         {/* ═══ TELEMÓVEL: barra de navegação inferior + painel "Mais" ═══ */}
         {(() => {
-          const PRINCIPAIS: ViewType[] = ['overview', 'observatorio', 'locais', 'produtos'];
-          const curto: Record<string, string> = { overview: t('Início', 'Home'), observatorio: t('Observatório', 'Observatory'), locais: t('Locais', 'Places'), produtos: t('Produtos', 'Products') };
+          const PRINCIPAIS: ViewType[] = ['overview', 'observatorio', 'mundo', 'locais'];
+          const curto: Record<string, string> = { overview: t('Início', 'Home'), observatorio: t('Observatório', 'Observatory'), mundo: t('Internacional', 'Global'), locais: t('Locais', 'Places') };
           const ativo: ViewType = view === 'detalhe' ? 'locais' : view;
           const visiveis = NAV.filter((item) => admin || item.id !== 'relatorio');
           const outros = visiveis.filter((x) => PRINCIPAIS.indexOf(x.id) === -1);
