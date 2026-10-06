@@ -154,7 +154,8 @@ function Galeria({ admin }: { admin: boolean }) {
       const img = await comprimirImagem(f);
       const criado = new Date().toISOString();
       const ref = await addDoc(collection(db, 'internacionalGaleria'), { img, legenda, criado });
-      setEnviados([{ id: ref.id, src: img, legenda, criado }].concat(enviados));
+      const novo: Momento = { id: ref.id, src: img, legenda, criado };
+      setEnviados([novo, ...enviados]);
     } catch { alert(t('Não foi possível guardar a fotografia.', 'Could not save the photo.')); }
     finally { setAGravar(false); if (entrada.current) entrada.current.value = ''; }
   };
@@ -163,7 +164,7 @@ function Galeria({ admin }: { admin: boolean }) {
     try { await deleteDoc(doc(db, 'internacionalGaleria', m.id)); setEnviados(semMomento(enviados, m.id)); }
     catch { alert(t('Não foi possível remover a fotografia.', 'Could not remove the photo.')); }
   };
-  const todos: Momento[] = enviados.concat(MOSAICO);
+  const todos: Momento[] = [...enviados, ...MOSAICO];
   return (
     <section className="bm-gal" aria-labelledby="bm-gal-t">
       <div className="bm-gal-cab">
