@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { abrirJanelaDocumento } from '@/app/lib/abrir-documento';
 import { comRecuperacao } from '@/app/lib/carregar';
 import Perguntar from './obs/Perguntar';
 
@@ -748,7 +749,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   const exportarPDF = () => {
     const node = document.getElementById('obs-print-area');
     if (!node) return;
-    const win = window.open('', '_blank', 'width=1180,height=860');
+    const win = abrirJanelaDocumento(1180, 860);
     if (!win) { alert(t('Permita pop-ups para exportar o PDF.', 'Allow pop-ups to export the PDF.')); return; }
     const hoje = new Date().toLocaleDateString(t('pt-PT', 'en-GB'), { day: '2-digit', month: 'long', year: 'numeric' });
     const html =

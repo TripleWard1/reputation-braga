@@ -4,7 +4,7 @@
 // Datas no formato AAAA-MM-DD; a plataforma escreve-as em cada língua e sabe o que já aconteceu.
 
 export type Texto3 = { pt: string; en: string; es: string };
-export interface Evento { nome: string | Texto3; cidade?: string; pais: string; ini: string; fim?: string; tipo?: TipoProjeto; aConfirmar?: Texto3 }
+export interface Evento { nome: string | Texto3; cidade?: string; pais: string; ini: string; fim?: string; tipo?: TipoProjeto; aConfirmar?: Texto3; foto?: string }
 export type TipoProjeto = 'europeu' | 'conferencia' | 'visita' | 'imprensa' | 'evento' | 'candidatura';
 
 export const TIPOS_PROJETO: Record<TipoProjeto, Texto3> = {
@@ -38,7 +38,7 @@ export const FEIRAS: Evento[] = [
   { nome: 'NavarTur', cidade: 'Pamplona', pais: 'es', ini: '2024-02-22', fim: '2024-02-25' },
   { nome: t3('XI Workshop de Turismo Religioso', '11th Religious Tourism Workshop', 'XI Workshop de Turismo Religioso'), pais: 'pt', ini: '2024-02-22', fim: '2024-02-23' },
   { nome: t3('Bolsa de Turismo de Lisboa (BTL)', 'Lisbon Tourism Fair (BTL)', 'Bolsa de Turismo de Lisboa (BTL)'), cidade: 'Lisboa', pais: 'pt', ini: '2024-02-27', fim: '2024-03-03' },
-  { nome: t3('Gala dos World Travel Awards e ITB', 'World Travel Awards gala and ITB', 'Gala de los World Travel Awards e ITB'), cidade: 'Berlim', pais: 'de', ini: '2024-03-05', fim: '2024-03-07' },
+  { nome: t3('Gala dos World Travel Awards e ITB', 'World Travel Awards gala and ITB', 'Gala de los World Travel Awards e ITB'), cidade: 'Berlim', pais: 'de', ini: '2024-03-05', fim: '2024-03-07', foto: '/internacional/wta-gala-2024.jpg' },
   { nome: 'B-Travel', cidade: 'Barcelona', pais: 'es', ini: '2024-03-14', fim: '2024-03-18' },
   { nome: 'AGRO 2024', cidade: 'Braga', pais: 'pt', ini: '2024-03-21', fim: '2024-03-24' },
   { nome: 'ExpoVacaciones', cidade: 'Bilbao', pais: 'es', ini: '2024-05-09', fim: '2024-05-13' },
@@ -48,10 +48,10 @@ export const FEIRAS: Evento[] = [
   { nome: 'Swiss International Holiday Exhibition', pais: 'ch', ini: '2024-10-31', fim: '2024-11-04' },
   { nome: 'INTUR', cidade: 'Valladolid', pais: 'es', ini: '2024-11-13', fim: '2024-11-18' },
   // 2025
-  { nome: 'Vakantiebeurs', cidade: 'Utrecht', pais: 'nl', ini: '2025-01-08', fim: '2025-01-13' },
+  { nome: 'Vakantiebeurs', cidade: 'Utrecht', pais: 'nl', ini: '2025-01-08', fim: '2025-01-13', foto: '/internacional/vakantiebeurs-2025.jpg' },
   { nome: 'FITUR', cidade: 'Madrid', pais: 'es', ini: '2025-01-21', fim: '2025-01-27' },
   { nome: 'NavarTur', cidade: 'Pamplona', pais: 'es', ini: '2025-02-20', fim: '2025-02-24' },
-  { nome: 'Fiets en Wandelbeurs', cidade: 'Gent', pais: 'be', ini: '2025-02-28', fim: '2025-03-03' },
+  { nome: 'Fiets en Wandelbeurs', cidade: 'Gent', pais: 'be', ini: '2025-02-28', fim: '2025-03-03', foto: '/internacional/gent-2025.jpg' },
   { nome: t3('IWRT · Turismo Religioso', 'IWRT · Religious Tourism', 'IWRT · Turismo Religioso'), cidade: 'Fátima', pais: 'pt', ini: '2025-03-05', fim: '2025-03-07' },
   { nome: t3('Bolsa de Turismo de Lisboa (BTL)', 'Lisbon Tourism Fair (BTL)', 'Bolsa de Turismo de Lisboa (BTL)'), cidade: 'Lisboa', pais: 'pt', ini: '2025-03-11', fim: '2025-03-16' },
   { nome: 'B-Travel', cidade: 'Barcelona', pais: 'es', ini: '2025-03-27', fim: '2025-03-31' },
@@ -59,15 +59,14 @@ export const FEIRAS: Evento[] = [
   { nome: 'ExpoCidades', cidade: 'Sarria', pais: 'es', ini: '2025-05-01', fim: '2025-05-04' },
   { nome: 'ExpoVacaciones', cidade: 'Bilbao', pais: 'es', ini: '2025-05-08', fim: '2025-05-12' },
   { nome: 'TurExpo', cidade: 'Silleda', pais: 'es', ini: '2025-06-04', fim: '2025-06-08' },
-  { nome: 'QSP Summit', cidade: 'Matosinhos', pais: 'pt', ini: '2025-07-01', fim: '2025-07-03' },
+  { nome: 'QSP Summit', cidade: 'Matosinhos', pais: 'pt', ini: '2025-07-01', fim: '2025-07-03', foto: '/internacional/qsp-summit-2025.jpg' },
   { nome: 'Fairway', cidade: 'Santiago de Compostela', pais: 'es', ini: '2025-11-08', fim: '2025-11-11' },
   { nome: 'INTUR', cidade: 'Valladolid', pais: 'es', ini: '2025-11-12', fim: '2025-11-17' },
   { nome: 'Xantar', cidade: 'Ourense', pais: 'es', ini: '2025-11-18', fim: '2025-11-23' },
   // 2026
-  { nome: 'FITUR', cidade: 'Madrid', pais: 'es', ini: '2026-01-20', fim: '2026-01-26' },
-  { nome: 'NavarTur', cidade: 'Pamplona', pais: 'es', ini: '2026-02-19', fim: '2026-02-23' },
+  { nome: 'FITUR', cidade: 'Madrid', pais: 'es', ini: '2026-01-20', fim: '2026-01-26', foto: '/internacional/fitur-2026.jpg' },
+  { nome: 'NavarTur', cidade: 'Pamplona', pais: 'es', ini: '2026-02-19', fim: '2026-02-23', foto: '/internacional/navartur-2026.jpg' },
   { nome: 'Better Tourism Lisbon Travel Market (BTL)', cidade: 'Lisboa', pais: 'pt', ini: '2026-02-24', fim: '2026-03-01' },
-  { nome: t3('IWRT · Turismo Religioso', 'IWRT · Religious Tourism', 'IWRT · Turismo Religioso'), cidade: 'Fátima', pais: 'pt', ini: '2026-03-05', fim: '2026-03-07', aConfirmar: t3('data a confirmar', 'date to be confirmed', 'fecha por confirmar') },
   { nome: 'B-Travel', cidade: 'Barcelona', pais: 'es', ini: '2026-03-19', fim: '2026-03-23' },
   { nome: 'AGRO 2026', cidade: 'Braga', pais: 'pt', ini: '2026-03-26', fim: '2026-03-29' },
   { nome: 'ExpoCidades', cidade: 'Amarante', pais: 'pt', ini: '2026-05-07', fim: '2026-05-10' },
@@ -105,7 +104,7 @@ export const PROJETOS: Evento[] = [
   { nome: t3('Projeto SCT-HUB', 'SCT-HUB project', 'Proyecto SCT-HUB'), cidade: 'Cracóvia', pais: 'pl', ini: '2025-09-22', fim: '2025-09-25', tipo: 'europeu' },
   { nome: 'SYSTEMEU Summit 2025 + Startup Olé', cidade: 'Salamanca', pais: 'es', ini: '2025-10-13', fim: '2025-10-17', tipo: 'conferencia' },
   { nome: t3('Projeto IURC-LAC', 'IURC-LAC project', 'Proyecto IURC-LAC'), cidade: 'Barcelona', pais: 'es', ini: '2025-11-03', fim: '2025-11-06', tipo: 'europeu' },
-  { nome: t3('Capital Europeia do Turismo Inteligente · final', 'European Capital of Smart Tourism · final', 'Capital Europea del Turismo Inteligente · final'), cidade: 'Bruxelas', pais: 'be', ini: '2025-11-17', fim: '2025-11-20', tipo: 'candidatura' },
+  { nome: t3('Capital Europeia do Turismo Inteligente · final', 'European Capital of Smart Tourism · final', 'Capital Europea del Turismo Inteligente · final'), cidade: 'Bruxelas', pais: 'be', ini: '2025-11-17', fim: '2025-11-20', tipo: 'candidatura', foto: '/internacional/ecst-final-2025.jpg' },
   { nome: t3('Projeto POST · reunião e visita de estudo', 'POST project · meeting and study visit', 'Proyecto POST · reunión y visita de estudio'), cidade: 'Dún Laoghaire', pais: 'ie', ini: '2025-11-17', fim: '2025-11-20', tipo: 'europeu' },
   // 2026
   { nome: t3('Capitais Europeias do Pequeno Comércio · cerimónia', 'European Capitals of Small Retail · ceremony', 'Capitales Europeas del Pequeño Comercio · ceremonia'), cidade: 'Bruxelas', pais: 'be', ini: '2026-01-27', fim: '2026-01-29', tipo: 'candidatura' },
@@ -153,13 +152,13 @@ export const DISTINCOES: Distincao[] = [
   { ano: 2023, tipo: 'vencedora', entidade: 'World Travel Awards', fonte: 'https://siviaggia.it/notizie/braga-destinazione-emergente-2024/505976/', logos: ['/distincoes/wta-mundo-2023.png'],
     titulo: t3('Melhor Destino Turístico Emergente do Mundo 2023', 'World’s Leading Emerging Tourism Destination 2023', 'Mejor Destino Turístico Emergente del Mundo 2023'),
     texto: t3('Primeiro título mundial de Braga nos World Travel Awards.', 'Braga’s first world title at the World Travel Awards.', 'Primer título mundial de Braga en los World Travel Awards.') },
-  { ano: 2023, tipo: 'vencedora', entidade: 'Green Destinations', fonte: 'https://www.greendestinations.org/',
+  { ano: 2023, tipo: 'vencedora', entidade: 'Green Destinations', fonte: 'https://www.greendestinations.org/', logos: ['/distincoes/green-destinations-platinum.png'],
     titulo: t3('Green Destinations Platinum Award', 'Green Destinations Platinum Award', 'Green Destinations Platinum Award'),
     texto: t3('Atribuído a 25 de setembro de 2023 (certificado GD23-022), pela atratividade, qualidade e esforço de sustentabilidade do destino. Válido por dois anos, deu lugar à certificação de 2026.', 'Awarded on 25 September 2023 (certificate GD23-022) for the destination’s attractiveness, quality and sustainability efforts. Valid for two years, it was followed by the 2026 certification.', 'Otorgado el 25 de septiembre de 2023 (certificado GD23-022) por el atractivo, la calidad y el esfuerzo de sostenibilidad del destino. Válido durante dos años, dio paso a la certificación de 2026.') },
   { ano: 2023, tipo: 'ativo', entidade: 'Green Destinations', fonte: 'https://www.greendestinations.org/category/top-100-2023/page/6/',
     titulo: t3('Top 100 Histórias de Destinos Sustentáveis · Bom Jesus do Monte', 'Top 100 Destination Sustainability Stories · Bom Jesus do Monte', 'Top 100 Historias de Destinos Sostenibles · Bom Jesus do Monte'),
     texto: t3('Boa prática selecionada: a gestão e preservação do Bom Jesus do Monte.', 'Selected good practice: the management and preservation of Bom Jesus do Monte.', 'Buena práctica seleccionada: la gestión y preservación del Bom Jesus do Monte.') },
-  { ano: 2021, tipo: 'vencedora', entidade: 'European Best Destinations', fonte: 'https://econews.pt/?p=26202',
+  { ano: 2021, tipo: 'vencedora', entidade: 'European Best Destinations', fonte: 'https://econews.pt/?p=26202', logos: ['/distincoes/ebd-2021.png'],
     titulo: t3('Melhor Destino Europeu 2021', 'European Best Destination 2021', 'Mejor Destino Europeo 2021'),
     texto: t3('1.º lugar com 109 902 votos, 72% de fora de Portugal, à frente de Roma, Paris e Florença.', '1st place with 109,902 votes, 72% from outside Portugal, ahead of Rome, Paris and Florence.', '1.er puesto con 109.902 votos, el 72% de fuera de Portugal, por delante de Roma, París y Florencia.') },
   { ano: 2019, tipo: 'finalista', entidade: 'European Best Destinations', fonte: 'https://econews.pt/?p=26202',
@@ -174,4 +173,18 @@ export const DISTINCOES: Distincao[] = [
   { ano: 2026, tipo: 'ativo', entidade: 'ABAE · Bandeira Azul', fonte: 'https://www.theportugalnews.com/br/noticias/2026-07-14/portugal-investira-1-milhao-em-nova-praia-fluvial-para-lazer-de-verao-em-braga/1055378',
     titulo: t3('Bandeira Azul · praias fluviais de Adaúfe e Ponte do Bico', 'Blue Flag · Adaúfe and Ponte do Bico river beaches', 'Bandera Azul · playas fluviales de Adaúfe y Ponte do Bico'),
     texto: t3('Galardão de qualidade da água, segurança e gestão ambiental na época balnear de 2026.', 'Award for water quality, safety and environmental management in the 2026 bathing season.', 'Galardón de calidad del agua, seguridad y gestión ambiental en la temporada de baño de 2026.') },
+];
+
+// Fotografias do topo da Internacionalização (mosaico). As que não têm ano confirmado entram só aqui.
+export const MOSAICO: { src: string; legenda: string }[] = [
+  { src: '/internacional/fitur-2026.jpg', legenda: 'FITUR 2026 · Madrid' },
+  { src: '/internacional/wta-gala-2024.jpg', legenda: 'World Travel Awards 2024' },
+  { src: '/internacional/vakantiebeurs-2025.jpg', legenda: 'Vakantiebeurs 2025 · Utrecht' },
+  { src: '/internacional/qsp-summit-2025.jpg', legenda: 'QSP Summit 2025 · Matosinhos' },
+  { src: '/internacional/navartur-2026.jpg', legenda: 'NavarTur 2026 · Pamplona' },
+  { src: '/internacional/btl.jpg', legenda: 'BTL · Lisboa' },
+  { src: '/internacional/b-travel.jpg', legenda: 'B-Travel · Barcelona' },
+  { src: '/internacional/gent-2025.jpg', legenda: 'Fiets en Wandelbeurs 2025 · Gent' },
+  { src: '/internacional/ecst-final-2025.jpg', legenda: 'European Capital of Smart Tourism 2025 · Bruxelas' },
+  { src: '/internacional/expovacaciones.jpg', legenda: 'ExpoVacaciones · Bilbao' },
 ];

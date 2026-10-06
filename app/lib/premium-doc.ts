@@ -1,3 +1,4 @@
+import { abrirJanelaDocumento } from '@/app/lib/abrir-documento';
 // ═══════════════════════════════════════════════════════════════════════════
 // GERADOR DE DOCUMENTOS PREMIUM (tema claro A4) - Observatório Visit Braga
 // Sem dependências: produz HTML claro impresso pelo browser (texto vetorial,
@@ -64,7 +65,7 @@ function renderSection(s: Section): string {
 }
 
 export function openPremiumDoc(opts: PremiumDocOpts) {
-  const win = window.open('', '_blank', 'width=1100,height=860');
+  const win = abrirJanelaDocumento(1100, 860);
   if (!win) { alert('Permita pop-ups para exportar o PDF.'); return; }
   const kpiHtml = opts.kpis.map((k) => {
     const sub = k.sub ? '<div class="ks">' + esc(k.sub) + '</div>' : '';

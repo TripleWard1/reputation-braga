@@ -10,6 +10,7 @@ import { db, obterAuth } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ModoAdmin } from '@/app/components/modo';
 import LimiteErro from '@/app/components/LimiteErro';
+import { abrirJanelaDocumento } from '@/app/lib/abrir-documento';
 import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc, getDoc } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import { comRecuperacao } from '@/app/lib/carregar';
@@ -245,7 +246,7 @@ interface Location {
   wiki?: WikiDados;              // visualizações da Wikipédia por língua (API pública)
 }
 
-type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'benchmark' | 'mercados' | 'relatorio' | 'problemas' | 'observatorio' | 'produtos' | 'mundo' | 'detalhe';
+type ViewType = 'overview' | 'locais' | 'mapa' | 'comparar' | 'benchmark' | 'mercados' | 'relatorio' | 'problemas' | 'observatorio' | 'produtos' | 'mundo' | 'insto' | 'detalhe';
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -612,10 +613,10 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
       </div>
       {(recent.length > 0 || previous.length > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-          {([[t('Problemas — últimos 12 meses', 'Issues - last 12 months'), recent, C.negative], [t('Problemas - período anterior (12–36 meses)', 'Issues - previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
+          {([[t('Problemas — últimos 12 meses', 'Issues — last 12 months'), recent, C.negative], [t('Problemas — período anterior (12–36 meses)', 'Issues — previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
             <div key={title} style={{ background: C.bg, borderRadius: 8, padding: '12px 14px' }}>
               <div style={{ fontSize: 11, color, fontWeight: 600, marginBottom: 6 }}>{title}</div>
-              {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>-</div>}
+              {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>—</div>}
             </div>
           ))}
         </div>
@@ -635,6 +636,7 @@ const NAV_ICON: Record<string, string> = {
   overview: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z',
   observatorio: 'M4 20V10M10 20V4M16 20v-7M2 20h20',
   produtos: 'M2 5h7a3 3 0 013 3v13a2 2 0 00-2-2H2zM22 5h-7a3 3 0 00-3 3v13a2 2 0 012-2h8z',
+  insto: 'M12 2l2.9 6.9L22 9.3l-5.5 4.8L18.2 21 12 17.3 5.8 21l1.7-6.9L2 9.3l7.1-.4z',
   mundo: 'M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20',
   locais: 'M12 21s-7-6.2-7-11a7 7 0 1114 0c0 4.8-7 11-7 11zm0-8.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',
   mapa: 'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14',
@@ -661,7 +663,7 @@ export default function Home() {
     leuEndereco.current = true;
     const q = new URLSearchParams(window.location.search);
     if (q.get('r')) return;
-    const VISTAS: Record<string, ViewType> = { inicio: 'overview', observatorio: 'observatorio', produtos: 'produtos', mundo: 'mundo', locais: 'locais', mapa: 'mapa', mercados: 'mercados', temas: 'problemas', relatorio: 'relatorio' };
+    const VISTAS: Record<string, ViewType> = { inicio: 'overview', observatorio: 'observatorio', produtos: 'produtos', mundo: 'mundo', locais: 'locais', mapa: 'mapa', mercados: 'mercados', temas: 'problemas' };
     const local = q.get('local');
     const vista = q.get('vista');
     if (local) { setDetailId(local); setView('detalhe'); }
@@ -712,6 +714,15 @@ export default function Home() {
     return () => parar();
   }, []);
   const admin = !!sessao?.admin;
+  // Itens do menu: os Temas (críticas aos locais) só aparecem à administração
+  const itemVisivel = (item: { id: ViewType }) => admin || item.id !== 'problemas';
+  // "Rede INSTO" abre o Observatório diretamente no separador INSTO
+  const [obsChave, setObsChave] = useState(0);
+  const abrirVista = (id: ViewType) => {
+    if (id === 'insto') { setSeparadorInicial('insto'); setObsChave((k) => k + 1); setView('observatorio'); return; }
+    if (id === 'observatorio') { setSeparadorInicial(undefined); setObsChave((k) => k + 1); }
+    setView(id);
+  };
   // Mantém o endereço sincronizado com o que está aberto (para copiar e partilhar)
   useEffect(() => {
     if (typeof window === 'undefined' || !leuEndereco.current) return;
@@ -1148,7 +1159,7 @@ RULES:
 
   const exportReportPDF = () => {
     if (!aiReport) { alert(t('Gera primeiro o relatório.', 'Generate the report first.')); return; }
-    const win = window.open('', '_blank', 'width=1100,height=860');
+    const win = abrirJanelaDocumento(1100, 860);
     if (!win) { alert(t('Permita pop-ups para exportar o PDF.', 'Allow pop-ups to export the PDF.')); return; }
     const hoje = new Date().toLocaleDateString(t('pt-PT', 'en-GB'), { day: '2-digit', month: 'long', year: 'numeric' });
     const mesAno = new Date().toLocaleDateString(t('pt-PT', 'en-GB'), { month: 'long', year: 'numeric' });
@@ -1300,7 +1311,7 @@ RULES:
       }
       setImpGroups([]);
       setImpMsg('✓ ' + lines.join(' · '));
-      showToast(todo.some((g) => g.reviews.length) ? t('✓ Comentários importados - falta analisar com IA', '✓ Reviews imported - now run the AI analysis') : t('✓ Informação do local atualizada', '✓ Place information updated'));
+      showToast(todo.some((g) => g.reviews.length) ? t('✓ Comentários importados — falta analisar com IA', '✓ Reviews imported — now run the AI analysis') : t('✓ Informação do local atualizada', '✓ Place information updated'));
     } catch (err: any) {
       setImpMsg(t('Erro na importação: ', 'Import error: ') + (err?.message || '') + (lines.length ? ` · ${t('já gravado', 'already saved')}: ${lines.join(' · ')}` : ''));
     } finally {
@@ -1313,7 +1324,7 @@ RULES:
     setAnalyzing(loc.id);
     setError(null);
     try {
-      // 1) Estatísticas reconstruídas (regra "Sem texto") - fonte única de todos os números
+      // 1) Estatísticas reconstruídas (regra "Sem texto") — fonte única de todos os números
       showToast(t(`A preparar ${loc.name}…`, `Preparing ${loc.name}…`));
       const st0 = loc.reviewStats!;
       const stats = semIndefinidos(await rebuildStats(loc.id, { placeId: st0.placeId, placeTitle: st0.placeTitle, source: st0.source })) as ReviewStats;
@@ -1336,7 +1347,7 @@ Para cada comentário, indica de 0 a 3 temas referidos, cada um seguido de + (el
 Temas:
 ${listaTemas}
 
-Responde APENAS com JSON: {"r":[{"i":0,"t":["paisagem+","acesso-"]}]} - um item por comentário, com o mesmo número "i".
+Responde APENAS com JSON: {"r":[{"i":0,"t":["paisagem+","acesso-"]}]} — um item por comentário, com o mesmo número "i".
 
 Comentários:
 ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)}`).join('\n')}` }], true);
@@ -1354,7 +1365,7 @@ ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)
         all = all.map((r) => (tags[r.id] ? { ...r, tg: tags[r.id], c: 1 } : r));
       }
 
-      // 3) Estado de cada tema - calculado, não escrito pela IA
+      // 3) Estado de cada tema — calculado, não escrito pela IA
       const { temas, textRec, textPrev } = temaStats(all);
       const ativos = temas.filter((z) => z.estado);
 
@@ -1370,7 +1381,7 @@ ${lote.map((r, k) => `${k}. [${r.s}★] ${r.t.replace(/\s+/g, ' ').slice(0, 400)
       ].filter(Boolean).join('\n');
       const temasTxt = ativos.map((z) => {
         const ex = excertos(all, z.id, z.estado === 'forte' ? '+' : '-');
-        return `- ${z.id} (${TEMAS.find((y) => y.id === z.id)!.pt}) - estado: ${z.estado}${ex.length ? `\n  excertos: ${ex.map((e) => `"${e}"`).join(' | ')}` : ''}`;
+        return `- ${z.id} (${TEMAS.find((y) => y.id === z.id)!.pt}) — estado: ${z.estado}${ex.length ? `\n  excertos: ${ex.map((e) => `"${e}"`).join(' | ')}` : ''}`;
       }).join('\n') || '(nenhum tema com expressão suficiente)';
 
       // Leitura por blocos (como na versão original): ~150 comentários equilibrados, separados por período,
@@ -1403,7 +1414,7 @@ ${b.items.map((r) => `[${r.s}★ · ${r.d.slice(0, 7)}] ${r.t.replace(/\s+/g, ' 
       const raw2 = await groqChat([{ role: 'user', content:
 `És analista de reputação turística do Município de Braga. Local: "${loc.name}" (${loc.category}).
 
-NÚMEROS (já calculados - usa-os exatamente assim; não calcules nem escrevas outros números; não compares com outros locais nem fales de rankings ou de respostas aos comentários):
+NÚMEROS (já calculados — usa-os exatamente assim; não calcules nem escrevas outros números; não compares com outros locais nem fales de rankings ou de respostas aos comentários):
 ${numerosTxt}
 
 TEMAS (estado calculado comparando os últimos 12 meses com os 12–36 meses anteriores: persistente = crítica nos dois períodos; novo = só no recente; deixou = só no anterior; forte = elogio frequente):
@@ -1442,7 +1453,7 @@ Em problemasRecentes e problemasAnteriores, indica até 6 problemas em cada, do 
       const perRec = periodo(ai.problemasRecentes, ['novo', 'persiste']);
       const perAnt = periodo(ai.problemasAnteriores, ['deixou', 'persiste']);
 
-      // 6) Análise - mantém os campos antigos para Comparar, Problemas, Relatório e Mapa
+      // 6) Análise — mantém os campos antigos para Comparar, Problemas, Relatório e Mapa
       const nomeTema = (id: string) => TEMAS.find((y) => y.id === id)!.pt;
       const comEstado = (e: string[]) => temasV2.filter((z) => e.includes(String(z.estado)));
       const ws = windowStats(stats)!;
@@ -1870,13 +1881,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
   const NAV: { id: ViewType; label: string; icon: string }[] = [
     { id: 'overview', label: t('Visão Geral', 'Overview'), icon: '◈' },
     { id: 'observatorio', label: t('Observatório', 'Observatory'), icon: '◔' },
+    { id: 'insto', label: t('Rede INSTO', 'INSTO network'), icon: '✦' },
     { id: 'produtos', label: t('Produtos turísticos', 'Tourism products'), icon: '▤' },
     { id: 'mundo', label: t('Internacionalização', 'Internationalisation'), icon: '◍' },
     { id: 'locais', label: t('Locais', 'Places'), icon: '⊞' },
     { id: 'mapa', label: t('Mapa', 'Map'), icon: '◎' },
     { id: 'mercados', label: t('Mercados', 'Markets'), icon: '◍' },
     { id: 'problemas', label: t('Temas', 'Themes'), icon: '▦' },
-    { id: 'relatorio', label: t('Relatório', 'Report'), icon: '≡' },
   ];
 
   // ── Report generator ──
@@ -2073,11 +2084,11 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         </div>
 
         <nav style={{ padding: '12px 10px', flex: 1 }}>
-          {NAV.filter((item) => admin || item.id !== 'relatorio').map((item) => {
+          {NAV.filter(itemVisivel).map((item) => {
             const isActive = view === item.id || (item.id === 'locais' && view === 'detalhe');
             const ic = NAV_ICON[item.id];
             return (
-              <button key={item.id} onClick={() => setView(item.id)} className="rb-nav"
+              <button key={item.id} onClick={() => abrirVista(item.id)} className="rb-nav"
                 style={{
                   position: 'relative', display: 'flex', alignItems: 'center', gap: 12, width: '100%',
                   padding: '10px 12px', borderRadius: 6, border: 'none',
@@ -2187,6 +2198,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         {/* ── OBSERVATÓRIO ── */}
         {view === 'observatorio' && (
           <ObservatorioView
+            key={obsChave}
             reputacaoMedia={avgScore}
             fotoTopo={fotoPosto}
             reputacaoLocais={analyzed.length}
@@ -2197,7 +2209,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         )}
 
         {/* ── PROBLEMAS → Temas no destino ── */}
-        {view === 'problemas' && (
+        {view === 'problemas' && admin && (
           <TemasView locations={locations} catLabel={catLabel} onOpen={(id) => { setDetailId(id); setView('detalhe'); }} />
         )}
 
@@ -2220,13 +2232,13 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         )}
         {/* ═══ TELEMÓVEL: barra de navegação inferior + painel "Mais" ═══ */}
         {(() => {
-          const PRINCIPAIS: ViewType[] = ['overview', 'observatorio', 'mundo', 'locais'];
-          const curto: Record<string, string> = { overview: t('Início', 'Home'), observatorio: t('Observatório', 'Observatory'), mundo: t('Internacional', 'Global'), locais: t('Locais', 'Places') };
+          const PRINCIPAIS: ViewType[] = ['overview', 'observatorio', 'produtos', 'mundo'];
+          const curto: Record<string, string> = { overview: t('Início', 'Home'), observatorio: t('Observatório', 'Observatory'), produtos: t('Produtos', 'Products'), mundo: t('Internacional', 'Global') };
           const ativo: ViewType = view === 'detalhe' ? 'locais' : view;
-          const visiveis = NAV.filter((item) => admin || item.id !== 'relatorio');
+          const visiveis = NAV.filter(itemVisivel);
           const outros = visiveis.filter((x) => PRINCIPAIS.indexOf(x.id) === -1);
           const maisAtivo = outros.some((x) => x.id === ativo);
-          const ir = (id: ViewType) => { setView(id); setMaisAberto(false); window.scrollTo({ top: 0 }); };
+          const ir = (id: ViewType) => { abrirVista(id); setMaisAberto(false); window.scrollTo({ top: 0 }); };
           const icone = (id: string) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={NAV_ICON[id] || ''} /></svg>;
           return (
             <>
@@ -2321,7 +2333,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                     <select value={g.target} disabled={impBusy}
                       onChange={(e) => { const v = e.target.value; setImpGroups((prev) => prev.map((x, i) => (i === gi ? { ...x, target: v } : x))); }}
                       style={{ flex: '0 1 260px', padding: '8px 10px', borderRadius: 8, border: `1px solid ${g.target ? C.accent : C.border}`, background: C.card, color: C.text, fontSize: 12.5 }}>
-                      <option value="">{t('- Ignorar -', '- Skip -')}</option>
+                      <option value="">{t('— Ignorar —', '— Skip —')}</option>
                       <option value="__new__">{t('+ Criar novo local', '+ Create new place')}</option>
                       {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
