@@ -300,7 +300,7 @@ function LinhaMatriz({ l, anos }: { l: LinhaFeira; anos: number[] }) {
   );
 }
 function CelulaMatriz({ ano, lista, varia }: { ano: number; lista?: Evento[]; varia: boolean }) {
-  if (!lista || !lista.length) return <td data-l={ano} className="vazia"><span aria-label={t('sem participação', 'no participation')}>—</span></td>;
+  if (!lista || !lista.length) return <td data-l={ano} className="vazia"><span aria-label={t('sem participação', 'no participation')}>-</span></td>;
   const e = lista[0];
   return (
     <td data-l={ano} className={futuro(e) ? 'prevista' : 'feita'}>
