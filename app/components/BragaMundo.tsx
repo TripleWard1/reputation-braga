@@ -268,7 +268,7 @@ function LinhaMatriz({ l, anos }: { l: LinhaFeira; anos: number[] }) {
   );
 }
 function CelulaMatriz({ ano, lista, varia }: { ano: number; lista?: Evento[]; varia: boolean }) {
-  if (!lista || !lista.length) return <td data-l={ano} className="vazia"><span aria-label={t('sem participação', 'no participation')}>—</span></td>;
+  if (!lista || !lista.length) return <td data-l={ano} className="vazia"><span aria-label={t('sem participação', 'no participation')}>-</span></td>;
   const e = lista[0];
   return (
     <td data-l={ano} className={futuro(e) ? 'prevista' : 'feita'}>
@@ -482,8 +482,8 @@ function SinteseAnual() {
         </div>
       </div>
       <div key={`l-${ano}`} className="bm-sa-listas">
-        <div><h4 className="bm-sa-h">{t('Feiras', 'Trade fairs')} <span>{feiras.length}</span></h4>{feiras.length ? <ul className="bm-le-l-ul">{feiras.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} />)}</ul> : <p className="bm-sa-vazio">—</p>}</div>
-        <div><h4 className="bm-sa-h">{t('Projetos e ações', 'Projects and actions')} <span>{projetos.length}</span></h4>{projetos.length ? <ul className="bm-le-l-ul">{projetos.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} comTipo />)}</ul> : <p className="bm-sa-vazio">—</p>}</div>
+        <div><h4 className="bm-sa-h">{t('Feiras', 'Trade fairs')} <span>{feiras.length}</span></h4>{feiras.length ? <ul className="bm-le-l-ul">{feiras.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} />)}</ul> : <p className="bm-sa-vazio">-</p>}</div>
+        <div><h4 className="bm-sa-h">{t('Projetos e ações', 'Projects and actions')} <span>{projetos.length}</span></h4>{projetos.length ? <ul className="bm-le-l-ul">{projetos.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} comTipo />)}</ul> : <p className="bm-sa-vazio">-</p>}</div>
       </div>
     </div>
   );
