@@ -268,7 +268,7 @@ function LinhaMatriz({ l, anos }: { l: LinhaFeira; anos: number[] }) {
   );
 }
 function CelulaMatriz({ ano, lista, varia }: { ano: number; lista?: Evento[]; varia: boolean }) {
-  if (!lista || !lista.length) return <td data-l={ano} className="vazia"><span aria-label={t('sem participação', 'no participation')}>-</span></td>;
+  if (!lista || !lista.length) return <td data-l={ano} className="vazia"><span aria-label={t('sem participação', 'no participation')}>—</span></td>;
   const e = lista[0];
   return (
     <td data-l={ano} className={futuro(e) ? 'prevista' : 'feita'}>
@@ -482,8 +482,8 @@ function SinteseAnual() {
         </div>
       </div>
       <div key={`l-${ano}`} className="bm-sa-listas">
-        <div><h4 className="bm-sa-h">{t('Feiras', 'Trade fairs')} <span>{feiras.length}</span></h4>{feiras.length ? <ul className="bm-le-l-ul">{feiras.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} />)}</ul> : <p className="bm-sa-vazio">-</p>}</div>
-        <div><h4 className="bm-sa-h">{t('Projetos e ações', 'Projects and actions')} <span>{projetos.length}</span></h4>{projetos.length ? <ul className="bm-le-l-ul">{projetos.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} comTipo />)}</ul> : <p className="bm-sa-vazio">-</p>}</div>
+        <div><h4 className="bm-sa-h">{t('Feiras', 'Trade fairs')} <span>{feiras.length}</span></h4>{feiras.length ? <ul className="bm-le-l-ul">{feiras.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} />)}</ul> : <p className="bm-sa-vazio">—</p>}</div>
+        <div><h4 className="bm-sa-h">{t('Projetos e ações', 'Projects and actions')} <span>{projetos.length}</span></h4>{projetos.length ? <ul className="bm-le-l-ul">{projetos.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} comTipo />)}</ul> : <p className="bm-sa-vazio">—</p>}</div>
       </div>
     </div>
   );
@@ -960,7 +960,7 @@ const CSS = `
 .bm-pt { display: flex; flex-direction: column; align-items: center; gap: 4px; } .bm-pt small { font-size: 10.5px; font-weight: 700; color: #8A909B; }
 .bm-serie-n { margin-top: 4px; font-size: 12.5px; font-weight: 700; color: #C9CDD3; }
 @media (max-width: 900px) { .bm-sa-painel { grid-template-columns: 1fr; } .bm-sa-capa { min-height: 180px; } .bm-sa-listas { grid-template-columns: 1fr; } }
-@media (max-width: 760px) { .bm-sa-anos { display: flex; flex-wrap: nowrap; overflow-x: auto; } .bm-sa-anos button { flex: 0 0 auto; padding: 0 16px; } .bm-sa-nums b { font-size: 24px; } .bm-dc-ano { font-size: 32px; } .bm-le { grid-template-columns: 82px minmax(0, 1fr); } }
+@media (max-width: 760px) { .bm-sa-dist li { grid-template-columns: 10px minmax(0, 1fr); row-gap: 2px; } .bm-sa-dist li em { grid-column: 2; white-space: normal; } .bm-sa-anos { display: flex; flex-wrap: nowrap; overflow-x: auto; } .bm-sa-anos button { flex: 0 0 auto; padding: 0 16px; } .bm-sa-nums b { font-size: 24px; } .bm-dc-ano { font-size: 32px; } .bm-le { grid-template-columns: 82px minmax(0, 1fr); } }
 .bm-hero::after { background: linear-gradient(90deg, rgba(16,19,26,.92) 0%, rgba(16,19,26,.7) 38%, rgba(16,19,26,.15) 75%, rgba(16,19,26,0) 100%), linear-gradient(0deg, #15171B 0%, rgba(21,23,27,0) 35%) !important; }
 .bm-hero::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: 2; background: linear-gradient(90deg, #E2231A 0%, #E2231A 22%, #8AB0E6 22%, #8AB0E6 60%, #E9C46A 60%, #E9C46A 78%, #7CC79A 78%); }
 .bm-mos img { filter: saturate(1.15) contrast(1.05); }

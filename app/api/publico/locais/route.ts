@@ -17,11 +17,10 @@ export async function GET() {
       const { reviews, ...resto } = dados;
       locais.push({ ...resto, id: (resto.id as string) || d.id, reviews: [], nTextos: Array.isArray(reviews) ? reviews.length : 0 });
     });
-    return NextResponse.json(
-      { locais, geradoEm: new Date().toISOString() },
-      { headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=86400' } },
-    );
+    // Uma resposta vazia nunca fica em cache (evita mostrar "sem dados" ao público durante 15 minutos)
+    const cache = locais.length > 0 ? 'public, s-maxage=900, stale-while-revalidate=86400' : 'no-store';
+    return NextResponse.json({ locais, geradoEm: new Date().toISOString() }, { headers: { 'Cache-Control': cache } });
   } catch (e: any) {
-    return NextResponse.json({ erro: e?.message || 'Erro ao ler os dados.' }, { status: 502 });
+    return NextResponse.json({ erro: e?.message || 'Erro ao ler os dados.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } });
   }
 }
