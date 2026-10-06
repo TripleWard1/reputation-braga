@@ -26,7 +26,7 @@ const AREAS: Area[] = [
 ];
 const COR: Record<Estado, string> = { coberta: C.positive, parcial: C.orange, falta: C.negative };
 
-export default function Insto({ irPara, nomeSeparador }: { irPara: (id: string) => void; nomeSeparador: (id: string) => string | null }) {
+export default function Insto({ irPara, nomeSeparador, semTitulo }: { irPara: (id: string) => void; nomeSeparador: (id: string) => string | null; semTitulo?: boolean }) {
   const n = (e: Estado) => AREAS.filter((a) => a.estado === e).length;
   const rotulo: Record<Estado, string> = { coberta: t('Coberta', 'Covered'), parcial: t('Em parte', 'Partial'), falta: t('Em falta', 'Missing') };
   const irAmbiente = () => document.getElementById('insto-ambiente')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -54,10 +54,12 @@ export default function Insto({ irPara, nomeSeparador }: { irPara: (id: string) 
   );
   return (
     <>
+      {!semTitulo && (<>
       <SectionTitle sub={t('Áreas obrigatórias da rede INSTO da ONU Turismo · estado da plataforma em outubro de 2026', 'UN Tourism INSTO mandatory issue areas · platform status as of October 2026')}>{t(`Braga já monitoriza as ${n('coberta')} áreas exigidas pela rede INSTO`, `Braga already monitors all ${n('coberta')} areas required by the INSTO network`)}</SectionTitle>
       <div style={{ fontSize: 14, color: C.textMuted, lineHeight: 1.65, margin: '0 0 18px', padding: '14px 16px', borderRadius: 8, background: C.accentBg, border: '1px solid rgba(138,176,230,.3)' }}>
         {t('A INSTO é a rede de observatórios de turismo sustentável da ONU Turismo. Os membros comprometem-se a monitorizar 11 áreas, enviam um relatório anual e mantêm um grupo de trabalho local com os parceiros do destino. As áreas ambientais são medidas ao nível do concelho, como a rede admite, com uma estimativa do peso do turismo.', 'INSTO is UN Tourism’s network of sustainable tourism observatories. Members commit to monitoring 11 areas, submit an annual report and keep a local working group with destination partners. Environmental areas are measured at municipal level, as the network allows, with an estimate of tourism’s share.')}
       </div>
+      </>)}
       <ul style={{ listStyle: 'none', margin: '0 0 26px', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
         {AREAS.map((a) => (
           <li key={a.pt} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '16px 18px', borderRadius: 10, background: C.card, border: `1px solid ${C.border}`, borderTop: `3px solid ${COR[a.estado]}` }}>

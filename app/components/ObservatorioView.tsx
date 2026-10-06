@@ -342,7 +342,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   const irPara = (id: string) => { const x = TABS.find((y) => y.id === id); if (x) setTab(x.id); };
   // Separadores agrupados por tema (menu mais simples, sobretudo no telemóvel)
   const GRUPOS: { id: string; label: string; icon: string; tabs: Tab[] }[] = [
-    { id: 'resumo', label: t('Resumo', 'Summary'), icon: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z', tabs: ['geral', 'cruzamentos', 'insto'] },
+    { id: 'resumo', label: t('Resumo', 'Summary'), icon: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z', tabs: ['geral', 'cruzamentos'] },
     { id: 'procura', label: t('Procura', 'Demand'), icon: 'M3 17l6-6 4 4 8-8M15 7h6v6', tabs: ['procura', 'estimativa', 'mercados', 'aeroporto', 'caminhos'] },
     { id: 'visitante', label: t('Visitante', 'Visitor'), icon: 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21v-1a6 6 0 0112 0v1M16 3.5a4 4 0 010 7.5M22 21v-1a6 6 0 00-4-5.6', tabs: ['perfil', 'balcao'] },
     { id: 'economia', label: t('Economia', 'Economy'), icon: 'M18 7a7 7 0 100 10M5 10h9M5 14h9', tabs: ['economia', 'emprego', 'cartoes', 'taxa'] },

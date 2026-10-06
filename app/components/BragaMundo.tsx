@@ -135,7 +135,7 @@ function comprimirImagem(ficheiro: File): Promise<string> {
 interface Momento { id?: string; src: string; legenda: string; criado?: string }
 function ordenarMomentos(a: Momento, b: Momento) { return (b.criado || '').localeCompare(a.criado || ''); }
 
-function Galeria({ admin }: { admin: boolean }) {
+function Galeria({ admin, semTitulo }: { admin: boolean; semTitulo?: boolean }) {
   const [enviados, setEnviados] = useState<Momento[]>([]);
   const [aGravar, setAGravar] = useState(false);
   const entrada = useRef<HTMLInputElement>(null);
@@ -166,9 +166,9 @@ function Galeria({ admin }: { admin: boolean }) {
   };
   const todos: Momento[] = [...enviados, ...MOSAICO];
   return (
-    <section className="bm-gal" aria-labelledby="bm-gal-t">
+    <section className="bm-gal" aria-label={t('Momentos', 'Moments')}>
       <div className="bm-gal-cab">
-        <h2 id="bm-gal-t" className="bm-h2">{t('Momentos', 'Moments')}</h2>
+        {!semTitulo && <h2 id="bm-gal-t" className="bm-h2">{t('Momentos', 'Moments')}</h2>}
         {admin && (
           <>
             <input ref={entrada} type="file" accept="image/*" hidden onChange={(ev) => acrescentar(ev.target.files)} />
@@ -194,44 +194,12 @@ function semMomento(lista: Momento[], id: string): Momento[] {
   return r;
 }
 
-// ── Mapa-múndi (Leaflet, carregado só aqui) ──
-const CENTROS: Record<string, [number, number]> = { es: [40.2, -3.7], pt: [39.6, -8.1], fr: [46.6, 2.4], be: [50.6, 4.6], de: [51.2, 10.4], ch: [46.8, 8.2], nl: [52.2, 5.3], si: [46.1, 14.9], ro: [45.9, 24.9], pl: [52.1, 19.4], us: [38.5, -92.0], ie: [53.3, -7.8], gb: [52.5, -1.5], it: [42.8, 12.6] };
-function carregarLeaflet(): Promise<any> {
-  const w = window as any;
-  if (w.L) return Promise.resolve(w.L);
-  return new Promise((ok, falha) => {
-    const sc = document.createElement('script'); sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; sc.async = true;
-    sc.onload = () => ok(w.L); sc.onerror = () => falha(new Error('leaflet')); document.head.appendChild(sc);
-  });
-}
 function presencasPorPais(): [string, number][] {
   const lista: Evento[] = [];
   for (let i = 0; i < FEIRAS.length; i++) if (!futuro(FEIRAS[i])) lista.push(FEIRAS[i]);
   for (let i = 0; i < PROJETOS.length; i++) if (!futuro(PROJETOS[i])) lista.push(PROJETOS[i]);
   return paisesComContagem(lista);
 }
-function MapaPresenca() {
-  const caixa = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    let mapa: any = null; let ativo = true;
-    carregarLeaflet().then((L) => {
-      if (!ativo || !caixa.current) return;
-      mapa = L.map(caixa.current, { zoomControl: false, scrollWheelZoom: false, attributionControl: true, worldCopyJump: true });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', maxZoom: 8 }).addTo(mapa);
-      const pres = presencasPorPais(); const pontos: [number, number][] = [];
-      for (let i = 0; i < pres.length; i++) {
-        const c = CENTROS[pres[i][0]]; if (!c) continue; pontos.push(c);
-        L.circleMarker(c, { radius: Math.max(7, Math.min(26, 5 + Math.sqrt(pres[i][1]) * 4)), color: '#8AB0E6', weight: 2, fillColor: '#8AB0E6', fillOpacity: 0.35 })
-          .bindTooltip(`${nomePais(pres[i][0])} · ${pres[i][1]}`, { direction: 'top' }).addTo(mapa);
-      }
-      L.circleMarker([41.5503, -8.4201], { radius: 6, color: '#ECEDEF', weight: 2, fillColor: '#EF4135', fillOpacity: 1 }).bindTooltip('Braga', { permanent: false }).addTo(mapa);
-      if (pontos.length) mapa.fitBounds(pontos, { padding: [30, 30], maxZoom: 4 });
-    }).catch(() => { /* sem mapa: a lista de países abaixo mostra a mesma informação */ });
-    return () => { ativo = false; if (mapa) mapa.remove(); };
-  }, []);
-  return <div ref={caixa} className="bm-mapa" role="img" aria-label={t('Mapa dos países com presença de Braga', 'Map of the countries where Braga was present')} />;
-}
-
 function Indicador({ valor, rotulo }: { valor: number | string; rotulo: string }) {
   return (<div className="bm-num"><div className="bm-num-v">{valor}</div><div className="bm-num-r">{rotulo}</div></div>);
 }
@@ -300,7 +268,7 @@ function LinhaMatriz({ l, anos }: { l: LinhaFeira; anos: number[] }) {
   );
 }
 function CelulaMatriz({ ano, lista, varia }: { ano: number; lista?: Evento[]; varia: boolean }) {
-  if (!lista || !lista.length) return <td data-l={ano} className="vazia"><span aria-label={t('sem participação', 'no participation')}>-</span></td>;
+  if (!lista || !lista.length) return <td data-l={ano} className="vazia"><span aria-label={t('sem participação', 'no participation')}>—</span></td>;
   const e = lista[0];
   return (
     <td data-l={ano} className={futuro(e) ? 'prevista' : 'feita'}>
@@ -318,6 +286,7 @@ function grupoDe(e: Evento): string {
   if (n.indexOf('SCT-HUB') >= 0) return 'SCT-HUB';
   if (n.indexOf('IURC') >= 0) return 'IURC';
   if (n.indexOf('URBACT') >= 0) return 'URBACT Cities After Dark';
+  if (n.indexOf('SYSTEMEU') >= 0) return 'SYSTEMEU';
   if (e.tipo === 'candidatura') return '__cand';
   return '__outras';
 }
@@ -334,12 +303,12 @@ function gruposEuropeus(): string[] {
 function anosTexto(lista: Evento[]): string { if (!lista.length) return ''; const a = anoDe(lista[0]), b = anoDe(lista[lista.length - 1]); return a === b ? String(a) : `${a}–${b}`; }
 function paisesDe(lista: Evento[]): string[] { const m: Record<string, boolean> = {}; const r: string[] = []; for (let i = 0; i < lista.length; i++) if (!m[lista[i].pais]) { m[lista[i].pais] = true; r.push(lista[i].pais); } return r; }
 
-function GrupoProjeto({ nome, lista }: { nome: string; lista: Evento[] }) {
+function GrupoProjeto({ nome, lista, acoes }: { nome: string; lista: Evento[]; acoes?: boolean }) {
   return (
     <article className="bm-grp">
       <header>
-        <h3>{nome === 'POST' || nome === 'SCT-HUB' || nome === 'IURC' ? `${t('Projeto', 'Project')} ${nome}` : nome}</h3>
-        <span>{lista.length} {lista.length === 1 ? t('reunião', 'meeting') : t('reuniões', 'meetings')} · {anosTexto(lista)}</span>
+        <h3>{nome === 'POST' || nome === 'SCT-HUB' || nome === 'IURC' || nome === 'SYSTEMEU' ? `${t('Projeto', 'Project')} ${nome}` : nome}</h3>
+        <span>{lista.length} {acoes ? (lista.length === 1 ? t('ação', 'action') : t('ações', 'actions')) : (lista.length === 1 ? t('reunião', 'meeting') : t('reuniões', 'meetings'))} · {anosTexto(lista)}</span>
       </header>
       <ol className="bm-grp-l">
         {lista.map((e, i) => (
@@ -378,18 +347,265 @@ function porData(a: Evento, b: Evento) { return a.ini.localeCompare(b.ini); }
 function porDataDesc(a: Evento, b: Evento) { return b.ini.localeCompare(a.ini); }
 function anoDaDistincao(d: Distincao) { return d.ano; }
 
+// ── Efeitos: números que contam e capítulos que entram ao descer (respeitam o movimento reduzido) ──
+function movimentoReduzido() { return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+function Contador({ valor }: { valor: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (movimentoReduzido() || typeof IntersectionObserver === 'undefined') { setV(valor); return; }
+    let raf = 0;
+    const animar = () => { let ini = 0; const passo = (ts: number) => { if (!ini) ini = ts; const x = Math.min(1, (ts - ini) / 1200); setV(Math.round(valor * (1 - Math.pow(1 - x, 3)))); if (x < 1) raf = requestAnimationFrame(passo); }; raf = requestAnimationFrame(passo); };
+    const obs = new IntersectionObserver((ents) => { if (ents[0] && ents[0].isIntersecting) { animar(); obs.disconnect(); } }, { threshold: 0.4 });
+    if (ref.current) obs.observe(ref.current);
+    return () => { obs.disconnect(); cancelAnimationFrame(raf); };
+  }, [valor]);
+  return <span ref={ref}>{v}</span>;
+}
+function Capitulo({ id, kicker, titulo, resumo, children }: { id: string; kicker: string; titulo: string; resumo: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLElement>(null);
+  const [visivel, setVisivel] = useState(false);
+  useEffect(() => {
+    if (movimentoReduzido() || typeof IntersectionObserver === 'undefined') { setVisivel(true); return; }
+    const obs = new IntersectionObserver((ents) => { if (ents[0] && ents[0].isIntersecting) { setVisivel(true); obs.disconnect(); } }, { threshold: 0.08 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+  return (
+    <section ref={ref} id={id} className={`bm-capt${visivel ? ' in' : ''}`} aria-labelledby={`${id}-t`}>
+      <div className="bm-capt-cab">
+        <span className="bm-capt-n" aria-hidden="true">{kicker}</span>
+        <div>
+          <h2 id={`${id}-t`}>{titulo}</h2>
+          <p className="bm-resumo">{resumo}</p>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+function irPara(id: string) { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: movimentoReduzido() ? 'auto' : 'smooth', block: 'start' }); }
+
+function BarrasPaises({ lista }: { lista: [string, number][] }) {
+  const max = lista.length ? lista[0][1] : 1;
+  return (
+    <ul className="bm-barras">
+      {lista.map((p) => (
+        <li key={p[0]}>
+          <span className="bm-barras-n"><img src={`https://flagcdn.com/${p[0]}.svg`} alt="" width={22} height={15} loading="lazy" />{nomePais(p[0])}</span>
+          <span className="bm-barras-t" aria-hidden="true"><span style={{ width: `${Math.max(4, (p[1] / max) * 100)}%` }} /></span>
+          <b>{p[1]}</b>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+
+// ── Distinções: cartões com ano, título, entidade e selo ──
+function separarDistincoes(principais: boolean): Distincao[] {
+  const r: Distincao[] = [];
+  for (let i = 0; i < DISTINCOES.length; i++) {
+    const fin = DISTINCOES[i].tipo === 'finalista' || DISTINCOES[i].tipo === 'emCurso';
+    if (principais !== fin) r.push(DISTINCOES[i]);
+  }
+  r.sort(porAnoDistincao);
+  return r;
+}
+function porAnoDistincao(a: Distincao, b: Distincao) { return b.ano - a.ano; }
+function CartaoDistincao({ d, pequeno }: { d: Distincao; pequeno?: boolean }) {
+  const logo = d.logos && d.logos.length ? d.logos[0] : null;
+  return (
+    <li className={`bm-dc bm-dc-${d.tipo}${pequeno ? ' pequeno' : ''}`}>
+      <div className="bm-dc-top">
+        <span className="bm-dc-ano">{d.ano}</span>
+        {logo && !pequeno && <span className="bm-dc-logo"><img src={logo} alt="" loading="lazy" /></span>}
+      </div>
+      <span className="bm-dc-tipo" style={{ color: COR[d.tipo] }}>{L(ROTULO[d.tipo])}</span>
+      <h3 className="bm-dc-t">{L(d.titulo)}</h3>
+      <p className="bm-dc-x">{L(d.texto)}</p>
+      <div className="bm-dc-pe"><span>{d.entidade}</span><a href={d.fonte} target="_blank" rel="noopener noreferrer">{t('Fonte', 'Source')} <span aria-hidden="true">↗</span></a></div>
+    </li>
+  );
+}
+
+// ── Síntese anual: um ano de cada vez, com um clique ──
+const FOTO_ANO: Record<number, string> = { 2026: '/internacional/fitur-2026.jpg', 2025: '/internacional/ecst-final-2025.jpg', 2024: '/internacional/fitur-2024.jpg', 2023: '/internacional/btl-2023.jpg' };
+function eventosDoAno(lista: Evento[], ano: number): Evento[] {
+  const r: Evento[] = [];
+  for (let i = 0; i < lista.length; i++) if (anoDe(lista[i]) === ano) r.push(lista[i]);
+  r.sort(porData); return r;
+}
+function contarPaisesRealizados(lista: Evento[]): number {
+  const m: Record<string, boolean> = {};
+  for (let i = 0; i < lista.length; i++) if (!futuro(lista[i])) m[lista[i].pais] = true;
+  return Object.keys(m).length;
+}
+function contarRealizados(lista: Evento[]): number { let n = 0; for (let i = 0; i < lista.length; i++) if (!futuro(lista[i])) n++; return n; }
+function contarEuropeus(lista: Evento[]): number { let n = 0; for (let i = 0; i < lista.length; i++) if (lista[i].tipo === 'europeu') n++; return n; }
+function anosTodos(): number[] { return Array.from(new Set(FEIRAS.map(anoDe).concat(PROJETOS.map(anoDe)))).sort(); }
+function LinhaEvento({ e, comTipo }: { e: Evento; comTipo?: boolean }) {
+  return (
+    <li className={`bm-le${futuro(e) ? ' prevista' : ''}`}>
+      <span className="bm-le-d">{diasCurtos(e)}</span>
+      <span className="bm-le-n">{L(e.nome)}{comTipo && e.tipo ? <em>{L(TIPOS_PROJETO[e.tipo])}</em> : null}</span>
+      <span className="bm-le-l"><img src={`https://flagcdn.com/${e.pais}.svg`} alt="" width={18} height={13} loading="lazy" />{e.cidade || nomePais(e.pais)}</span>
+      {futuro(e) && <span className="bm-le-p">{t('Prevista', 'Planned')}</span>}
+    </li>
+  );
+}
+function SinteseAnual() {
+  const anos = anosTodos();
+  const [ano, setAno] = useState<number>(anos.indexOf(2026) >= 0 ? 2026 : anos[anos.length - 1]);
+  const feiras = eventosDoAno(FEIRAS, ano);
+  const projetos = eventosDoAno(PROJETOS, ano);
+  const dist = distincoesDoAno(ano);
+  const foto = FOTO_ANO[ano];
+  return (
+    <div className="bm-sa">
+      <div className="bm-sa-anos" role="tablist" aria-label={t('Escolher o ano', 'Choose the year')}>
+        {anos.map((a) => <button key={a} type="button" role="tab" aria-selected={a === ano} className={a === ano ? 'on' : ''} onClick={() => setAno(a)}>{a}</button>)}
+      </div>
+      <div key={ano} className="bm-sa-painel" role="tabpanel">
+        <div className="bm-sa-capa">
+          {foto ? <img src={foto} alt="" /> : <span className="bm-sa-tipo" aria-hidden="true">{ano}</span>}
+          <div className="bm-sa-capa-t"><span>{ano}</span>{ano > new Date().getFullYear() && <em>{t('Previsto', 'Planned')}</em>}</div>
+        </div>
+        <div className="bm-sa-info">
+          <div className="bm-sa-nums">
+            <div><b>{contarRealizados(feiras)}</b><span>{t('feiras realizadas', 'fairs attended')}</span></div>
+            <div><b>{contarPaisesRealizados(feiras.concat(projetos))}</b><span>{t('países', 'countries')}</span></div>
+            <div><b>{contarEuropeus(projetos)}</b><span>{t('reuniões de projetos europeus', 'EU project meetings')}</span></div>
+          </div>
+          <h4 className="bm-sa-h">{t('Distinções', 'Distinctions')}</h4>
+          {dist.length ? <ul className="bm-sa-dist">{dist.map((d) => <li key={d.titulo.pt}><i style={{ background: COR[d.tipo] }} aria-hidden="true" /><span>{L(d.titulo)}</span><em>{L(ROTULO[d.tipo])}</em></li>)}</ul> : <p className="bm-sa-vazio">{t('Sem distinções neste ano.', 'No distinctions this year.')}</p>}
+        </div>
+      </div>
+      <div key={`l-${ano}`} className="bm-sa-listas">
+        <div><h4 className="bm-sa-h">{t('Feiras', 'Trade fairs')} <span>{feiras.length}</span></h4>{feiras.length ? <ul className="bm-le-l-ul">{feiras.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} />)}</ul> : <p className="bm-sa-vazio">—</p>}</div>
+        <div><h4 className="bm-sa-h">{t('Projetos e ações', 'Projects and actions')} <span>{projetos.length}</span></h4>{projetos.length ? <ul className="bm-le-l-ul">{projetos.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} comTipo />)}</ul> : <p className="bm-sa-vazio">—</p>}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Feiras: cada feira com a sua presença ao longo dos anos (pontos) ──
+function SeriesFeiras() {
+  const linhas = matrizFeiras(); const anos = anosDasFeiras();
+  return (
+    <ul className="bm-series">
+      {linhas.map((l) => <SerieFeira key={l.chave} l={l} anos={anos} />)}
+    </ul>
+  );
+}
+function SerieFeira({ l, anos }: { l: LinhaFeira; anos: number[] }) {
+  let feitas = 0; const ks = Object.keys(l.porAno);
+  for (let i = 0; i < ks.length; i++) { const lista = l.porAno[Number(ks[i])]; for (let j = 0; j < lista.length; j++) if (!futuro(lista[j])) feitas++; }
+  return (
+    <li className="bm-serie">
+      <div className="bm-serie-cab"><img src={`https://flagcdn.com/${l.pais}.svg`} alt="" width={22} height={15} loading="lazy" /><strong>{nomeLinha(l)}</strong></div>
+      <span className="bm-serie-l">{cidadesDistintas(l) ? nomePais(l.pais) : `${l.exemplo.cidade ? l.exemplo.cidade + ' · ' : ''}${nomePais(l.pais)}`}</span>
+      <div className="bm-serie-pts">{anos.map((a) => <PontoAno key={a} ano={a} lista={l.porAno[a]} />)}</div>
+      <span className="bm-serie-n">{feitas} {feitas === 1 ? t('participação', 'participation') : t('participações', 'participations')}</span>
+    </li>
+  );
+}
+function PontoAno({ ano, lista }: { ano: number; lista?: Evento[] }) {
+  const e = lista && lista.length ? lista[0] : null;
+  const estado = !e ? 'vazio' : futuro(e) ? 'prev' : 'ok';
+  const dica = e ? `${ano} · ${diasCurtos(e)}${e.cidade ? ' · ' + e.cidade : ''}` : `${ano} · ${t('sem participação', 'no participation')}`;
+  return <span className={`bm-pt ${estado}`} title={dica} aria-label={dica}><i aria-hidden="true" /><small>{String(ano).slice(2)}</small></span>;
+}
+
+// ── Cooperação: projetos europeus e outras ações por tipo, sem tabelas ──
+function acoesPorTipo(lista: Evento[]): [TipoProjeto, Evento[]][] {
+  const m: Partial<Record<TipoProjeto, Evento[]>> = {};
+  for (let i = 0; i < lista.length; i++) { const k = (lista[i].tipo || 'evento') as TipoProjeto; if (!m[k]) m[k] = []; (m[k] as Evento[]).push(lista[i]); }
+  const r: [TipoProjeto, Evento[]][] = [];
+  const ks = Object.keys(m) as TipoProjeto[];
+  for (let i = 0; i < ks.length; i++) r.push([ks[i], (m[ks[i]] as Evento[]).sort(porDataDesc)]);
+  return r;
+}
+
+// ── Cooperação europeia: lista à esquerda, detalhe do que estiver escolhido à direita ──
+interface GrupoCoop { id: string; nome: string; lista: Evento[]; acoes: boolean; seccao: string }
+function gruposCooperacao(): GrupoCoop[] {
+  const r: GrupoCoop[] = [];
+  const eu = gruposEuropeus();
+  for (let i = 0; i < eu.length; i++) r.push({ id: eu[i], nome: eu[i] === 'URBACT Cities After Dark' ? eu[i] : `${t('Projeto', 'Project')} ${eu[i]}`, lista: projetosDoGrupo(eu[i]), acoes: false, seccao: 'eu' });
+  r.sort(maisReunioes);
+  r.push({ id: '__cand', nome: t('Candidaturas, prémios e certificação', 'Bids, awards and certification'), lista: projetosDoGrupo('__cand'), acoes: true, seccao: 'cand' });
+  const outras = acoesPorTipo(projetosDoGrupo('__outras'));
+  for (let i = 0; i < outras.length; i++) r.push({ id: `__${outras[i][0]}`, nome: L(TIPOS_PROJETO[outras[i][0]]), lista: outras[i][1].slice().sort(porData), acoes: true, seccao: 'outras' });
+  return r;
+}
+function Cooperacao() {
+  const grupos = gruposCooperacao();
+  const [sel, setSel] = useState<string>(grupos.length ? grupos[0].id : '');
+  let g: GrupoCoop | null = null;
+  for (let i = 0; i < grupos.length; i++) if (grupos[i].id === sel) g = grupos[i];
+  const SECOES: [string, string][] = [['eu', t('Projetos europeus', 'EU projects')], ['cand', t('Candidaturas', 'Bids')], ['outras', t('Outras ações', 'Other actions')]];
+  return (
+    <div className="bm-coop">
+      <div className="bm-coop-lista" role="tablist" aria-label={t('Projetos e ações', 'Projects and actions')}>
+        {SECOES.map(([sec, rotulo]) => <ListaSeccao key={sec} rotulo={rotulo} grupos={grupos} seccao={sec} sel={sel} aoEscolher={setSel} />)}
+      </div>
+      {g && (
+        <div key={g.id} className="bm-coop-det" role="tabpanel">
+          <div className="bm-coop-cab">
+            <h3>{g.nome}</h3>
+            <div className="bm-coop-meta">
+              <span><b>{g.lista.length}</b> {g.acoes ? (g.lista.length === 1 ? t('ação', 'action') : t('ações', 'actions')) : (g.lista.length === 1 ? t('reunião', 'meeting') : t('reuniões', 'meetings'))}</span>
+              <span><b>{anosTexto(g.lista)}</b></span>
+              <span className="bm-coop-band">{paisesDe(g.lista).map(bandeiraPais)}</span>
+            </div>
+          </div>
+          <ol className="bm-coop-tl">
+            {g.lista.map((e, i) => (
+              <li key={`${e.ini}-${i}`} className={futuro(e) ? 'prevista' : ''}>
+                <span className="bm-coop-d">{intervalo(e.ini, e.fim)}</span>
+                <span className="bm-coop-n">{L(e.nome).replace(/^(Projeto|Project|Proyecto)\s+\S+\s*·\s*/, '').replace(/^Eixo Atlântico · |^Eixo Atlántico · /, '')}</span>
+                <span className="bm-coop-l"><img src={`https://flagcdn.com/${e.pais}.svg`} alt="" width={18} height={13} loading="lazy" />{e.cidade ? `${e.cidade} · ` : ''}{nomePais(e.pais)}{futuro(e) ? <em>{t('Prevista', 'Planned')}</em> : null}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
+function maisReunioes(a: GrupoCoop, b: GrupoCoop) { return b.lista.length - a.lista.length; }
+function bandeiraPais(c: string) { return <img key={c} src={`https://flagcdn.com/${c}.svg`} alt="" width={20} height={14} loading="lazy" />; }
+function ListaSeccao({ rotulo, grupos, seccao, sel, aoEscolher }: { rotulo: string; grupos: GrupoCoop[]; seccao: string; sel: string; aoEscolher: (id: string) => void }) {
+  const doGrupo: GrupoCoop[] = [];
+  for (let i = 0; i < grupos.length; i++) if (grupos[i].seccao === seccao) doGrupo.push(grupos[i]);
+  return (
+    <div className="bm-coop-sec">
+      <span className="bm-coop-sec-t">{rotulo}</span>
+      {doGrupo.map((g) => <BotaoGrupo key={g.id} g={g} ativo={g.id === sel} aoEscolher={aoEscolher} />)}
+    </div>
+  );
+}
+function BotaoGrupo({ g, ativo, aoEscolher }: { g: GrupoCoop; ativo: boolean; aoEscolher: (id: string) => void }) {
+  return (
+    <button type="button" role="tab" aria-selected={ativo} className={ativo ? 'on' : ''} onClick={() => aoEscolher(g.id)}>
+      <span>{g.nome}</span><b>{g.lista.length}</b>
+    </button>
+  );
+}
+
 export default function BragaMundo() {
   const admin = useAdmin();
-  const [aba, setAba] = useState<Aba>('distincoes');
   const feitas = FEIRAS.filter(naoFuturo);
-  const logos = todosOsLogos();
-  const topo = destaques();
-  const anosD = Array.from(new Set(DISTINCOES.map(anoDaDistincao))).sort(decrescente);
-  const pres = presencasPorPais();
+  const principais = separarDistincoes(true);
+  const finalistas = separarDistincoes(false);
+  const paisesF = paisesComContagem(feitas);
   const grupos = gruposEuropeus();
   const cand = projetosDoGrupo('__cand');
-  const outras = projetosDoGrupo('__outras').sort(porDataDesc);
-  const ABAS: [Aba, string][] = [['distincoes', t('Distinções', 'Distinctions')], ['feiras', t('Feiras', 'Trade fairs')], ['projetos', t('Projetos e cooperação', 'Projects and cooperation')]];
+  const nEu = contarTipoProjeto('europeu');
+  const pctEs = Math.round((contarEventos(feitas, emEspanha) / Math.max(1, feitas.length)) * 100);
+  const nPaises = presencasPorPais().length;
+  const CAPS: [string, string][] = [['bm-reconhecimento', t('Distinções', 'Distinctions')], ['bm-anos', t('Síntese anual', 'Annual summary')], ['bm-feiras', t('Feiras', 'Trade fairs')], ['bm-cooperacao', t('Cooperação europeia', 'European cooperation')], ['bm-momentos', t('Registo fotográfico', 'Photo record')]];
   return (
     <div className="bm">
       <style>{CSS}</style>
@@ -398,93 +614,51 @@ export default function BragaMundo() {
           {MOSAICO.slice(0, 5).map((m) => <div key={m.src} className="bm-mos"><img src={m.src} alt="" /></div>)}
         </div>
         <div className="bm-hero-in">
-          <div className="bm-kicker">{t('Promoção, cooperação e reconhecimento', 'Promotion, cooperation and recognition')}</div>
+          <div className="bm-kicker">{t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}</div>
           <h1 className="bm-h1">{t('Internacionalização', 'Internationalisation')}</h1>
-          <p className="bm-sub">{t('Como Braga se afirma lá fora: as distinções do destino, as feiras onde se promove e os projetos de cooperação europeia, desde 2023.', 'How Braga makes its mark abroad: the destination’s distinctions, the trade fairs where it promotes itself and its European cooperation projects, since 2023.')}</p>
+          <p className="bm-sub">{t('Participação em feiras de turismo, projetos de cooperação europeia e distinções do destino, de 2023 a 2026.', 'Participation in tourism fairs, European cooperation projects and destination distinctions, from 2023 to 2026.')}</p>
           <div className="bm-nums">
-            <Indicador valor={contarTipos(['vencedora'])} rotulo={t('títulos internacionais ganhos', 'international titles won')} />
-            <Indicador valor={feitas.length} rotulo={t('feiras de turismo desde 2023', 'tourism fairs since 2023')} />
-            <Indicador valor={pres.length} rotulo={t('países com presença de Braga', 'countries where Braga was present')} />
-            <Indicador valor={contarTipoProjeto('europeu')} rotulo={t('reuniões de projetos europeus', 'EU project meetings')} />
+            <div className="bm-num"><div className="bm-num-v"><Contador valor={contarTipos(['vencedora'])} /></div><div className="bm-num-r">{t('títulos internacionais', 'international titles')}</div></div>
+            <div className="bm-num"><div className="bm-num-v"><Contador valor={feitas.length} /></div><div className="bm-num-r">{t('participações em feiras', 'trade fair participations')}</div></div>
+            <div className="bm-num"><div className="bm-num-v"><Contador valor={nPaises} /></div><div className="bm-num-r">{t('países', 'countries')}</div></div>
+            <div className="bm-num"><div className="bm-num-v"><Contador valor={grupos.length} /></div><div className="bm-num-r">{t('projetos europeus', 'EU projects')}</div></div>
           </div>
         </div>
       </header>
-      <div className="bm-abas-wrap">
-        <div className="bm-abas" role="tablist" aria-label={t('Secções', 'Sections')}>
-          {ABAS.map(([id, nome]) => <button key={id} type="button" role="tab" aria-selected={aba === id} className={aba === id ? 'on' : ''} onClick={() => setAba(id)}>{nome}</button>)}
-        </div>
-      </div>
+      <nav className="bm-abas-wrap" aria-label={t('Secções', 'Sections')}>
+        <div className="bm-abas">{CAPS.map(([id, nome]) => <button key={id} type="button" onClick={() => irPara(id)}>{nome}</button>)}</div>
+      </nav>
 
-      {aba === 'distincoes' && (
-        <div className="bm-corpo">
-          <h2 className="bm-h2">{t('Títulos conquistados', 'Titles won')}</h2>
-          <ul className="bm-trofeus">
-            {topo.map((d) => (
-              <li key={d.titulo.pt} className="bm-trofeu">
-                <div className="bm-trofeu-logo">{d.logos && d.logos.length ? <img src={d.logos[0]} alt="" loading="lazy" /> : <span className="bm-trofeu-ano">{d.ano}</span>}</div>
-                <div className="bm-trofeu-c">
-                  <span className="bm-trofeu-a" style={{ color: COR[d.tipo] }}>{d.ano} · {L(ROTULO[d.tipo])}</span>
-                  <strong>{L(d.titulo)}</strong>
-                  <span className="bm-trofeu-e">{d.entidade}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-          {logos.length > 0 && <ul className="bm-logos" aria-label={t('Selos e logótipos das distinções', 'Distinction seals and logos')}>{logos.map((l) => <li key={l.src}><img src={l.src} alt={l.alt} loading="lazy" /></li>)}</ul>}
-          <h2 className="bm-h2">{t('Percurso completo', 'Full record')}</h2>
-          <div className="bm-legenda" aria-hidden="true">{(Object.keys(ROTULO) as TipoDistincao[]).map((k) => <span key={k}><i style={{ background: COR[k] }} />{L(ROTULO[k])}</span>)}</div>
-          <div className="bm-tl">
-            {anosD.map((ano) => (
-              <section key={ano} className="bm-tl-ano" aria-labelledby={`bm-d-${ano}`}>
-                <h3 id={`bm-d-${ano}`} className="bm-tl-marca"><span>{ano}</span></h3>
-                <ul className="bm-dist">
-                  {distincoesDoAno(ano).map((d) => (
-                    <li key={d.titulo.pt} className="bm-d">
-                      <i className="bm-d-ponto" style={{ background: COR[d.tipo] }} aria-hidden="true" />
-                      <div className="bm-d-top"><span className="bm-d-tipo" style={{ color: COR[d.tipo], borderColor: `${COR[d.tipo]}66` }}>{L(ROTULO[d.tipo])}</span><span className="bm-d-ent">{d.entidade}</span></div>
-                      <div className="bm-d-t">{L(d.titulo)}</div>
-                      <p className="bm-d-x">{L(d.texto)}</p>
-                      <a className="bm-d-f" href={d.fonte} target="_blank" rel="noopener noreferrer">{t('Fonte', 'Source')} <span aria-hidden="true">↗</span></a>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
+      <div className="bm-corpo">
+        <Capitulo id="bm-reconhecimento" kicker="01" titulo={t('Distinções', 'Distinctions')}
+          resumo={t(`${contarTipos(['vencedora'])} títulos internacionais, uma certificação de destino sustentável reconhecida pelo GSTC e ${finalistas.length} candidaturas finalistas.`, `${contarTipos(['vencedora'])} international titles, a GSTC-recognised sustainable destination certification and ${finalistas.length} finalist bids.`)}>
+          <ul className="bm-dcs">{principais.map((d) => <CartaoDistincao key={d.titulo.pt} d={d} />)}</ul>
+          <h3 className="bm-sub-h">{t('Candidaturas finalistas', 'Finalist bids')}</h3>
+          <ul className="bm-dcs pequenos">{finalistas.map((d) => <CartaoDistincao key={d.titulo.pt} d={d} pequeno />)}</ul>
           <p className="bm-nota">{t('Só constam distinções confirmadas em fontes públicas, com a ligação para cada uma. Finalistas e nomeações não são apresentados como vitórias, e as distinções de monumentos ou praias estão identificadas como tal.', 'Only distinctions confirmed in public sources are listed, each with its link. Finalists and nominations are not presented as wins, and distinctions of monuments or beaches are labelled as such.')}</p>
-        </div>
-      )}
+        </Capitulo>
 
-      {aba === 'feiras' && (
-        <div className="bm-corpo">
-          <div className="bm-duo">
-            <div>
-              <h2 className="bm-h2">{t('Onde estivemos', 'Where we have been')}</h2>
-              <MapaPresenca />
-            </div>
-            <div>
-              <h2 className="bm-h2">{t('Feiras por país', 'Fairs by country')}</h2>
-              <ul className="bm-paises">{paisesComContagem(feitas).map((p) => <li key={p[0]}><img src={`https://flagcdn.com/${p[0]}.svg`} alt="" width={26} height={18} loading="lazy" /><span>{nomePais(p[0])}</span><b>{p[1]}</b></li>)}</ul>
-            </div>
-          </div>
-          <h2 className="bm-h2">{t('Presença ano a ano', 'Year by year')}</h2>
-          <p className="bm-ajuda">{t('Cada linha é uma feira; cada coluna, um ano. As feiras que se repetem aparecem primeiro.', 'Each row is a fair; each column, a year. Recurring fairs come first.')}</p>
-          <MatrizFeiras />
-          <Galeria admin={admin} />
-        </div>
-      )}
+        <Capitulo id="bm-anos" kicker="02" titulo={t('Síntese anual', 'Annual summary')} resumo={t('Distinções, feiras e projetos de cada ano. Escolha o ano.', 'Distinctions, fairs and projects for each year. Choose the year.')}>
+          <SinteseAnual />
+        </Capitulo>
 
-      {aba === 'projetos' && (
-        <div className="bm-corpo">
-          <h2 className="bm-h2">{t('Projetos europeus', 'EU projects')}</h2>
-          <div className="bm-grps">{grupos.map((g) => <GrupoProjeto key={g} nome={g} lista={projetosDoGrupo(g)} />)}</div>
-          <h2 className="bm-h2">{t('Candidaturas, prémios e certificação', 'Bids, awards and certification')}</h2>
-          <div className="bm-grps"><GrupoProjeto nome={t('Candidaturas, prémios e certificação', 'Bids, awards and certification')} lista={cand} /></div>
-          <h2 className="bm-h2">{t('Outras ações', 'Other actions')}</h2>
-          <TabelaAcoes lista={outras} />
-          <Galeria admin={admin} />
-        </div>
-      )}
+        <Capitulo id="bm-feiras" kicker="03" titulo={t('Feiras', 'Trade fairs')}
+          resumo={t(`${feitas.length} participações em feiras de turismo desde 2023, em ${paisesF.length} países. Espanha concentra ${pctEs}% das participações.`, `${feitas.length} tourism fair participations since 2023, in ${paisesF.length} countries. Spain accounts for ${pctEs}% of participations.`)}>
+          <BarrasPaises lista={paisesF} />
+          <h3 className="bm-sub-h">{t('Presença em cada feira', 'Presence at each fair')}</h3>
+          <div className="bm-legenda-pts" aria-hidden="true"><span><i className="ok" />{t('Presente', 'Attended')}</span><span><i className="prev" />{t('Prevista', 'Planned')}</span><span><i className="vazio" />{t('Sem participação', 'No participation')}</span></div>
+          <SeriesFeiras />
+        </Capitulo>
+
+        <Capitulo id="bm-cooperacao" kicker="04" titulo={t('Cooperação europeia', 'European cooperation')}
+          resumo={t(`${grupos.length} projetos europeus, com ${nEu} reuniões, e ${cand.length} candidaturas e processos de certificação.`, `${grupos.length} EU projects, with ${nEu} meetings, and ${cand.length} bids and certification processes.`)}>
+          <Cooperacao />
+        </Capitulo>
+
+        <Capitulo id="bm-momentos" kicker="05" titulo={t('Registo fotográfico', 'Photo record')} resumo={t('Fotografias das participações em feiras e eventos.', 'Photographs of participations in fairs and events.')}>
+          <Galeria admin={admin} semTitulo />
+        </Capitulo>
+      </div>
     </div>
   );
 }
@@ -649,7 +823,199 @@ const CSS = `
   .bm-grps { grid-template-columns: 1fr; }
   .bm-gal-it { width: 78vw; }
 }
-@media (prefers-reduced-motion: reduce) { .bm * { transition: none !important; animation: none !important; } }
+.bm-capt { padding: 34px 0 10px; opacity: 0; transform: translateY(26px); transition: opacity .7s ease, transform .7s ease; scroll-margin-top: 70px; }
+.bm-capt.in { opacity: 1; transform: none; }
+.bm-capt + .bm-capt { border-top: 1px solid #2D3139; margin-top: 18px; }
+.bm-capt-cab h2 { font-size: clamp(26px, 3.4vw, 38px); letter-spacing: -0.02em; margin: 6px 0 8px; }
+.bm-resumo { margin: 0 0 20px; font-size: 17px; line-height: 1.55; color: #C9CDD3; max-width: 820px; }
+.bm-h3 { font-size: 18px; margin: 8px 0 8px; }
+.bm-abas button { background: transparent; }
+.bm-abas button:hover { border-color: #8AB0E6; color: #ECEDEF; background: rgba(138,176,230,.12); }
+.bm-trofeus { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 2px 12px; scrollbar-width: thin; scrollbar-color: #3A404B transparent; }
+.bm-trofeus .bm-trofeu { flex: 0 0 300px; scroll-snap-align: start; position: relative; overflow: hidden; transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+.bm-trofeus .bm-trofeu::after { content: ''; position: absolute; inset: -40% auto -40% -60%; width: 40%; transform: rotate(18deg); background: linear-gradient(90deg, transparent, rgba(255,255,255,.07), transparent); animation: bmBrilho 6s ease-in-out infinite; }
+.bm-trofeus .bm-trofeu:hover { transform: translateY(-3px); border-color: rgba(233,196,106,.6); box-shadow: 0 14px 32px -16px rgba(233,196,106,.5); }
+@keyframes bmBrilho { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+.bm-mais { margin-top: 6px; border: 1px solid #2D3139; border-radius: 14px; background: #1A1D22; }
+.bm-mais > summary { cursor: pointer; list-style: none; padding: 14px 18px; font-weight: 700; font-size: 14.5px; color: #8AB0E6; display: flex; align-items: center; gap: 10px; }
+.bm-mais > summary::-webkit-details-marker { display: none; }
+.bm-mais > summary::before { content: '+'; display: inline-flex; width: 22px; height: 22px; border-radius: 999px; align-items: center; justify-content: center; border: 1px solid #8AB0E6; font-size: 15px; }
+.bm-mais[open] > summary::before { content: '−'; }
+.bm-mais[open] > *:not(summary) { margin-left: 18px; margin-right: 18px; }
+.bm-mais[open] { padding-bottom: 14px; }
+.bm-duo .bm-mapa { margin: 0; height: 100%; min-height: 340px; }
+.bm-pulso { animation: bmPulso 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes bmPulso { 0%, 100% { stroke-opacity: 1; stroke-width: 2; } 50% { stroke-opacity: .35; stroke-width: 9; } }
+.bm-grp { transition: transform .25s ease, border-color .25s ease; } .bm-grp:hover { transform: translateY(-2px); border-color: #3A404B; }
+.bm-num { transition: transform .3s ease; } .bm-num:hover { transform: translateY(-2px); }
+.bm-capt-cab { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: start; margin-bottom: 18px; }
+.bm-capt-n { font-size: 15px; font-weight: 800; color: #8AB0E6; padding: 6px 10px; border: 1px solid rgba(138,176,230,.4); border-radius: 10px; line-height: 1; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.bm-capt-cab h2 { margin-top: 0; }
+.bm-resumo { font-size: 15.5px; margin-bottom: 0; }
+.bm-anos { list-style: none; margin: 0; padding: 4px 2px 14px; display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: #3A404B transparent; }
+.bm-ano-p { flex: 0 0 300px; scroll-snap-align: start; border-radius: 16px; overflow: hidden; background: #1C1F24; border: 1px solid #2D3139; display: flex; flex-direction: column; transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease; }
+.bm-ano-p:hover { transform: translateY(-4px); border-color: #3A404B; box-shadow: 0 18px 40px -22px rgba(0,0,0,.9); }
+.bm-ano-capa { position: relative; height: 150px; overflow: hidden; background: linear-gradient(135deg, #22324A, #1C2433); }
+.bm-ano-capa img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .8s ease; }
+.bm-ano-p:hover .bm-ano-capa img { transform: scale(1.05); }
+.bm-ano-capa::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(15,17,20,.85) 0%, rgba(15,17,20,0) 60%); }
+.bm-ano-tipo { position: absolute; right: -6px; bottom: -22px; font-size: 120px; font-weight: 800; letter-spacing: -0.05em; color: rgba(138,176,230,.14); line-height: 1; }
+.bm-ano-n { position: absolute; left: 16px; bottom: 12px; z-index: 1; font-size: 32px; font-weight: 800; letter-spacing: -0.03em; }
+.bm-ano-dl { margin: 0; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.bm-ano-dl dt { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8A909B; margin-bottom: 3px; }
+.bm-ano-dl dd { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.4; }
+.bm-ano-dl ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.bm-ano-dl ul li { display: flex; gap: 8px; align-items: baseline; font-size: 13.5px; }
+.bm-ano-dl ul li i { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; transform: translateY(-1px); }
+.bm-ano-nada { color: #4A505B; } .bm-ano-prev { display: block; font-size: 12px; font-weight: 600; color: #EDA06B; margin-top: 2px; }
+.bm-barras { list-style: none; margin: 0 0 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; border-radius: 16px; background: #1C1F24; border: 1px solid #2D3139; }
+.bm-barras li { display: grid; grid-template-columns: 190px minmax(0, 1fr) 40px; gap: 14px; align-items: center; }
+.bm-barras-n { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; }
+.bm-barras-n img { width: 22px; height: 15px; object-fit: cover; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,255,255,.12); }
+.bm-barras-t { height: 10px; border-radius: 999px; background: #262A31; overflow: hidden; }
+.bm-barras-t span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #5E86C2, #8AB0E6); transform-origin: left; animation: bmCresce 1s ease both; }
+@keyframes bmCresce { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.bm-barras b { text-align: right; font-size: 15px; font-variant-numeric: tabular-nums; }
+.bm-selos { list-style: none; margin: 0 0 16px; padding: 26px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; border-radius: 16px; background: #F4F4F2; }
+.bm-selos li { display: flex; align-items: center; justify-content: center; height: 120px; padding: 10px; border-radius: 12px; background: #fff; box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 6px 18px -12px rgba(0,0,0,.25); transition: transform .3s ease; }
+.bm-selos li:hover { transform: translateY(-3px); }
+.bm-selos img { max-width: 100%; max-height: 100%; object-fit: contain; }
+@media (max-width: 760px) {
+  .bm-ano-p { flex-basis: 84%; } .bm-barras li { grid-template-columns: minmax(0, 1fr) 70px 32px; gap: 8px; } .bm-barras { padding: 14px; }
+  .bm-capt-cab { grid-template-columns: 1fr; gap: 8px; } .bm-capt-n { justify-self: start; margin-top: 0; }
+  .bm-selos { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 14px; } .bm-selos li { height: 96px; }
+}
+.bm-corpo { position: relative; }
+.bm-corpo::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 900px; pointer-events: none; background: radial-gradient(700px 360px at 85% 0%, rgba(233,196,106,.07), transparent 70%), radial-gradient(600px 400px at 0% 40%, rgba(138,176,230,.06), transparent 70%); }
+.bm-sub-h { font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8A909B; margin: 26px 0 12px; }
+.bm-dcs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.bm-dc { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 20px 20px 16px; border-radius: 18px; background: linear-gradient(180deg, #20242B, #1A1D22); border: 1px solid #2D3139; overflow: hidden; transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+.bm-dc::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, #8AB0E6, transparent); }
+.bm-dc-vencedora::before { background: linear-gradient(90deg, #E9C46A, #F6E3A6 40%, transparent); }
+.bm-dc-vencedora { border-color: rgba(233,196,106,.35); }
+.bm-dc-certificacao::before { background: linear-gradient(90deg, #7CC79A, transparent); }
+.bm-dc:hover { transform: translateY(-4px); box-shadow: 0 22px 44px -24px rgba(0,0,0,.9); }
+.bm-dc-vencedora:hover { box-shadow: 0 22px 44px -22px rgba(233,196,106,.35); }
+.bm-dc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.bm-dc-ano { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; background: linear-gradient(180deg, #FFFFFF, #A3A8B1); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bm-dc-vencedora .bm-dc-ano { background: linear-gradient(180deg, #F6E3A6, #C9A042); -webkit-background-clip: text; background-clip: text; }
+.bm-dc-logo { width: 62px; height: 62px; border-radius: 14px; background: rgba(255,255,255,.95); display: flex; align-items: center; justify-content: center; padding: 6px; flex-shrink: 0; box-shadow: 0 6px 16px -8px rgba(0,0,0,.6); }
+.bm-dc-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.bm-dc-tipo { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-top: 6px; }
+.bm-dc-t { margin: 0; font-size: 17px; line-height: 1.3; letter-spacing: -0.01em; }
+.bm-dc-x { margin: 2px 0 0; font-size: 13.5px; color: #A3A8B1; line-height: 1.55; flex: 1; }
+.bm-dc-pe { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #2D3139; font-size: 12.5px; color: #8A909B; }
+.bm-dc-pe a { color: #8AB0E6; text-decoration: none; font-weight: 600; } .bm-dc-pe a:hover { text-decoration: underline; }
+.bm-dcs.pequenos { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.bm-dc.pequeno { padding: 14px 16px 12px; border-radius: 14px; } .bm-dc.pequeno .bm-dc-ano { font-size: 24px; } .bm-dc.pequeno .bm-dc-t { font-size: 14.5px; } .bm-dc.pequeno .bm-dc-x { font-size: 12.5px; }
+.bm-sa-anos { display: inline-flex; gap: 4px; padding: 5px; border-radius: 999px; background: #1C1F24; border: 1px solid #2D3139; margin-bottom: 16px; flex-wrap: wrap; }
+.bm-sa-anos button { height: 38px; padding: 0 20px; border-radius: 999px; border: 0; background: transparent; color: #A3A8B1; font: 700 14.5px 'Public Sans', system-ui, sans-serif; cursor: pointer; font-variant-numeric: tabular-nums; transition: background .25s ease, color .25s ease; }
+.bm-sa-anos button:hover { color: #ECEDEF; } .bm-sa-anos button.on { background: #8AB0E6; color: #0F1216; }
+.bm-sa-painel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); border-radius: 18px; overflow: hidden; border: 1px solid #2D3139; background: #1C1F24; animation: bmTroca .45s ease both; }
+@keyframes bmTroca { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.bm-sa-capa { position: relative; min-height: 260px; background: radial-gradient(circle at 30% 30%, #2A3A55, #171B22 70%); overflow: hidden; }
+.bm-sa-capa img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.bm-sa-capa::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(14,16,19,.85), rgba(14,16,19,0) 55%); }
+.bm-sa-tipo { position: absolute; right: -10px; bottom: -40px; font-size: 200px; font-weight: 800; letter-spacing: -0.06em; color: rgba(138,176,230,.12); line-height: 1; }
+.bm-sa-capa-t { position: absolute; left: 22px; bottom: 18px; z-index: 1; display: flex; align-items: baseline; gap: 10px; }
+.bm-sa-capa-t span { font-size: 54px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+.bm-sa-capa-t em { font-style: normal; font-size: 12px; font-weight: 700; color: #EDA06B; border: 1px solid #EDA06B; border-radius: 999px; padding: 2px 9px; }
+.bm-sa-info { padding: 22px 24px; }
+.bm-sa-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+.bm-sa-nums div { padding: 12px 14px; border-radius: 12px; background: #22262D; }
+.bm-sa-nums b { display: block; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+.bm-sa-nums span { font-size: 12.5px; color: #A3A8B1; line-height: 1.35; }
+.bm-sa-h { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8A909B; margin: 0 0 10px; }
+.bm-sa-h span { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: #2D3139; color: #ECEDEF; letter-spacing: 0; }
+.bm-sa-dist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.bm-sa-dist li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; font-size: 14px; font-weight: 600; }
+.bm-sa-dist li i { width: 10px; height: 10px; border-radius: 999px; transform: translateY(1px); }
+.bm-sa-dist li em { font-style: normal; font-size: 11.5px; color: #8A909B; font-weight: 600; white-space: nowrap; }
+.bm-sa-vazio { margin: 0; color: #6F747D; font-size: 13.5px; }
+.bm-sa-listas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; animation: bmTroca .45s .05s ease both; }
+.bm-sa-listas > div { padding: 18px 20px; border-radius: 18px; background: #1C1F24; border: 1px solid #2D3139; }
+.bm-le-l-ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.bm-le { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 4px 12px; padding: 10px 0; border-top: 1px solid #262A31; }
+.bm-le:first-child { border-top: 0; }
+.bm-le-d { grid-row: span 2; font-size: 12.5px; font-weight: 700; color: #8AB0E6; font-variant-numeric: tabular-nums; padding-top: 1px; }
+.bm-le-n { font-size: 14px; font-weight: 600; line-height: 1.35; }
+.bm-le-n em { display: inline-block; margin-left: 8px; font-style: normal; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: #22262D; color: #A3A8B1; vertical-align: 1px; }
+.bm-le-l { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #A3A8B1; }
+.bm-le-l img { width: 18px; height: 13px; object-fit: cover; border-radius: 2px; }
+.bm-le-p { grid-column: 2; justify-self: start; font-size: 11px; font-weight: 700; color: #EDA06B; }
+.bm-le.prevista .bm-le-d { color: #EDA06B; }
+.bm-legenda-pts { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: #A3A8B1; margin: -4px 0 12px; }
+.bm-legenda-pts span { display: inline-flex; align-items: center; gap: 6px; }
+.bm-legenda-pts i, .bm-pt i { width: 12px; height: 12px; border-radius: 999px; display: inline-block; }
+.bm-pt.ok i, .bm-legenda-pts i.ok { background: #8AB0E6; box-shadow: 0 0 0 3px rgba(138,176,230,.18); }
+.bm-pt.prev i, .bm-legenda-pts i.prev { border: 2px dashed #EDA06B; width: 8px; height: 8px; }
+.bm-pt.vazio i, .bm-legenda-pts i.vazio { background: #2D3139; }
+.bm-series { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.bm-serie { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border-radius: 16px; background: #1C1F24; border: 1px solid #2D3139; transition: transform .25s ease, border-color .25s ease; }
+.bm-serie:hover { transform: translateY(-3px); border-color: #3A404B; }
+.bm-serie-cab { display: flex; align-items: center; gap: 9px; } .bm-serie-cab strong { font-size: 15.5px; }
+.bm-serie-cab img { width: 22px; height: 15px; object-fit: cover; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,255,255,.12); }
+.bm-serie-l { font-size: 12.5px; color: #A3A8B1; }
+.bm-serie-pts { display: flex; gap: 12px; margin-top: 6px; }
+.bm-pt { display: flex; flex-direction: column; align-items: center; gap: 4px; } .bm-pt small { font-size: 10.5px; font-weight: 700; color: #8A909B; }
+.bm-serie-n { margin-top: 4px; font-size: 12.5px; font-weight: 700; color: #C9CDD3; }
+@media (max-width: 900px) { .bm-sa-painel { grid-template-columns: 1fr; } .bm-sa-capa { min-height: 180px; } .bm-sa-listas { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .bm-sa-anos { display: flex; flex-wrap: nowrap; overflow-x: auto; } .bm-sa-anos button { flex: 0 0 auto; padding: 0 16px; } .bm-sa-nums b { font-size: 24px; } .bm-dc-ano { font-size: 32px; } .bm-le { grid-template-columns: 82px minmax(0, 1fr); } }
+.bm-hero::after { background: linear-gradient(90deg, rgba(16,19,26,.92) 0%, rgba(16,19,26,.7) 38%, rgba(16,19,26,.15) 75%, rgba(16,19,26,0) 100%), linear-gradient(0deg, #15171B 0%, rgba(21,23,27,0) 35%) !important; }
+.bm-hero::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: 2; background: linear-gradient(90deg, #E2231A 0%, #E2231A 22%, #8AB0E6 22%, #8AB0E6 60%, #E9C46A 60%, #E9C46A 78%, #7CC79A 78%); }
+.bm-mos img { filter: saturate(1.15) contrast(1.05); }
+.bm-kicker { color: #FF8A80; }
+.bm-h1 { background: linear-gradient(90deg, #FFFFFF 0%, #FFFFFF 55%, #C8DAF5 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bm-num { position: relative; overflow: hidden; background: rgba(16,19,26,.6); border-color: rgba(255,255,255,.14); }
+.bm-num::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.bm-num:nth-child(1)::before { background: #E9C46A; } .bm-num:nth-child(2)::before { background: #E2231A; } .bm-num:nth-child(3)::before { background: #8AB0E6; } .bm-num:nth-child(4)::before { background: #7CC79A; }
+.bm-num:nth-child(1) .bm-num-v { color: #F6E3A6; } .bm-num:nth-child(2) .bm-num-v { color: #FF9C94; } .bm-num:nth-child(3) .bm-num-v { color: #B9D0F2; } .bm-num:nth-child(4) .bm-num-v { color: #A8DDBC; }
+
+.bm-dcs { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important; gap: 12px !important; }
+.bm-dc { padding: 14px 16px 12px !important; border-radius: 14px !important; gap: 4px !important; }
+.bm-dc-ano { font-size: 26px !important; }
+.bm-dc-logo { width: 44px !important; height: 44px !important; border-radius: 10px !important; padding: 4px !important; }
+.bm-dc-tipo { font-size: 10.5px !important; margin-top: 4px !important; }
+.bm-dc-t { font-size: 14.5px !important; }
+.bm-dc-x { font-size: 12.5px !important; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bm-dc-pe { margin-top: 6px !important; padding-top: 8px !important; font-size: 11.5px !important; }
+.bm-dc.pequeno .bm-dc-ano { font-size: 20px !important; } .bm-dc.pequeno .bm-dc-t { font-size: 13.5px !important; }
+
+.bm-coop { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+.bm-coop-lista { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 80px; }
+.bm-coop-sec { display: flex; flex-direction: column; gap: 4px; }
+.bm-coop-sec-t { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8A909B; padding: 0 4px 4px; }
+.bm-coop-lista button { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: #C9CDD3; font: 600 14px 'Public Sans', system-ui, sans-serif; text-align: left; cursor: pointer; transition: background .2s ease, border-color .2s ease, color .2s ease; }
+.bm-coop-lista button b { font-size: 12px; min-width: 26px; text-align: center; padding: 2px 8px; border-radius: 999px; background: #22262D; color: #ECEDEF; }
+.bm-coop-lista button:hover { background: #1C1F24; color: #ECEDEF; }
+.bm-coop-lista button.on { background: linear-gradient(90deg, rgba(138,176,230,.18), rgba(138,176,230,.04)); border-color: rgba(138,176,230,.45); color: #ECEDEF; }
+.bm-coop-lista button.on b { background: #8AB0E6; color: #0F1216; }
+.bm-coop-det { padding: 22px 24px; border-radius: 18px; background: linear-gradient(180deg, #20242B, #1A1D22); border: 1px solid #2D3139; animation: bmTroca .4s ease both; min-height: 320px; }
+.bm-coop-cab { padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid #2D3139; }
+.bm-coop-cab h3 { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.01em; }
+.bm-coop-meta { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; font-size: 13px; color: #A3A8B1; }
+.bm-coop-meta b { color: #ECEDEF; font-size: 15px; }
+.bm-coop-band { display: inline-flex; gap: 5px; } .bm-coop-band img { width: 20px; height: 14px; object-fit: cover; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,255,255,.12); }
+.bm-coop-tl { list-style: none; margin: 0; padding: 0 0 0 22px; position: relative; display: flex; flex-direction: column; gap: 16px; }
+.bm-coop-tl::before { content: ''; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(#8AB0E6, #2D3139); border-radius: 2px; }
+.bm-coop-tl li { position: relative; display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 2px 16px; }
+.bm-coop-tl li::before { content: ''; position: absolute; left: -21px; top: 4px; width: 12px; height: 12px; border-radius: 999px; background: #8AB0E6; box-shadow: 0 0 0 4px #1D2026; }
+.bm-coop-tl li.prevista::before { background: #1D2026; border: 2px dashed #EDA06B; width: 8px; height: 8px; }
+.bm-coop-d { grid-row: span 2; font-size: 13px; font-weight: 700; color: #8AB0E6; font-variant-numeric: tabular-nums; }
+.bm-coop-tl li.prevista .bm-coop-d { color: #EDA06B; }
+.bm-coop-n { font-size: 15px; font-weight: 700; line-height: 1.35; }
+.bm-coop-l { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: #A3A8B1; flex-wrap: wrap; }
+.bm-coop-l img { width: 18px; height: 13px; object-fit: cover; border-radius: 2px; }
+.bm-coop-l em { font-style: normal; font-size: 11px; font-weight: 700; color: #EDA06B; border: 1px solid #EDA06B; border-radius: 999px; padding: 0 7px; }
+@media (max-width: 900px) {
+  .bm-coop { grid-template-columns: 1fr; }
+  .bm-coop-lista { position: static; flex-direction: row; overflow-x: auto; gap: 6px; scrollbar-width: none; }
+  .bm-coop-lista::-webkit-scrollbar { display: none; }
+  .bm-coop-sec { flex-direction: row; gap: 6px; } .bm-coop-sec-t { display: none; }
+  .bm-coop-lista button { width: auto; flex: 0 0 auto; border-color: #2D3139; white-space: nowrap; }
+  .bm-coop-tl li { grid-template-columns: 1fr; } .bm-coop-d { grid-row: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .bm-coop-det { animation: none !important; } .bm-sa-painel, .bm-sa-listas { animation: none !important; } .bm-barras-t span { animation: none !important; } .bm-capt { opacity: 1; transform: none; } .bm * { transition: none !important; animation: none !important; } }
 .bm .leaflet-container { background: #1C1F24; font-family: 'Public Sans', system-ui, sans-serif; }
 .bm .leaflet-control-attribution { background: rgba(21,23,27,.7) !important; color: #8A909B !important; }
 .bm .leaflet-control-attribution a { color: #A3A8B1 !important; }
