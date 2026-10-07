@@ -19,6 +19,7 @@ import { C, PAL, SUS_PAL, YEAR_COLORS } from './obs/comum';
 // Cada separador é um ficheiro próprio, descarregado só quando é aberto (mais rápido, sobretudo no telemóvel)
 const ACarregar = () => <div className="obs-carregar" role="status" aria-live="polite"><span className="obs-carregar-pt" aria-hidden="true" />{t('A carregar…', 'Loading…')}</div>;
 const Insto = dynamic(comRecuperacao(() => import('./obs/Insto')), { ssr: false, loading: ACarregar });
+const Sinais = dynamic(comRecuperacao(() => import('./obs/Sinais')), { ssr: false, loading: ACarregar });
 const Leituras = dynamic(comRecuperacao(() => import('./obs/Leituras')), { ssr: false, loading: ACarregar });
 const Acessibilidade = dynamic(comRecuperacao(() => import('./obs/Acessibilidade')), { ssr: false, loading: ACarregar });
 const Aeroporto = dynamic(comRecuperacao(() => import('./obs/Aeroporto')), { ssr: false, loading: ACarregar });
@@ -82,6 +83,21 @@ const OBS_CSS = `
 .obs-perg-ir, .obs-leit-ir { border: 1px solid rgba(138,176,230,.45); background: rgba(138,176,230,.12); color: #ECEDEF; }
 .obs-perg-nova { border: 1px solid #2D3139; background: transparent; color: #A3A8B1; }
 .obs-perg-aviso { margin-top: 12px; font-size: 12px; color: #8A909B; line-height: 1.5; }
+.obs-sinais { margin-bottom: 26px; }
+.obs-sinais-cab { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.obs-sinais-cab h2 { margin: 0; font-size: 22px; letter-spacing: -0.01em; color: #ECEDEF; }
+.obs-sinais-cab p { margin: 6px 0 0; font-size: 14px; color: #A3A8B1; }
+.obs-sinais-n { font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: rgba(237,160,107,.14); color: #EDA06B; border: 1px solid rgba(237,160,107,.35); }
+.obs-sinais-l { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.obs-sinal { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border-radius: 14px; background: #1C1F24; border: 1px solid #2D3139; border-left: 4px solid #8AB0E6; }
+.obs-sinal.atencao { border-left-color: #EDA06B; background: linear-gradient(90deg, rgba(237,160,107,.08), #1C1F24 40%); }
+.obs-sinal.positivo { border-left-color: #7CC79A; }
+.obs-sinal-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.obs-sinal-tom { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.obs-sinal-top b { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; }
+.obs-sinal h3 { margin: 0; font-size: 15.5px; color: #ECEDEF; line-height: 1.35; }
+.obs-sinal p { margin: 0; font-size: 13.5px; color: #C9CDD3; line-height: 1.55; flex: 1; }
+.obs-sinal .obs-leit-ir { align-self: flex-start; margin-top: 4px; }
 .obs-leit { margin-bottom: 26px; }
 .obs-leit-titulo { margin: 0; font-size: 22px; font-weight: 700; color: #ECEDEF; letter-spacing: -0.01em; }
 .obs-leit-sub { margin: 6px 0 16px; font-size: 14px; color: #A3A8B1; }
@@ -880,7 +896,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
 
       <div className="obs-body" key={tab}>
       <div id="obs-print-area">
-        {tab === 'geral' && <><Leituras irPara={irPara} nomeSeparador={nomeSeparador} /><Geral rep={reputacaoMedia} repL={reputacaoLocais} repR={reputacaoReviews} /></>}
+        {tab === 'geral' && <><Sinais irPara={irPara} nomeSeparador={nomeSeparador} /><Leituras irPara={irPara} nomeSeparador={nomeSeparador} /><Geral rep={reputacaoMedia} repL={reputacaoLocais} repR={reputacaoReviews} /></>}
         {tab === 'procura' && <Procura />}
         {tab === 'economia' && <Economia />}
         {tab === 'mercados' && <Mercados />}
