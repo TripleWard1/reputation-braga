@@ -5,7 +5,6 @@ import { MESES, DORMIDAS_BRAGA } from '@/app/lib/observatorio-dados';
 import { t, getLang } from '@/app/lib/i18n';
 import { C, Card } from './comum';
 import { descarregarDados } from '@/app/lib/exportar-dados';
-import { gerarDocumento, kpis, seccao, subtitulo, tabela, paragrafo, lista, fontes as listaFontes, etiqueta, aviso, type Celula } from '@/app/lib/documento-pdf';
 import { DATAS, MERCADOS, FONTES, type Mercado, type Data, type Texto3, type Grupo } from '@/app/lib/calendario-mercados-dados';
 
 // Calendário de oportunidades por mercado.
@@ -166,12 +165,8 @@ function Bandeira({ m }: { m: Mercado }) {
   return <img src={`https://flagcdn.com/${MERCADOS[m].bandeira}.svg`} alt="" width={18} height={12} loading="lazy" style={{ borderRadius: 2, flexShrink: 0, objectFit: 'cover' }} />;
 }
 
-// Filtro escolhido no ecrã, para o botão «Exportar PDF» do topo exportar o mesmo que se está a ver
-let filtroAtual: Mercado | 'todos' = 'todos';
-
 export default function Calendario() {
   const [filtro, setFiltro] = useState<Mercado | 'todos'>('todos');
-  filtroAtual = filtro;
   const [soOport, setSoOport] = useState(false);
   const idx = indiceMensal();
   const hoje = Date.now() - DIA;
@@ -217,7 +212,7 @@ export default function Calendario() {
   return (
     <>
       <style>{CSS}</style>
-      <Card title={t('Calendário de oportunidades por mercado', 'Opportunity calendar by market')} right={<span style={{ display: 'inline-flex', gap: 6 }}><button type="button" className="cal-exp" onClick={() => exportarCalendarioPdf(filtro)}>PDF</button><button type="button" className="cal-exp" onClick={exportar}>{t('Dados', 'Data')}</button></span>}>
+      <Card title={t('Calendário de oportunidades por mercado', 'Opportunity calendar by market')} right={<button type="button" className="cal-exp" onClick={exportar}>{t('Dados', 'Data')}</button>}>
         <p className="cal-intro">{t('Feriados e férias escolares dos mercados emissores de outubro de 2026 a dezembro de 2027, incluindo os feriados regionais das regiões espanholas com voo direto para o Porto, cruzados com a procura de Braga em cada mês. Uma janela de 3 ou mais dias que cai num mês de procura baixa é uma oportunidade para captar visitantes fora da época alta.', 'Public holidays and school holidays in source markets from October 2026 to December 2027, including regional holidays in the Spanish regions with direct flights to Porto, cross-referenced with demand in Braga each month. A window of 3 or more days falling in a low-demand month is an opportunity to attract visitors outside the peak season.')}</p>
 
         <div className="cal-filtros" role="group" aria-label={t('Filtrar por mercado', 'Filter by market')}>
@@ -318,123 +313,6 @@ export default function Calendario() {
     </>
   );
 }
-// ─── Exportação em PDF: documento A4 construído a partir dos dados (não é uma fotografia do ecrã) ───
-function janelasPara(filtro: Mercado | 'todos'): Janela[] {
-  const hoje = Date.now() - DIA;
-  const todas = construirJanelas();
-  const r: Janela[] = [];
-  for (let i = 0; i < todas.length; i++) {
-    const j = todas[i];
-    if (j.fim < hoje) continue;
-    if (filtro === 'todos' ? !visivelEmTodos(j) : j.mercado !== filtro) continue;
-    r.push(j);
-  }
-  return r;
-}
-function celulaOport(j: Janela, idx: number[]): Celula {
-  return ehOportunidade(j, idx) ? { html: etiqueta(t('Oportunidade', 'Opportunity'), '#0E7490', '#E0F2F7') } : '';
-}
-function celulaMercado(m: Mercado): Celula {
-  const v = MERCADOS[m].voo;
-  return { html: `<b>${nomeMercado(m).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</b>${v ? `<br><span style="color:#6F747D;font-size:9.5px">✈ ${v.aeroportos}${v.sazonal ? ' · ' + t('sazonal', 'seasonal') : ''}</span>` : ''}` };
-}
-export function exportarCalendarioPdf(filtro?: Mercado | 'todos'): void {
-  const f = filtro || filtroAtual;
-  const idx = indiceMensal();
-  const js = janelasPara(f);
-  const oport: Janela[] = [];
-  for (let i = 0; i < js.length; i++) if (ehOportunidade(js[i], idx)) oport.push(js[i]);
-  const mercadosUsados: Mercado[] = [];
-  for (let i = 0; i < js.length; i++) if (mercadosUsados.indexOf(js[i].mercado) < 0) mercadosUsados.push(js[i].mercado);
-
-  let corpo = kpis([
-    { rotulo: t('Oportunidades em época baixa', 'Low-season opportunities'), valor: String(oport.length), nota: t('janelas de 3 ou mais dias em meses de procura baixa', 'windows of 3 or more days in low-demand months'), cor: '#0E7490' },
-    { rotulo: t('Próxima oportunidade', 'Next opportunity'), valor: oport.length ? intervalo(oport[0]) : '—', nota: oport.length ? nomeMercado(oport[0].mercado) : '' },
-    { rotulo: t('Meses de procura baixa', 'Low-demand months'), valor: mesesBaixos(idx), nota: t('índice abaixo de 0,9 (dormidas 2023–2025)', 'index below 0.9 (overnight stays 2023–2025)') },
-    { rotulo: t('Mercados', 'Markets'), valor: String(mercadosUsados.length), nota: f === 'todos' ? t('todos os mercados', 'all markets') : nomeMercado(f as Mercado) },
-  ]);
-  corpo += paragrafo(t('Feriados e férias escolares dos mercados emissores, cruzados com a procura de Braga em cada mês. Uma janela de 3 ou mais dias num mês de procura baixa é uma oportunidade para captar visitantes fora da época alta. «Comunicar até» é uma sugestão da plataforma: 6 semanas antes do início.', 'Public and school holidays in source markets, cross-referenced with demand in Braga each month. A window of 3 or more days in a low-demand month is an opportunity to attract visitors outside the peak season. “Communicate by” is a platform suggestion: 6 weeks before the start.'));
-  if (f !== 'todos' && MERCADOS[f as Mercado].voo) {
-    const v = MERCADOS[f as Mercado].voo!;
-    corpo += aviso(t('Voo direto para o Porto', 'Direct flight to Porto'), `${v.aeroportos} · ${v.companhias}${v.nota ? ' · ' + nomeLang(v.nota) : ''}${v.sazonal ? ' · ' + t('rota só em parte do ano: confirme se há voos nas datas.', 'route only part of the year: check flights on the dates.') : ''}`, 'info');
-  }
-
-  if (oport.length) {
-    corpo += seccao(t('Próximas oportunidades', 'Upcoming opportunities'), t('Janelas de 3 ou mais dias em meses de procura baixa, por ordem de data', 'Windows of 3 or more days in low-demand months, by date'));
-    const linhas: Celula[][] = [];
-    for (let i = 0; i < oport.length && i < 12; i++) {
-      const j = oport[i];
-      linhas.push([{ html: `<b>${intervalo(j)}</b>` }, celulaMercado(j.mercado), j.nomes.join(' + '), `${nomeTipo(j.tipo)} · ${rotuloDias(j)}`, fmtIdx(indiceJanela(j, idx)), fmtDia(j.ini - SEMANAS_ANTECEDENCIA * 7 * DIA)]);
-    }
-    corpo += tabela([t('Datas', 'Dates'), t('Mercado', 'Market'), t('Motivo', 'Reason'), t('Tipo', 'Type'), t('Procura', 'Demand'), t('Comunicar até', 'Communicate by')], linhas, { num: [4], larguras: ['14%', '19%', '', '17%', '9%', '12%'] });
-  }
-
-  corpo += seccao(t('Mês a mês', 'Month by month'), t('Cada janela aparece no mês em que começa · procura de Braga = índice de sazonalidade das dormidas (1,00 = mês médio)', 'Each window appears in the month it starts · Braga demand = seasonality index of overnight stays (1.00 = average month)'));
-  const agora = new Date();
-  let ano = agora.getFullYear(); let mes = agora.getMonth();
-  if (ano < 2026 || (ano === 2026 && mes < 9)) { ano = 2026; mes = 9; }
-  let primeiro = true;
-  while (ano < 2027 || (ano === 2027 && mes <= 11)) {
-    const a = Date.UTC(ano, mes, 1); const b = Date.UTC(ano, mes + 1, 1) - DIA;
-    const doMes: Janela[] = [];
-    for (let i = 0; i < js.length; i++) {
-      const j = js[i];
-      if ((j.ini >= a && j.ini <= b) || (primeiro && j.ini < a && j.fim >= a)) doMes.push(j);
-    }
-    const nv = nivel(idx[mes]);
-    const corNv = nv === 'baixa' ? '#0E7490' : nv === 'alta' ? '#C2410C' : '#5A6270';
-    const fundoNv = nv === 'baixa' ? '#E0F2F7' : nv === 'alta' ? '#FDF1E7' : '#EEF1F5';
-    corpo += `<div class="mes">${subtitulo(fmtMesAno(ano, mes)).replace('</h3>', ` ${etiqueta(`${nomeNivel(nv)} · ${fmtIdx(idx[mes])}`, corNv, fundoNv)}</h3>`)}`;
-    if (!doMes.length) corpo += `<p class="fonte">${t('Sem datas relevantes nos mercados selecionados.', 'No relevant dates in the selected markets.')}</p>`;
-    else {
-      const linhas: Celula[][] = [];
-      for (let i = 0; i < doMes.length; i++) {
-        const j = doMes[i];
-        linhas.push([{ html: `<b>${intervalo(j)}</b>` }, celulaMercado(j.mercado), j.nomes.join(' + '), `${nomeTipo(j.tipo)} · ${rotuloDias(j)}`, celulaOport(j, idx)]);
-      }
-      corpo += tabela([t('Datas', 'Dates'), t('Mercado', 'Market'), t('Motivo', 'Reason'), t('Tipo', 'Type'), ''], linhas, { larguras: ['15%', '21%', '', '22%', '13%'], compacta: true });
-    }
-    corpo += '</div>';
-    primeiro = false;
-    mes++; if (mes > 11) { mes = 0; ano++; }
-  }
-
-  // Voos diretos (regiões espanholas)
-  const lv: Celula[][] = [];
-  for (let i = 0; i < ORDEM.length; i++) {
-    const m = ORDEM[i]; const v = MERCADOS[m].voo;
-    if (!v) continue;
-    if (f !== 'todos' && f !== m) continue;
-    lv.push([nomeMercado(m), v.aeroportos, v.companhias, `${v.sazonal ? t('Rota sazonal', 'Seasonal route') : t('Todo o ano', 'Year-round')}${v.nota ? ' · ' + nomeLang(v.nota) : ''}`]);
-  }
-  if (lv.length) {
-    corpo += seccao(t('Voos diretos para o Porto', 'Direct flights to Porto'), t('Regiões espanholas incluídas no calendário', 'Spanish regions included in the calendar'));
-    corpo += tabela([t('Região', 'Region'), t('Aeroportos', 'Airports'), t('Companhias', 'Airlines'), t('Operação', 'Operation')], lv, { larguras: ['20%', '18%', '30%', ''] });
-  }
-
-  corpo += seccao(t('Como é calculado e limitações', 'How it is calculated and limitations'));
-  corpo += lista([
-    t('Índice de procura = dormidas médias do mês em Braga ÷ média mensal, 2023 a 2025 (INE). Abaixo de 0,9 é procura baixa; a partir de 1,15 é procura alta.', 'Demand index = average overnight stays in Braga in the month ÷ monthly average, 2023 to 2025 (INE). Below 0.9 is low demand; 1.15 or above is high demand.'),
-    t('Os fins de semana prolongados e as pontes são calculados pela plataforma a partir do dia da semana do feriado: segunda ou sexta dão 3 dias; terça ou quinta dão uma ponte de 4 dias; dois feriados separados por um só dia útil também formam uma ponte. Nem todos gozam as pontes.', 'Long weekends and bridges are calculated by the platform from the weekday of the holiday: Monday or Friday give 3 days; Tuesday or Thursday give a 4-day bridge; two holidays one working day apart also form a bridge. Not everyone takes bridges.'),
-    t('Regiões espanholas: só as que têm voo direto para o Porto. Cada região mostra os feriados nacionais e os autonómicos; na vista «Todos» aparecem apenas as janelas com um feriado próprio da região. Festas locais: só as de Barcelona, publicadas na Gaseta Municipal; as dos outros municípios não estão incluídas. Astúrias: falta a decisão sobre os feriados nacionais substituíveis de 2027.', 'Spanish regions: only those with direct flights to Porto. Each region shows national and regional holidays; the “All” view shows only windows with a holiday specific to the region. Local holidays: only Barcelona’s, published in its Gaseta Municipal; those of other municipalities are not included. Asturias: the decision on the substitutable national holidays for 2027 is still pending.'),
-    t('Espanha inclui só os feriados nacionais comuns a todas as comunidades; os feriados regionais e locais variam. Em França, as férias de inverno e da primavera dependem da zona escolar. Reino Unido: Inglaterra e País de Gales. As férias de verão em França foram omitidas por falta de duas fontes coincidentes.', 'Spain includes only the national holidays common to all regions; regional and local holidays vary. In France, winter and spring holidays depend on the school zone. United Kingdom: England and Wales. Summer holidays in France were omitted for lack of two matching sources.'),
-    t('Calendários publicados podem ser alterados pelas autoridades; confirme antes de campanhas.', 'Published calendars may be changed by the authorities; confirm before campaigns.'),
-  ]);
-  const fs: { nome: string; url?: string }[] = [];
-  const chaves = Object.keys(FONTES);
-  for (let i = 0; i < chaves.length; i++) fs.push({ nome: FONTES[chaves[i]].nome, url: FONTES[chaves[i]].url });
-  corpo += seccao(t('Fontes', 'Sources'));
-  corpo += listaFontes(fs);
-
-  gerarDocumento({
-    eyebrow: t('Observatório de Turismo de Braga · Procura', 'Braga Tourism Observatory · Demand'),
-    titulo: t('Calendário de oportunidades por mercado', 'Opportunity calendar by market'),
-    subtitulo: `${t('Outubro de 2026 a dezembro de 2027', 'October 2026 to December 2027')} · ${f === 'todos' ? t('todos os mercados', 'all markets') : nomeMercado(f as Mercado)}`,
-    ficheiro: `${t('Calendário de oportunidades', 'Opportunity calendar')}${f === 'todos' ? '' : ' - ' + nomeMercado(f as Mercado)}`,
-    corpo,
-  });
-}
-
 function mesesBaixos(idx: number[]) { const r: string[] = []; for (let m = 0; m < 12; m++) if (idx[m] < LIMIAR_BAIXA) r.push(mesCurto(m)); return r.join(' · '); }
 function nomeFonte(k: string) { return FONTES[k] ? FONTES[k].nome : k; }
 function fmtIdx(v: number) { return v.toLocaleString(loc(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
