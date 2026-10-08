@@ -11,7 +11,7 @@ const LARGURA_PX = 794; // A4 a 96 ppp
 const H2C = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
 const JSPDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 const cache: Record<string, Promise<void>> = {};
-function carregar(src: string): Promise<void> {
+export function carregar(src: string): Promise<void> {
   if (!cache[src]) {
     cache[src] = new Promise((ok, falha) => {
       const sc = document.createElement('script');
@@ -24,7 +24,7 @@ function carregar(src: string): Promise<void> {
   return cache[src];
 }
 
-function aviso(texto: string): { mudar: (x: string) => void; fechar: () => void } {
+export function aviso(texto: string): { mudar: (x: string) => void; fechar: () => void } {
   const el = document.createElement('div');
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');

@@ -1,7 +1,8 @@
 // Carregamento de partes da app (import dinâmico) com recuperação.
 // Depois de um novo deploy (ou de uma recompilação no StackBlitz), quem tem a página aberta pode pedir
 // uma parte com o nome antigo, que já não existe ("ChunkLoadError"). Aqui: tenta outra vez e, se voltar
-// a falhar, recarrega a página UMA vez (no máximo uma vez por minuto, para nunca entrar em ciclo).
+// a falhar, recarrega a página UMA vez (no máximo uma vez por minuto, para nunca entrar em ciclo),
+// guardando onde se estava para voltar ao mesmo separador e avisar que a plataforma foi atualizada.
 export function comRecuperacao<T>(carregar: () => Promise<T>): () => Promise<T> {
   return () =>
     carregar().catch(
@@ -14,6 +15,7 @@ export function comRecuperacao<T>(carregar: () => Promise<T>): () => Promise<T> 
                   const ultima = Number(sessionStorage.getItem('rb-recarregou') || 0);
                   if (Date.now() - ultima > 60000) {
                     sessionStorage.setItem('rb-recarregou', String(Date.now()));
+                    sessionStorage.setItem('rb-voltar', window.location.pathname + window.location.search);
                     window.location.reload();
                     return;
                   }

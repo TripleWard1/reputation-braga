@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { exportarSeparador } from '@/app/lib/exportar-separador';
 import { abrirJanelaDocumento } from '@/app/lib/abrir-documento';
 import { comRecuperacao } from '@/app/lib/carregar';
 import Perguntar from './obs/Perguntar';
@@ -557,7 +558,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
           note: t('Crescimento sustentado desde a retoma pós-pandemia.', 'Sustained growth since the post-pandemic recovery.') },
         { kind: 'prose', title: t('Enquadramento', 'Context'), paras: [
           t('Regulamento n.º 927/2025: 1,50 € por dormida, até ao máximo de 4 noites, aplicável a hóspedes com mais de 16 anos.', 'Regulation no. 927/2025: €1.50 per overnight stay, up to a maximum of 4 nights, applicable to guests over 16 years old.'),
-          t(`A receita de 2025 totalizou ${dEur(TX['2025'].Total)}, mais ${dPct(((TX['2025'].Total - TX['2024'].Total) / TX['2024'].Total) * 100)} do que em 2024. Em 2026, a taxa passou a ser cobrada todo o ano, e não só de março a outubro, mantendo 1,50 € por noite: daí a receita nos meses de inverno (janeiro: ${dEur(TX['2026'].Janeiro)}).`, `The 2025 revenue totalled ${dEur(TX['2025'].Total)}, ${dPct(((TX['2025'].Total - TX['2024'].Total) / TX['2024'].Total) * 100)} more than in 2024. In 2026 the tax started being charged all year round, not only from March to October, keeping €1.50 per night: hence the revenue in the winter months (January: ${dEur(TX['2026'].Janeiro)}).`),
+          t(`A receita de 2025 totalizou ${dEur(TX['2025'].Total)}, mais ${dPct(((TX['2025'].Total - TX['2024'].Total) / TX['2024'].Total) * 100)} do que em 2024. Desde o fim de julho de 2025 (Regulamento n.º 927/2025), a taxa é cobrada todo o ano, e não só de março a outubro, mantendo 1,50 € por noite: daí a receita nos meses de inverno (janeiro de 2026: ${dEur(TX['2026'].Janeiro)}).`, `The 2025 revenue totalled ${dEur(TX['2025'].Total)}, ${dPct(((TX['2025'].Total - TX['2024'].Total) / TX['2024'].Total) * 100)} more than in 2024. Since late July 2025 (Regulation no. 927/2025), the tax has been charged all year round, not only from March to October, keeping €1.50 per night: hence the revenue in the winter months (January 2026: ${dEur(TX['2026'].Janeiro)}).`),
         ] },
       ],
       footerR: t('Taxa Municipal Turística', 'Municipal Tourist Tax'),
@@ -769,6 +770,19 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   // Calendário: documento próprio, gerado a partir dos dados (o módulo só é carregado quando é preciso)
   const exportCalendario = () => { import('./obs/Calendario').then(abrirCalendarioPdf).catch(() => {}); };
 
+  // Exportar PDF: o calendário tem documento próprio; todos os outros separadores exportam o conteúdo COMPLETO
+  // (todos os cartões, gráficos e tabelas), em versão clara, com cabeçalho e páginas numeradas.
+  const exportarAtual = () => {
+    if (tab === 'calendario') { exportCalendario(); return; }
+    const el = document.getElementById('obs-print-area');
+    if (!el) return;
+    void exportarSeparador(el, {
+      eyebrow: `${t('Observatório de Turismo de Braga', 'Braga Tourism Observatory')} · ${grupoAtual.label}`,
+      titulo: tabLabel,
+      subtitulo: t('Dados e fontes indicados em cada gráfico · versão para impressão da plataforma', 'Data and sources shown in each chart · print version of the platform'),
+    });
+  };
+
   const exportarPDF = () => {
     const node = document.getElementById('obs-print-area');
     if (!node) return;
@@ -817,15 +831,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
           <h1 className="obs-h1">{t('Observatório de Turismo de Braga', 'Braga Tourism Observatory')}</h1>
           <p style={{ color: C.textMuted, fontSize: 15, margin: 0, maxWidth: 760, lineHeight: 1.55 }}>{t('Análise integrada de dados reais - INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística', 'Integrated analysis of real data - INE/TravelBI · Front Desk · Municipal Tourist Tax')}</p>
           {tab !== 'meteo' && (
-            <button className="obs-pdf-m" onClick={() => {
-              const map: Record<string, () => void> = {
-                geral: exportGeral, procura: exportProcura, economia: exportEconomia, mercados: exportMercados,
-                balcao: exportBalcao, taxa: exportTaxa, sustentabilidade: exportSustentabilidade,
-                digital: exportDigital, acessibilidade: exportAcessibilidade, caminhos: exportCaminhos,
-                cruzamentos: exportCruzamentos, calendario: exportCalendario,
-              };
-              (map[tab] || exportarPDF)();
-            }}>
+            <button className="obs-pdf-m" onClick={exportarAtual}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v11m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></svg>
               {t('Exportar PDF', 'Export PDF')}
             </button>
@@ -855,15 +861,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
             <span>{t('Copiar ligação', 'Copy link')}</span>
           </button>
           {tab !== 'meteo' && (
-            <button className="obs-pdf" onClick={() => {
-              const map: Record<string, () => void> = {
-                geral: exportGeral, procura: exportProcura, economia: exportEconomia, mercados: exportMercados,
-                balcao: exportBalcao, taxa: exportTaxa, sustentabilidade: exportSustentabilidade,
-                digital: exportDigital, acessibilidade: exportAcessibilidade, caminhos: exportCaminhos,
-                cruzamentos: exportCruzamentos, calendario: exportCalendario,
-              };
-              (map[tab] || exportarPDF)();
-            }}>{t('Exportar PDF', 'Export PDF')}</button>
+            <button className="obs-pdf" onClick={exportarAtual}>{t('Exportar PDF', 'Export PDF')}</button>
           )}
         </div>
         {grupoAtual.tabs.length > 1 && (

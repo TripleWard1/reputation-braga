@@ -85,7 +85,7 @@ export default function SimuladorTaxa() {
           <span className="sim-l">{t('Período de cobrança', 'Collection period')}</span>
           <div className="sim-seg" role="group" aria-label={t('Período de cobrança', 'Collection period')}>
             <button type="button" className={todoAno ? 'on' : ''} aria-pressed={todoAno} onClick={() => setTodoAno(true)}>{t('Todo o ano (atual)', 'All year (current)')}</button>
-            <button type="button" className={!todoAno ? 'on' : ''} aria-pressed={!todoAno} onClick={() => setTodoAno(false)}>{t('Só março a outubro (até 2025)', 'March to October only (until 2025)')}</button>
+            <button type="button" className={!todoAno ? 'on' : ''} aria-pressed={!todoAno} onClick={() => setTodoAno(false)}>{t('Só março a outubro (regra anterior)', 'March to October only (previous rule)')}</button>
           </div>
 
           <label className="sim-l" htmlFor="sim-var">{t('Variação das dormidas', 'Change in overnight stays')} <b>{variacao > 0 ? '+' : ''}{variacao}%</b></label>
@@ -124,6 +124,7 @@ export default function SimuladorTaxa() {
           <li>{t('Abril a junho de 2026 são provisórios e estão subavaliados (faturas ainda por cobrar), por isso a base é conservadora.', 'April to June 2026 are provisional and understated (invoices still unpaid), so the base is conservative.')}</li>
           <li>{t('Não é possível simular o número máximo de noites nem a idade de isenção: faltam a distribuição das estadas por número de noites e a idade dos hóspedes.', 'The maximum number of nights and the exemption age cannot be simulated: the distribution of stays by number of nights and the age of guests are not available.')}</li>
           <li>{t('O simulador não estima se um valor mais alto reduziria a procura; para isso use a variação das dormidas como cenário.', 'The simulator does not estimate whether a higher rate would reduce demand; use the change in stays as a scenario for that.')}</li>
+          <li>{t('A receita simulada é o valor cobrado aos hóspedes. Os alojamentos retêm uma comissão de cobrança de 2,5% (artigo H-4/7.º do Código Regulamentar), por isso o valor que chega ao Município é cerca de 97,5% deste.', 'Simulated revenue is the amount charged to guests. Accommodation providers keep a 2.5% collection fee (article H-4/7 of the Municipal Regulatory Code), so the amount reaching the Municipality is about 97.5% of it.')}</li>
           <li>{t('Valores de referência de outros municípios: Postal, 29/07/2026. O número máximo de noites e as isenções variam de município para município.', 'Reference rates of other municipalities: Postal, 29/07/2026. The maximum number of nights and exemptions vary between municipalities.')}</li>
         </ul>
       </details>
