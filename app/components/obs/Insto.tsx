@@ -3,6 +3,7 @@
 import { t } from '@/app/lib/i18n';
 import { DORMIDAS_BRAGA, MESES } from '@/app/lib/observatorio-dados';
 import { INSTO_DADOS } from '@/app/lib/insto-dados';
+import { INDICADORES_SIMPLES } from '@/app/lib/indicadores-simples';
 import { C, SectionTitle, KPI, Card } from './comum';
 
 // Prontidão de Braga para a rede INSTO (UN Tourism International Network of Sustainable Tourism Observatories):
@@ -120,6 +121,17 @@ export default function Insto({ irPara, nomeSeparador, semTitulo }: { irPara: (i
           </div>
         ))}
         <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55, marginTop: 10, padding: '10px 12px', borderRadius: 8, background: 'rgba(237,160,107,.1)', border: '1px solid rgba(237,160,107,.3)' }}>{t('Ponto a melhorar: no Barómetro 2026, 45% dos residentes dizem que não são ouvidos nas decisões sobre o turismo. Um grupo de trabalho local da INSTO, com residentes, é a resposta natural.', 'Area to improve: in the 2026 Barometer, 45% of residents say they are not heard in tourism decisions. A local INSTO working group including residents is the natural response.')}</div>
+      </Card>
+      <Card title={t('Como ler os indicadores do Relatório INSTO', 'How to read the INSTO Report indicators')}>
+        <div style={{ fontSize: 13.5, color: C.textMuted, lineHeight: 1.6, marginBottom: 12 }}>{t('O relatório usa alguns indicadores técnicos. Em poucas palavras, é isto que cada um diz:', 'The report uses a few technical indicators. In a few words, this is what each one says:')}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+          {INDICADORES_SIMPLES.map((x) => (
+            <div key={x.pt[0]} style={{ background: C.cardAlt, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t(x.pt[0], x.en[0])}</div>
+              <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.55, marginTop: 4 }}>{t(x.pt[1], x.en[1])}</div>
+            </div>
+          ))}
+        </div>
       </Card>
     </>
   );

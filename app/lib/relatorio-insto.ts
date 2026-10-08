@@ -10,6 +10,7 @@ import { SIBS_PAISES, SIBS_PERIODO } from '@/app/lib/sibs-dados';
 import { PERFIL_TURISTA } from '@/app/lib/perfil-turista-dados';
 import { AEROPORTO_PORTO } from '@/app/lib/alojamento-aeroporto-dados';
 import { CONTACTOS } from '@/app/lib/contactos';
+import { INDICADORES_SIMPLES } from '@/app/lib/indicadores-simples';
 import { FREGUESIAS, POP_CONCELHO } from '@/app/lib/freguesias-dados';
 
 // Relatório Anual de Monitorização INSTO: documento institucional completo, gerado com os dados da plataforma.
@@ -325,6 +326,8 @@ ${par([`O emprego no alojamento e restauração em Braga cresceu ${pc(empVar)} e
     [R(['Resíduos', 'Waste']), R(['Resíduos por habitante; recolha seletiva', 'Waste per inhabitant; separate collection']), 'INE · Green Destinations', R(['Anual', 'Annual'])],
     [R(['Ação climática', 'Climate action']), R(['Emissões de CO₂ por setor', 'CO₂ emissions by sector']), R(['PAESC', 'SECAP']), R(['Bienal', 'Biennial'])],
   ]);
+  let simples = '';
+  for (let i = 0; i < INDICADORES_SIMPLES.length; i++) { const x = INDICADORES_SIMPLES[i]; simples += `<li><b>${esc(R([x.pt[0], x.en[0]]))}</b>: ${esc(R([x.pt[1], x.en[1]]))}</li>`; }
   const glossario: Texto[] = [
     ['ADR: preço médio por quarto ocupado.', 'ADR: average daily rate per occupied room.'], ['RevPAR: receita por quarto disponível.', 'RevPAR: revenue per available room.'],
     ['Dormida: noite passada por um hóspede num estabelecimento de alojamento turístico.', 'Overnight stay: a night spent by a guest in tourist accommodation.'],
@@ -383,7 +386,8 @@ ${par(['Três quadros teóricos orientam a leitura dos resultados. O modelo do c
 <div class="pag quebra"><h2 class="sec">${R(['3. Metodologia', '3. Methodology'])}</h2>
 ${par(['O relatório segue uma abordagem quantitativa e descritiva, combinando fontes estatísticas oficiais, dados administrativos do Município e inquéritos próprios. Privilegiam-se séries comparáveis (2019 como ano pré-pandemia de referência) e comparações territoriais com o Cávado, a Região Norte e Portugal. As áreas ambientais são medidas à escala do concelho, como a rede admite, com uma estimativa do peso do turismo.', 'The report follows a quantitative, descriptive approach, combining official statistics, municipal administrative data and own surveys. Comparable series are preferred (2019 as the pre-pandemic reference year), alongside territorial comparisons with Cávado, the North region and Portugal. Environmental areas are measured at municipal level, as the network allows, with an estimate of tourism’s share.'])}
 <h4>${R(['Fontes de dados', 'Data sources'])}</h4>${fontesMetodo}
-<h4>${R(['Métodos e indicadores calculados', 'Methods and calculated indicators'])}</h4>${lista(metodos)}</div>
+<h4>${R(['Métodos e indicadores calculados', 'Methods and calculated indicators'])}</h4>${lista(metodos)}
+<div class="abstract"><h4 style="margin-top:0">${R(['Em linguagem simples', 'In plain language'])}</h4><ul class="res">${simples}</ul></div></div>
 
 <div class="pag quebra"><h2 class="sec">${R(['4. Caracterização do destino', '4. Destination profile'])}</h2>${caract}</div>
 

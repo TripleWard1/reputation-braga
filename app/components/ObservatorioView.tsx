@@ -283,7 +283,8 @@ const OBS_CSS = `
 `;
 
 type Tab = 'geral' | 'insto' | 'procura' | 'estimativa' | 'mobilidade' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'calendario' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
-function abrirCalendarioPdf(m: { exportarCalendarioPdf: () => void }) { m.exportarCalendarioPdf(); }
+// Sem tipo estrito: o separador funciona mesmo que o módulo do calendário ainda não tenha a exportação em PDF
+function abrirCalendarioPdf(m: any) { if (m && typeof m.exportarCalendarioPdf === 'function') m.exportarCalendarioPdf(); }
 const IDS_TAB: string[] = ['insto', 'geral', 'procura', 'estimativa', 'mobilidade', 'economia', 'emprego', 'cartoes', 'perfil', 'animacao', 'ferramentas', 'hotelaria', 'cultura', 'lojas', 'alojamento', 'aeroporto', 'mercados', 'calendario', 'balcao', 'taxa', 'sustentabilidade', 'digital', 'acessibilidade', 'meteo', 'caminhos', 'cruzamentos'];
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; reputacaoResumo?: string; separadorInicial?: string; }

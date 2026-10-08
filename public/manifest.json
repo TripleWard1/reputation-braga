@@ -1,16 +1,16 @@
 {
-  "name": "Reputação Braga",
-  "short_name": "Rep. Braga",
-  "description": "Análise de reputação online dos pontos turísticos de Braga",
+  "name": "Observatório de Turismo de Braga",
+  "short_name": "Turismo Braga",
+  "description": "Procura, economia, reputação e sustentabilidade do destino. Município de Braga · Visit Braga.",
+  "lang": "pt-PT",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#0c0e14",
   "theme_color": "#0c0e14",
   "icons": [
-    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png" },
     { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
