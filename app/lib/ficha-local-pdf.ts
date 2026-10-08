@@ -146,7 +146,7 @@ export function exportarFichaLocal(d: DadosFicha): void {
     c += ev && ds ? duas(ev, ds) : ev + ds;
     if (d.trimestres.length >= 2) {
       const linhas: Celula[][] = [];
-      for (let i = 0; i < d.trimestres.length; i++) { const z = d.trimestres[i]; linhas.push([rotuloTrimestre(z.q), f1(z.avg, 2), String(z.n), z.negPct == null ? '—' : `${f1(z.negPct, 1)}%`]); }
+      for (let i = 0; i < d.trimestres.length; i++) { const z = d.trimestres[i]; linhas.push([rotuloTrimestre(z.q), f1(z.avg, 2), String(z.n), z.negPct == null ? '-' : `${f1(z.negPct, 1)}%`]); }
       c += tabela([t('Trimestre', 'Quarter'), t('Média (estrelas)', 'Average (stars)'), t('Avaliações', 'Reviews'), t('% negativas', '% negative')], linhas, { num: [1, 2, 3], compacta: true });
     }
   }
@@ -185,7 +185,7 @@ export function exportarFichaLocal(d: DadosFicha): void {
       const linhas: Celula[][] = [];
       for (let i = 0; i < d.mercados.length; i++) {
         const m = d.mercados[i];
-        linhas.push([{ html: `<b>${esc(m.nome)}</b><br><span style="color:#6F747D;font-size:9.5px">${m.n} · ${f1(m.avg, 2)} ★ · ${f1(m.neg, 1)}% ${esc(t('negativos', 'negative'))}</span>` }, { html: `<span style="color:#2E7D4F">${esc(m.valoriza.join(' · ') || '—')}</span>` }, { html: `<span style="color:#B42318">${esc(m.critica.join(' · ') || t('sem críticas relevantes', 'no relevant criticism'))}</span>` }]);
+        linhas.push([{ html: `<b>${esc(m.nome)}</b><br><span style="color:#6F747D;font-size:9.5px">${m.n} · ${f1(m.avg, 2)} ★ · ${f1(m.neg, 1)}% ${esc(t('negativos', 'negative'))}</span>` }, { html: `<span style="color:#2E7D4F">${esc(m.valoriza.join(' · ') || '-')}</span>` }, { html: `<span style="color:#B42318">${esc(m.critica.join(' · ') || t('sem críticas relevantes', 'no relevant criticism'))}</span>` }]);
       }
       c += tabela([t('Mercado', 'Market'), t('Valoriza', 'Values'), t('Critica', 'Criticises')], linhas, { larguras: ['26%', '', ''], compacta: true });
     }
