@@ -61,8 +61,10 @@ export function clarearElemento(win: Window, raiz: HTMLElement): void {
     const st = (el as HTMLElement).style;
     if (!st) continue;
     const tag = el.tagName.toLowerCase();
-    // Botões, campos e controlos não vão para o PDF
-    if (tag === 'button' || tag === 'input' || tag === 'select' || tag === 'textarea' || (el as Element).getAttribute('data-sem-pdf') !== null) { st.setProperty('display', 'none', 'important'); continue; }
+    // Fora do PDF: tabelas só para leitores de ecrã (o html2canvas não as esconde e escrevia-as por cima dos gráficos),
+    // botões de descarregar e campos de formulário. Os restantes botões ficam, porque muitas vezes têm conteúdo (nomes, linhas).
+    const cl = (el as Element).getAttribute('class') || '';
+    if (/(^|\s)(obs-sr|rb-sr|obs-dl|rb-dados|sim-exp|cal-exp|obs-leit-setas)(\s|$)/.test(cl) || tag === 'input' || tag === 'select' || tag === 'textarea' || (el as Element).getAttribute('data-sem-pdf') !== null) { st.setProperty('display', 'none', 'important'); continue; }
     st.setProperty('box-shadow', 'none', 'important');
     st.setProperty('text-shadow', 'none', 'important');
     st.setProperty('animation', 'none', 'important');
@@ -79,6 +81,17 @@ export function clarearElemento(win: Window, raiz: HTMLElement): void {
     for (let k = 0; k < 4; k++) { const b = corDe(lados[k][1]); if (b && b.a > 0.05 && lum(b) < 0.4) st.setProperty(lados[k][0], '#E1E6EE', 'important'); }
     // Gráficos (SVG): texto claro → escuro; linhas de grelha escuras → cinzento claro
     if (el instanceof (win as any).SVGElement) {
+      // Barras com degradê definido noutro gráfico: o html2canvas desenha cada gráfico à parte e perdia a cor
+      if (s.fill && s.fill.indexOf('url(') === 0) {
+        const m = s.fill.match(/#([^"')\s]+)/);
+        const g = m ? win.document.getElementById(m[1]) : null;
+        const svgProprio = (el as Element).closest('svg');
+        if (g && (!svgProprio || !svgProprio.contains(g))) {
+          const stop = g.querySelector('stop');
+          const cor = stop ? (stop.getAttribute('stop-color') || win.getComputedStyle(stop).stopColor) : null;
+          if (cor) st.setProperty('fill', cor, 'important');
+        }
+      }
       const f = corDe(s.fill);
       if (f && (tag === 'text' || tag === 'tspan')) { const n = textoClaro(f); if (n) st.setProperty('fill', n, 'important'); }
       else if (f && f.a > 0.05 && lum(f) < 0.25 && tag !== 'svg') st.setProperty('fill', '#EEF1F5', 'important');
@@ -117,26 +130,31 @@ function repor(mexidos: { el: HTMLElement; estilo: string | null }[]): void {
   for (let i = 0; i < mexidos.length; i++) { const m = mexidos[i]; if (m.estilo == null) m.el.removeAttribute('style'); else m.el.setAttribute('style', m.estilo); }
 }
 
-// Pontos onde se pode cortar a página: fundo de cartões, linhas de tabela, parágrafos (nunca logo a seguir a um título)
-function pontosDeCorte(raiz: HTMLElement): number[] {
+// Zonas onde NÃO se pode cortar: o espaço ocupado por cada bloco pequeno (texto, linha de tabela, gráfico, cartão).
+// Um corte só pode cair num intervalo vazio entre blocos; depois de um título fica reservado espaço para o conteúdo.
+export function zonasOcupadas(raiz: HTMLElement, altPagina: number): [number, number][] {
   const topo = raiz.getBoundingClientRect().top;
-  const r: number[] = [];
-  const els = raiz.querySelectorAll('.obs-card, tr, p, li, h2, h3, section, article, [data-corte]');
-  for (let i = 0; i < els.length; i++) {
-    const e = els[i] as HTMLElement;
+  const iv: [number, number][] = [];
+  const lista = raiz.querySelectorAll('*');
+  for (let i = 0; i < lista.length; i++) {
+    const e = lista[i] as HTMLElement;
+    if (e.closest && e.closest('.obs-sr, .rb-sr')) continue;
     const b = e.getBoundingClientRect();
-    if (b.height <= 0) continue;
-    if (e.tagName === 'TR' && e.parentElement && e.parentElement.tagName === 'THEAD') continue;
-    if (/^H[1-4]$/.test(e.tagName)) continue;
-    r.push(Math.round(b.bottom - topo + 8));
+    if (b.height <= 1 || b.width <= 1 || b.height > altPagina * 0.6) continue;
+    let fim = b.bottom - topo;
+    if (/^H[1-6]$/.test(e.tagName) || (e.style && parseFloat(e.style.fontSize || '0') >= 18)) fim += 60;
+    iv.push([b.top - topo + 0.5, fim - 0.5]);
   }
-  // Fim de cada linha de cartões (grelhas com vários cartões lado a lado)
-  const filhos = raiz.querySelectorAll(':scope > div, :scope > * > div');
-  for (let i = 0; i < filhos.length; i++) { const b = (filhos[i] as HTMLElement).getBoundingClientRect(); if (b.height > 0) r.push(Math.round(b.bottom - topo + 8)); }
-  r.sort((a, b) => a - b);
-  return r;
+  iv.sort(porInicio);
+  const unidas: [number, number][] = [];
+  for (let i = 0; i < iv.length; i++) {
+    const u = unidas.length ? unidas[unidas.length - 1] : null;
+    if (u && iv[i][0] <= u[1]) { if (iv[i][1] > u[1]) u[1] = iv[i][1]; } else unidas.push([iv[i][0], iv[i][1]]);
+  }
+  return unidas;
 }
-function fatias(total: number, primeira: number, outras: number, cortes: number[]): [number, number][] {
+function porInicio(a: [number, number], b: [number, number]) { return a[0] - b[0]; }
+export function fatias(total: number, primeira: number, outras: number, zonas: [number, number][]): [number, number][] {
   const r: [number, number][] = [];
   let ini = 0;
   while (ini < total - 4) {
@@ -144,11 +162,39 @@ function fatias(total: number, primeira: number, outras: number, cortes: number[
     const lim = ini + alt;
     let fim = -1;
     if (lim >= total) fim = total;
-    else for (let i = cortes.length - 1; i >= 0; i--) if (cortes[i] <= lim && cortes[i] > ini + alt * 0.4) { fim = cortes[i]; break; }
+    else {
+      // o último espaço livre antes do limite da página
+      for (let i = zonas.length - 1; i >= 0; i--) {
+        const livreIni = zonas[i][1];
+        const livreFim = i + 1 < zonas.length ? zonas[i + 1][0] : total;
+        if (livreIni > lim) continue;
+        const corte = Math.min(lim, livreIni + Math.min(10, (livreFim - livreIni) / 2));
+        if (corte > ini + alt * 0.3) { fim = Math.round(corte); break; }
+        break;
+      }
+    }
     if (fim < 0) fim = Math.min(total, lim);
     r.push([ini, fim]); ini = fim;
   }
   return r;
+}
+// Números grandes cabem no cartão, sem espaçamento entre letras (o html2canvas desenha-o letra a letra e desalinhava)
+export const CSS_EXPORTAR = `
+.obs-exportando .obs-kpi-v { font-size: 27px !important; white-space: nowrap !important; }
+.obs-exportando * { letter-spacing: normal !important; font-variant-numeric: normal !important; font-feature-settings: normal !important; }
+.obs-exportando .obs-dl, .obs-exportando .rb-dados, .obs-exportando .sim-exp, .obs-exportando .cal-exp, .obs-exportando .obs-leit-setas { display: none !important; }
+.obs-exportando .obs-card { opacity: 1 !important; transform: none !important; transition: none !important; }
+`;
+function esperarImagens(raiz: HTMLElement): Promise<void> {
+  const imgs = raiz.querySelectorAll('img');
+  const ps: Promise<void>[] = [];
+  for (let i = 0; i < imgs.length; i++) ps.push(esperarUma(imgs[i] as HTMLImageElement));
+  return Promise.all(ps).then(nada);
+}
+function nada() { /* fim */ }
+function esperarUma(im: HTMLImageElement): Promise<void> {
+  if (im.complete) return Promise.resolve();
+  return new Promise<void>((ok) => { im.addEventListener('load', () => ok()); im.addEventListener('error', () => ok()); setTimeout(ok, 6000); });
 }
 function esperar(ms: number): Promise<void> { return new Promise((ok) => setTimeout(ok, ms)); }
 function nomeFicheiro(x: string): string {
@@ -170,15 +216,24 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
   const av = aviso(t('A preparar o PDF…', 'Preparing the PDF…'));
   const antes = { width: el.style.width, maxWidth: el.style.maxWidth, minWidth: el.style.minWidth };
   let mexidos: { el: HTMLElement; estilo: string | null }[] = [];
+  let estilo: HTMLStyleElement | null = null;
   try {
     // 1) Todos os cartões visíveis (os que ainda não tinham aparecido ao descer)
     window.dispatchEvent(new Event('beforeprint'));
     // 2) Largura de folha, para os gráficos se redesenharem à medida
     el.style.width = `${LARGURA}px`; el.style.maxWidth = `${LARGURA}px`; el.style.minWidth = `${LARGURA}px`;
+    // Ajustes de impressão (aplicados também ao conteúdo real, para as medidas das páginas baterem certo)
+    estilo = document.createElement('style');
+    estilo.textContent = CSS_EXPORTAR;
+    document.head.appendChild(estilo);
+    el.classList.add('obs-exportando');
     window.dispatchEvent(new Event('resize'));
-    await Promise.all([carregar(H2C), carregar(JSPDF), esperar(1900)]);
+    // Imagens que só carregavam ao descer passam a carregar já
+    const imgs = el.querySelectorAll('img');
+    for (let i = 0; i < imgs.length; i++) { const im = imgs[i] as HTMLImageElement; if (im.loading === 'lazy') im.loading = 'eager'; }
+    await Promise.all([carregar(H2C), carregar(JSPDF), esperar(2200)]);
     mexidos = abrirFaixas(el);
-    await esperar(300);
+    await Promise.all([esperarImagens(el), esperar(400)]);
     const w = window as any;
     const html2canvas = w.html2canvas; const JsPDF = w.jspdf && w.jspdf.jsPDF;
     if (!html2canvas || !JsPDF) throw new Error('bibliotecas');
@@ -189,7 +244,7 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
     const pxMm = LARGURA / largMm;
     const primeira = Math.floor((297 - MARGEM * 2 - CAB_MM) * pxMm);
     const outras = Math.floor((297 - MARGEM * 2) * pxMm);
-    const partes = fatias(total, primeira, outras, pontosDeCorte(el));
+    const partes = fatias(total, primeira, outras, zonasOcupadas(el, outras));
 
     av.mudar(t('A gerar o PDF…', 'Generating the PDF…'));
     let escala = 2;
@@ -241,6 +296,8 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
   } finally {
     el.removeAttribute(ATRIB);
     repor(mexidos);
+    el.classList.remove('obs-exportando');
+    if (estilo) estilo.remove();
     el.style.width = antes.width; el.style.maxWidth = antes.maxWidth; el.style.minWidth = antes.minWidth;
     window.dispatchEvent(new Event('resize'));
     av.fechar();

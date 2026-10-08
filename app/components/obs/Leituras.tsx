@@ -54,7 +54,7 @@ function montar(): Leitura[] {
     frase: t(`dos visitantes inquiridos não pernoita em Braga: converter visitas de um dia em estadias é a maior margem de crescimento.`, `of surveyed visitors do not stay overnight: turning day trips into stays is the biggest growth margin.`) });
   const SU: any = SUSTENTABILIDADE;
   if (SU?.percecao) out.push({ id: 'sustentabilidade', tema: t('Sustentabilidade', 'Sustainability'), valor: `${dec(SU.percecao.positiva)}%`, separador: 'sustentabilidade',
-    frase: t(`dos residentes veem o turismo de forma positiva; destino com certificação ${SU.certificacao} e ${SETOR_SUSTENTAVEL.certificados.length} negócios com certificação ambiental.`, `of residents view tourism positively; ${SU.certificacao}-certified destination with ${SETOR_SUSTENTAVEL.certificados.length} environmentally certified businesses.`) });
+    frase: t(`dos residentes veem o turismo de forma positiva; destino com certificação ${(SU.destino && SU.destino.certificacao) || ''} da Green Destinations e ${SETOR_SUSTENTAVEL.certificados.length} negócios com certificação ambiental.`, `of residents view tourism positively; Green Destinations ${(SU.destino && SU.destino.certificacao) || ''} certified destination with ${SETOR_SUSTENTAVEL.certificados.length} environmentally certified businesses.`) });
   return out;
 }
 
