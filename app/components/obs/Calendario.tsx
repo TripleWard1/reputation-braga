@@ -244,7 +244,7 @@ export default function Calendario() {
 
         <div className="cal-kpis">
           <div><b>{oport.length}</b><span>{t('janelas de 3 ou mais dias em meses de procura baixa', 'windows of 3 or more days in low-demand months')}</span></div>
-          <div><b>{proximas.length ? intervalo(proximas[0]) : '—'}</b><span>{proximas.length ? `${t('próxima oportunidade', 'next opportunity')} · ${nomeMercado(proximas[0].mercado)}` : t('sem oportunidades no período', 'no opportunities in the period')}</span></div>
+          <div><b>{proximas.length ? intervalo(proximas[0]) : '-'}</b><span>{proximas.length ? `${t('próxima oportunidade', 'next opportunity')} · ${nomeMercado(proximas[0].mercado)}` : t('sem oportunidades no período', 'no opportunities in the period')}</span></div>
           <div><b>{mesesBaixos(idx)}</b><span>{t('meses de procura baixa em Braga (índice abaixo de 0,9)', 'low-demand months in Braga (index below 0.9)')}</span></div>
         </div>
 
@@ -349,7 +349,7 @@ export function exportarCalendarioPdf(filtro?: Mercado | 'todos'): void {
 
   let corpo = kpis([
     { rotulo: t('Oportunidades em época baixa', 'Low-season opportunities'), valor: String(oport.length), nota: t('janelas de 3 ou mais dias em meses de procura baixa', 'windows of 3 or more days in low-demand months'), cor: '#0E7490' },
-    { rotulo: t('Próxima oportunidade', 'Next opportunity'), valor: oport.length ? intervalo(oport[0]) : '—', nota: oport.length ? nomeMercado(oport[0].mercado) : '' },
+    { rotulo: t('Próxima oportunidade', 'Next opportunity'), valor: oport.length ? intervalo(oport[0]) : '-', nota: oport.length ? nomeMercado(oport[0].mercado) : '' },
     { rotulo: t('Meses de procura baixa', 'Low-demand months'), valor: mesesBaixos(idx), nota: t('índice abaixo de 0,9 (dormidas 2023–2025)', 'index below 0.9 (overnight stays 2023–2025)') },
     { rotulo: t('Mercados', 'Markets'), valor: String(mercadosUsados.length), nota: f === 'todos' ? t('todos os mercados', 'all markets') : nomeMercado(f as Mercado) },
   ]);

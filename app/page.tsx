@@ -580,7 +580,7 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
   return (
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px', marginBottom: 14 }}>
       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
-        {t('Evolução da reputação — últimos 3 anos (estrelas reais do Google)', 'Reputation trend — last 3 years (real Google stars)')}
+        {t('Evolução da reputação - últimos 3 anos (estrelas reais do Google)', 'Reputation trend - last 3 years (real Google stars)')}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 14 }}>
         {kpis.map(([l, v, sub]) => (
@@ -618,7 +618,7 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
       </div>
       {(recent.length > 0 || previous.length > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-          {([[t('Problemas — últimos 12 meses', 'Issues - last 12 months'), recent, C.negative], [t('Problemas - período anterior (12–36 meses)', 'Issues - previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
+          {([[t('Problemas - últimos 12 meses', 'Issues - last 12 months'), recent, C.negative], [t('Problemas - período anterior (12–36 meses)', 'Issues - previous period (12–36 months)'), previous, C.textMuted]] as [string, string[], string][]).map(([title, list, color]) => (
             <div key={title} style={{ background: C.bg, borderRadius: 8, padding: '12px 14px' }}>
               <div style={{ fontSize: 11, color, fontWeight: 600, marginBottom: 6 }}>{title}</div>
               {list.length ? list.map((x) => <div key={x} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.55 }}>• {x}</div>) : <div style={{ fontSize: 12, color: C.textDim }}>-</div>}
@@ -2324,8 +2324,8 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>{t('Importar comentários do Google Maps', 'Import Google Maps reviews')}</h3>
             <p style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.6, margin: '0 0 16px' }}>
-              {t('Ficheiro JSON ou CSV exportado (ex.: Apify — Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.',
-                 'Exported JSON or CSV file (e.g. Apify — Google Maps Reviews Scraper). Only reviews under 3 years old are kept, duplicates are ignored and author names are not stored. A file may contain several places. Manually pasted reviews for those places are replaced.')}
+              {t('Ficheiro JSON ou CSV exportado (ex.: Apify - Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.',
+                 'Exported JSON or CSV file (e.g. Apify - Google Maps Reviews Scraper). Only reviews under 3 years old are kept, duplicates are ignored and author names are not stored. A file may contain several places. Manually pasted reviews for those places are replaced.')}
             </p>
             <input type="file" accept=".json,.csv,.jsonl,.txt" onChange={onImportFile} disabled={impBusy}
               style={{ fontSize: 13, color: C.text }} />
