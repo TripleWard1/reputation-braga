@@ -39,6 +39,7 @@ const Geral = dynamic(comRecuperacao(() => import('./obs/Geral')), { ssr: false,
 const Hotelaria = dynamic(comRecuperacao(() => import('./obs/Hotelaria')), { ssr: false, loading: ACarregar });
 const LojasHistoria = dynamic(comRecuperacao(() => import('./obs/LojasHistoria')), { ssr: false, loading: ACarregar });
 const Mercados = dynamic(comRecuperacao(() => import('./obs/Mercados')), { ssr: false, loading: ACarregar });
+const Calendario = dynamic(comRecuperacao(() => import('./obs/Calendario')), { ssr: false, loading: ACarregar });
 const Meteorologia = dynamic(comRecuperacao(() => import('./obs/Meteorologia')), { ssr: false, loading: ACarregar });
 const Mobilidade = dynamic(comRecuperacao(() => import('./obs/Mobilidade')), { ssr: false, loading: ACarregar });
 const PerfilTurista = dynamic(comRecuperacao(() => import('./obs/PerfilTurista')), { ssr: false, loading: ACarregar });
@@ -281,8 +282,8 @@ const OBS_CSS = `
 @media print { .obs-hero, .obs-tabs { display: none !important; } .obs-body { padding: 0; max-width: none; } .obs-card { opacity: 1 !important; transform: none !important; } }
 `;
 
-type Tab = 'geral' | 'insto' | 'procura' | 'estimativa' | 'mobilidade' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
-const IDS_TAB: string[] = ['insto', 'geral', 'procura', 'estimativa', 'mobilidade', 'economia', 'emprego', 'cartoes', 'perfil', 'animacao', 'ferramentas', 'hotelaria', 'cultura', 'lojas', 'alojamento', 'aeroporto', 'mercados', 'balcao', 'taxa', 'sustentabilidade', 'digital', 'acessibilidade', 'meteo', 'caminhos', 'cruzamentos'];
+type Tab = 'geral' | 'insto' | 'procura' | 'estimativa' | 'mobilidade' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'calendario' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
+const IDS_TAB: string[] = ['insto', 'geral', 'procura', 'estimativa', 'mobilidade', 'economia', 'emprego', 'cartoes', 'perfil', 'animacao', 'ferramentas', 'hotelaria', 'cultura', 'lojas', 'alojamento', 'aeroporto', 'mercados', 'calendario', 'balcao', 'taxa', 'sustentabilidade', 'digital', 'acessibilidade', 'meteo', 'caminhos', 'cruzamentos'];
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; reputacaoResumo?: string; separadorInicial?: string; }
 
@@ -341,6 +342,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'alojamento', label: t('Alojamento Local', 'Short-term rentals') },
     { id: 'aeroporto', label: t('Aeroporto', 'Airport') },
     { id: 'mercados', label: t('Mercados', 'Markets') },
+    { id: 'calendario', label: t('Calendário de oportunidades', 'Opportunity calendar') },
     { id: 'balcao', label: t('Atendimento Balcão', 'Front Desk') },
     { id: 'taxa', label: t('Taxa Turística', 'Tourist Tax') },
     { id: 'sustentabilidade', label: t('Sustentabilidade', 'Sustainability') },
@@ -359,7 +361,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   // Separadores agrupados por tema (menu mais simples, sobretudo no telemóvel)
   const GRUPOS: { id: string; label: string; icon: string; tabs: Tab[] }[] = [
     { id: 'resumo', label: t('Resumo', 'Summary'), icon: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z', tabs: ['geral', 'cruzamentos'] },
-    { id: 'procura', label: t('Procura', 'Demand'), icon: 'M3 17l6-6 4 4 8-8M15 7h6v6', tabs: ['procura', 'estimativa', 'mercados', 'aeroporto', 'caminhos'] },
+    { id: 'procura', label: t('Procura', 'Demand'), icon: 'M3 17l6-6 4 4 8-8M15 7h6v6', tabs: ['procura', 'estimativa', 'mercados', 'calendario', 'aeroporto', 'caminhos'] },
     { id: 'visitante', label: t('Visitante', 'Visitor'), icon: 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21v-1a6 6 0 0112 0v1M16 3.5a4 4 0 010 7.5M22 21v-1a6 6 0 00-4-5.6', tabs: ['perfil', 'balcao'] },
     { id: 'economia', label: t('Economia', 'Economy'), icon: 'M18 7a7 7 0 100 10M5 10h9M5 14h9', tabs: ['economia', 'emprego', 'cartoes', 'taxa'] },
     { id: 'oferta', label: t('Oferta', 'Supply'), icon: 'M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1v-9z', tabs: ['hotelaria', 'alojamento', 'animacao', 'cultura', 'lojas'] },
@@ -553,7 +555,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
           note: t('Crescimento sustentado desde a retoma pós-pandemia.', 'Sustained growth since the post-pandemic recovery.') },
         { kind: 'prose', title: t('Enquadramento', 'Context'), paras: [
           t('Regulamento n.º 927/2025: 1,50 € por dormida, até ao máximo de 4 noites, aplicável a hóspedes com mais de 16 anos.', 'Regulation no. 927/2025: €1.50 per overnight stay, up to a maximum of 4 nights, applicable to guests over 16 years old.'),
-          t(`A receita de 2025 totalizou ${dEur(TX['2025'].Total)}, mais ${dPct(((TX['2025'].Total - TX['2024'].Total) / TX['2024'].Total) * 100)} do que em 2024. O arranque de 2026 reflete a entrada em vigor do novo valor da taxa (janeiro: ${dEur(TX['2026'].Janeiro)}).`, `The 2025 revenue totalled ${dEur(TX['2025'].Total)}, ${dPct(((TX['2025'].Total - TX['2024'].Total) / TX['2024'].Total) * 100)} more than in 2024. The start of 2026 reflects the new tax rate coming into force (January: ${dEur(TX['2026'].Janeiro)}).`),
+          t(`A receita de 2025 totalizou ${dEur(TX['2025'].Total)}, mais ${dPct(((TX['2025'].Total - TX['2024'].Total) / TX['2024'].Total) * 100)} do que em 2024. Em 2026, a taxa passou a ser cobrada todo o ano, e não só de março a outubro, mantendo 1,50 € por noite: daí a receita nos meses de inverno (janeiro: ${dEur(TX['2026'].Janeiro)}).`, `The 2025 revenue totalled ${dEur(TX['2025'].Total)}, ${dPct(((TX['2025'].Total - TX['2024'].Total) / TX['2024'].Total) * 100)} more than in 2024. In 2026 the tax started being charged all year round, not only from March to October, keeping €1.50 per night: hence the revenue in the winter months (January: ${dEur(TX['2026'].Janeiro)}).`),
         ] },
       ],
       footerR: t('Taxa Municipal Turística', 'Municipal Tourist Tax'),
@@ -900,6 +902,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'procura' && <Procura />}
         {tab === 'economia' && <Economia />}
         {tab === 'mercados' && <Mercados />}
+        {tab === 'calendario' && <Calendario />}
         {tab === 'balcao' && <Balcao />}
         {tab === 'taxa' && <Taxa />}
         {tab === 'sustentabilidade' && <Sustentabilidade />}

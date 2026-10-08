@@ -5,6 +5,7 @@ import { ResponsiveContainer, LineChart, BarChart, Line, Bar, XAxis, YAxis, Cart
 import { MESES, INFRA, TAXA_TURISTICA } from '@/app/lib/observatorio-dados';
 import { t } from '@/app/lib/i18n';
 import { C, Card, Chips, KPI, YEAR_COLORS, fmt, fmtE, tipStyle } from './comum';
+import SimuladorTaxa from './SimuladorTaxa';
 
 export default function Taxa() {
   const [anos, setAnos] = useState<string[]>(['2023', '2024', '2025']);
@@ -41,7 +42,7 @@ export default function Taxa() {
           </LineChart>
         </ResponsiveContainer>
         <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>
-          {t('Reg. n.º 927/2025 · 1,50 €/dormida · até 4 noites · hóspedes > 16 anos. O salto de 2026 (jan:', 'Reg. no. 927/2025 · €1.50/overnight · up to 4 nights · guests > 16 years. The 2026 jump (Jan:')} {fmtE(TAXA_TURISTICA['2026'].Janeiro)}{t(') reflete a entrada em vigor do novo valor da taxa. Abril a junho são provisórios: apurados sobre documentos cobrados até 30/06/2026.', ') reflects the new tax rate coming into force. April to June are provisional: based on documents collected up to 30/06/2026.')}
+          {t('Reg. n.º 927/2025 · 1,50 €/dormida · até 4 noites · hóspedes > 16 anos. O salto de 2026 (jan:', 'Reg. no. 927/2025 · €1.50/overnight · up to 4 nights · guests > 16 years. The 2026 jump (Jan:')} {fmtE(TAXA_TURISTICA['2026'].Janeiro)}{t(') reflete o alargamento da cobrança a todo o ano (antes, só de março a outubro), com o mesmo valor de 1,50 €. Abril a junho são provisórios: apurados sobre documentos cobrados até 30/06/2026.', ') reflects collection being extended to the whole year (previously March to October only), at the same €1.50. April to June are provisional: based on documents collected up to 30/06/2026.')}
         </p>
       </Card>
 
@@ -56,6 +57,8 @@ export default function Taxa() {
           </BarChart>
         </ResponsiveContainer>
       </Card>
+
+      <SimuladorTaxa />
     </>
   );
 }

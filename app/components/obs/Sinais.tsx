@@ -95,8 +95,8 @@ function calcularSinais(): Sinal[] {
       const vd = (acumulado(DORMIDAS_BRAGA, ANO, lim) / acumulado(DORMIDAS_BRAGA, ANO - 1, lim) - 1) * 100;
       r.push({ id: 'taxa', tom: 'info', tema: t('Taxa turística', 'Tourist tax'), separador: 'taxa', peso: 1.2,
         titulo: t(`Receita da taxa turística (janeiro a ${mesNome(lim)})`, `Tourist tax revenue (January to ${mesNome(lim)})`), valor: pct(vr, 0),
-        texto: t(`A receita subiu ${pct(vr, 0)}, mas as dormidas variaram ${pct(vd)}: a subida reflete sobretudo o novo valor da taxa (1,50 € por noite), não um aumento da procura.`,
-          `Revenue rose ${pct(vr, 0)}, but overnight stays changed ${pct(vd)}: the increase mainly reflects the new tax rate (€1.50 per night), not higher demand.`) });
+        texto: t(`A receita subiu ${pct(vr, 0)}, mas as dormidas variaram ${pct(vd)}: a subida reflete sobretudo o alargamento da cobrança a todo o ano (antes, só de março a outubro), com o mesmo valor de 1,50 €, e não um aumento da procura.`,
+          `Revenue rose ${pct(vr, 0)}, but overnight stays changed ${pct(vd)}: the increase mainly reflects collection being extended to the whole year (previously March to October only), at the same €1.50, not higher demand.`) });
     }
   } catch { /* indisponível */ }
   // 6) Aeroporto do Porto: aceleração ou abrandamento face aos 12 meses anteriores

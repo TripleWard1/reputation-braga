@@ -20,6 +20,7 @@ import { SETOR_SUSTENTAVEL } from '@/app/lib/setor-sustentavel-dados';
 import { estimativaDormidas } from '@/app/lib/estimativa';
 import { TUB } from '@/app/lib/tub-dados';
 import { UNESCO_BOM_JESUS } from '@/app/lib/unesco-bom-jesus';
+import { DATAS as CALENDARIO_MERCADOS } from '@/app/lib/calendario-mercados-dados';
 
 // "Pergunte ao Observatório": responde a perguntas com os dados da plataforma.
 // Para não esgotar o limite do Groq, envia só os blocos de dados relevantes para cada pergunta (máx. ~14 000 caracteres).
@@ -144,8 +145,13 @@ const BLOCOS: Bloco[] = [
     palavras: ['unesco', 'patrimonio mundial', 'bom jesus'],
     dados: () => UNESCO_BOM_JESUS,
   },
+  {
+    id: 'calendario', titulo: 'Feriados e férias escolares dos mercados emissores (Galiza, Espanha e regiões espanholas com voo direto para o Porto, Portugal, França, Reino Unido), outubro de 2026 a dezembro de 2027', separador: 'calendario', fonte: 'Xunta de Galicia; BORM; BOE; boletins e governos autonómicos (Madrid, Catalunha, País Basco, C. Valenciana, Andaluzia, Astúrias, Baleares, Canárias); Despacho n.º 10430/2026; Código do Trabalho; Ministério da Educação Nacional (França); bank holidays (Inglaterra e País de Gales)',
+    palavras: ['feriado', 'ponte', 'ferias escolares', 'galiza', 'galicia', 'calendario', 'oportunidade', 'pascoa', 'carnaval', 'natal', 'fim de semana prolongado', 'feriado regional', 'madrid', 'barcelona', 'catalunha', 'andaluzia', 'pais basco', 'valencia', 'asturias', 'baleares', 'canarias'],
+    dados: () => CALENDARIO_MERCADOS,
+  },
 ];
-const IDS_SEPARADORES = ['geral', 'procura', 'estimativa', 'mercados', 'aeroporto', 'caminhos', 'perfil', 'balcao', 'economia', 'emprego', 'cartoes', 'taxa', 'hotelaria', 'alojamento', 'animacao', 'cultura', 'lojas', 'digital', 'ferramentas', 'sustentabilidade', 'mobilidade', 'acessibilidade', 'meteo', 'cruzamentos'];
+const IDS_SEPARADORES = ['geral', 'procura', 'estimativa', 'mercados', 'aeroporto', 'caminhos', 'perfil', 'balcao', 'economia', 'emprego', 'cartoes', 'taxa', 'hotelaria', 'alojamento', 'animacao', 'cultura', 'lojas', 'digital', 'ferramentas', 'sustentabilidade', 'mobilidade', 'acessibilidade', 'meteo', 'cruzamentos', 'calendario'];
 const PALAVRAS_REPUTACAO = ['reputa', 'avalia', 'estrela', 'google maps', 'comentari', 'critica', 'elogi', 'indice do destino', 'nota', 'opiniao', 'review', 'satisfac'];
 
 function escolherBlocos(pergunta: string) {

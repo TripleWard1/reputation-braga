@@ -47,7 +47,7 @@ export default function Geral({ rep, repL, repR }: { rep?: number | null; repL?:
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-          <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>{t('2026 parcial (jan–jun; abr–jun provisórios). O salto reflete a entrada em vigor da taxa de 1,50 €/dormida.', '2026 partial (Jan–Jun; Apr–Jun provisional). The jump reflects the tax of €1.50/overnight coming into force.')}</p>
+          <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>{t('2026 parcial (jan–jun; abr–jun provisórios). O salto reflete a cobrança passar a ser feita todo o ano (antes, só de março a outubro), com o mesmo valor de 1,50 €/dormida.', '2026 partial (Jan–Jun; Apr–Jun provisional). The jump reflects collection being extended to the whole year (previously March to October only), at the same €1.50/overnight.')}</p>
         </Card>
       </div>
 
