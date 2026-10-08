@@ -50,7 +50,10 @@ function pontosDeCorte(doc: Document): { cortes: number[]; forcadas: number[] } 
     const el = blocos[i] as HTMLElement;
     const r = el.getBoundingClientRect();
     if (r.height <= 0) continue;
-    cortes.push(Math.round(r.bottom - topo));
+    // Nunca cortar logo a seguir a um título nem ao cabeçalho de uma tabela (ficariam sozinhos no fim da página)
+    const tag = el.tagName;
+    const eTitulo = /^H[1-4]$/.test(tag) || (tag === 'TR' && !!el.parentElement && el.parentElement.tagName === 'THEAD');
+    if (!eTitulo) cortes.push(Math.round(r.bottom - topo));
     const cs = win.getComputedStyle(el) as CSSStyleDeclaration & { breakBefore?: string };
     if (el.classList.contains('quebra') || cs.pageBreakBefore === 'always' || cs.breakBefore === 'page') forcadas.push(Math.round(r.top - topo));
   }
@@ -111,6 +114,8 @@ async function gerarPdf(html: string) {
     const altPagina = Math.floor(alturaMm * pxPorMm);
     const { cortes, forcadas } = pontosDeCorte(doc);
     const partes = fatias(total, altPagina, cortes, forcadas);
+    const metaRod = doc.querySelector('meta[name="pdf-rodape"]');
+    const rodape = metaRod ? metaRod.getAttribute('content') || '' : '';
     const pdf = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
     for (let i = 0; i < partes.length; i++) {
       av.mudar(t(`A gerar o PDF… página ${i + 1} de ${partes.length}`, `Generating the PDF… page ${i + 1} of ${partes.length}`));
@@ -118,6 +123,13 @@ async function gerarPdf(html: string) {
       const canvas = await html2canvas(doc.body, { scale: 2, useCORS: true, backgroundColor: '#ffffff', x: 0, y: a, width: LARGURA_PX, height: b - a, windowWidth: LARGURA_PX, windowHeight: total, scrollX: 0, scrollY: 0, logging: false });
       if (i > 0) pdf.addPage();
       pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', margem, margem, larguraMm, (b - a) / pxPorMm, undefined, 'FAST');
+      // Rodapé com numeração (documentos que o pedem com <meta name="pdf-rodape">), na margem inferior
+      if (rodape && margem > 0) {
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(111, 116, 125);
+        pdf.setDrawColor(225, 230, 238); pdf.setLineWidth(0.2); pdf.line(margem, 297 - margem + 3, 210 - margem, 297 - margem + 3);
+        pdf.text(rodape, margem, 297 - margem + 6.5, { maxWidth: 150 });
+        pdf.text(t(`Página ${i + 1} de ${partes.length}`, `Page ${i + 1} of ${partes.length}`), 210 - margem, 297 - margem + 6.5, { align: 'right' });
+      }
     }
     pdf.save(nomeFicheiro(html));
   } catch {

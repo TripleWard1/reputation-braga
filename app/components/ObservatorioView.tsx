@@ -283,6 +283,7 @@ const OBS_CSS = `
 `;
 
 type Tab = 'geral' | 'insto' | 'procura' | 'estimativa' | 'mobilidade' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'calendario' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
+function abrirCalendarioPdf(m: { exportarCalendarioPdf: () => void }) { m.exportarCalendarioPdf(); }
 const IDS_TAB: string[] = ['insto', 'geral', 'procura', 'estimativa', 'mobilidade', 'economia', 'emprego', 'cartoes', 'perfil', 'animacao', 'ferramentas', 'hotelaria', 'cultura', 'lojas', 'alojamento', 'aeroporto', 'mercados', 'calendario', 'balcao', 'taxa', 'sustentabilidade', 'digital', 'acessibilidade', 'meteo', 'caminhos', 'cruzamentos'];
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; reputacaoResumo?: string; separadorInicial?: string; }
@@ -764,6 +765,9 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     });
   };
 
+  // Calendário: documento próprio, gerado a partir dos dados (o módulo só é carregado quando é preciso)
+  const exportCalendario = () => { import('./obs/Calendario').then(abrirCalendarioPdf).catch(() => {}); };
+
   const exportarPDF = () => {
     const node = document.getElementById('obs-print-area');
     if (!node) return;
@@ -817,7 +821,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
                 geral: exportGeral, procura: exportProcura, economia: exportEconomia, mercados: exportMercados,
                 balcao: exportBalcao, taxa: exportTaxa, sustentabilidade: exportSustentabilidade,
                 digital: exportDigital, acessibilidade: exportAcessibilidade, caminhos: exportCaminhos,
-                cruzamentos: exportCruzamentos,
+                cruzamentos: exportCruzamentos, calendario: exportCalendario,
               };
               (map[tab] || exportarPDF)();
             }}>
@@ -855,7 +859,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
                 geral: exportGeral, procura: exportProcura, economia: exportEconomia, mercados: exportMercados,
                 balcao: exportBalcao, taxa: exportTaxa, sustentabilidade: exportSustentabilidade,
                 digital: exportDigital, acessibilidade: exportAcessibilidade, caminhos: exportCaminhos,
-                cruzamentos: exportCruzamentos,
+                cruzamentos: exportCruzamentos, calendario: exportCalendario,
               };
               (map[tab] || exportarPDF)();
             }}>{t('Exportar PDF', 'Export PDF')}</button>

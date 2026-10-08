@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REPUTAÇÃO - Visão Geral, lista de Locais e Ficha do local
+// REPUTAÇÃO — Visão Geral, lista de Locais e Ficha do local
 // Segue o mockup aprovado (versão escura). Na impressão/PDF usa a versão clara.
 // Todos os números vêm de app/lib/temas.ts → numeros() (fonte única).
 // ═══════════════════════════════════════════════════════════════════════════
@@ -19,6 +19,7 @@ import { windowStats, langName, cutoffDate, loadWindowReviews, parseReviewFile, 
 import { SEMESTRE_2026, BALCAO, DORMIDAS_BRAGA, DORMIDAS_PORTUGAL, MESES } from '@/app/lib/observatorio-dados';
 import { BILHETEIRA, BILHETEIRA_FONTE, type Bilheteira } from '@/app/lib/bilheteira-dados';
 import { UNESCO_BOM_JESUS } from '@/app/lib/unesco-bom-jesus';
+import { exportarFichaLocal, type DadosFicha, type TemaPdf, type ProblemaPdf, type CriticaPdf, type MercadoPdf } from '@/app/lib/ficha-local-pdf';
 import {
   TEMAS, temaNome, estadoNome, numeros, ranking, alerta, numerosCoerentes, numerosPermitidos, resumoModelo,
   MIN_ROBUSTO, type Estado, type LocMin, type Numeros,
@@ -356,7 +357,7 @@ function Faixa({ x, a }: { x: Numeros | null; a?: any }) {
     <div className="rb-strip rb-rise">
       <div>
         <div className="rb-lab">{t('Índice de reputação', 'Reputation index')}</div>
-        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>-</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
+        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>—</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
         <div className="rb-sub">{insuf ? t(`Dados insuficientes · menos de ${MIN_ROBUSTO} avaliações`, `Insufficient data · fewer than ${MIN_ROBUSTO} reviews`) : `${x.robustez === 'alta' ? t('Robustez alta', 'High robustness') : t('Robustez média', 'Medium robustness')} · ${fmt(x.textN)} ${t('com texto', 'with text')}`}{x.basis === 'ia' ? ` · ${t('estimado pela IA', 'AI estimate')}` : ''}</div>
       </div>
       <div>
@@ -414,7 +415,7 @@ function DadosGrafico({ titulo, linhas }: { titulo: string; linhas: Linha[] }) {
       <table className="rb-sr">
         <caption>{titulo}</caption>
         <thead><tr>{cab.map((c) => <th key={c} scope="col">{c}</th>)}</tr></thead>
-        <tbody>{linhas.map((r, i) => <tr key={i}>{cab.map((c) => <td key={c}>{r[c] == null ? '-' : String(r[c])}</td>)}</tr>)}</tbody>
+        <tbody>{linhas.map((r, i) => <tr key={i}>{cab.map((c) => <td key={c}>{r[c] == null ? '—' : String(r[c])}</td>)}</tr>)}</tbody>
       </table>
     </>
   );
@@ -613,7 +614,7 @@ function MercadosDetalhe({ lista }: { lista: Mercado[] }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr)', gap: '8px 12px', marginTop: 10, alignItems: 'start' }}>
             <span style={{ fontSize: 13, color: 'var(--rb-good)', fontWeight: 700, paddingTop: 3 }}>{t('Valoriza', 'Values')}</span>
-            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>-</span>}</div>
+            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>—</span>}</div>
             <span style={{ fontSize: 13, color: 'var(--rb-bad)', fontWeight: 700, paddingTop: 3 }}>{t('Critica', 'Criticises')}</span>
             <div>{m.critica.length ? m.critica.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-bad)', 'var(--rb-bad-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>{t('sem críticas relevantes', 'no relevant criticism')}</span>}</div>
           </div>
@@ -672,7 +673,7 @@ function AfluenciaMapa({ a }: { a: Afluencia }) {
 
 
 
-// ─── PATRIMÓNIO MUNDIAL (só no Bom Jesus) - informação técnica, sem história ─────
+// ─── PATRIMÓNIO MUNDIAL (só no Bom Jesus) — informação técnica, sem história ─────
 const eBomJesus = (nome: string) => /bom jesus/i.test(nome);
 function LogoUnesco({ tam = 56 }: { tam?: number }) {
   return (
@@ -957,6 +958,162 @@ function SecaoWiki({ loc, readOnly, onSave }: { loc: LocV; readOnly?: boolean; o
   );
 }
 
+// ─── PDF da ficha: documento A4 construído a partir dos dados (sem fotografar o ecrã) ───
+// Só ciclos e funções de topo (o compressor do Next.js parte funções aninhadas que usam parâmetros de fora).
+const TIT_GOOGLE: Record<string, string> = { accessibility: 'Acessibilidade', 'service options': 'Opções de serviço', amenities: 'Comodidades', parking: 'Estacionamento', children: 'Crianças', payments: 'Pagamentos', planning: 'Planeamento', highlights: 'Destaques', crowd: 'Público', offerings: 'Oferta', atmosphere: 'Ambiente', 'from the business': 'Da entidade', pets: 'Animais' };
+function algumCasa(l: string[], re: RegExp): boolean { for (let i = 0; i < l.length; i++) if (re.test(l[i])) return true; return false; }
+function temaAtivo(l: { id: string; estado: Estado }[], id: string): boolean { for (let i = 0; i < l.length; i++) if (l[i].id === id && (l[i].estado === 'persistente' || l[i].estado === 'novo')) return true; return false; }
+function limpaGoogle(x: string): string { return x.replace(/[-✓✔✕✖✗✘×□▯�]/g, '').replace(/\s+/g, ' ').trim(); }
+interface EntradaPdf {
+  loc: LocV; catLabel: string; x: Numeros | null; a: any; v2: any; al: string | null; tituloResumo: string; resumo: string;
+  temas: { id: string; estado: Estado; nota: string }[]; tituloTemas: string; citPos: StoredReview[]; citNeg: StoredReview[];
+  qs: { q: string; avg: number; n: number; negPct?: number }[]; ws: any; merc: { lista: Mercado[]; temTags: boolean }; recs: { titulo: string; texto: string }[];
+}
+function dadosFichaPdf(e: EntradaPdf): DadosFicha {
+  const { loc, x, a, v2 } = e;
+  const temasE = e.temas;
+  const insuf = !x || x.robustez === 'insuficiente';
+  const kp = x ? [
+    { rotulo: t('Índice de reputação', 'Reputation index'), valor: insuf ? '—' : `${fmt(x.idx, 1)}/10`, nota: insuf ? t(`menos de ${MIN_ROBUSTO} avaliações`, `fewer than ${MIN_ROBUSTO} reviews`) : `${x.robustez === 'alta' ? t('Robustez alta', 'High robustness') : t('Robustez média', 'Medium robustness')} · ${fmt(x.textN)} ${t('com texto', 'with text')}` },
+    { rotulo: t('Média Google', 'Google average'), valor: `${fmt(x.avg, 2)} ★`, nota: t('em 5 estrelas · Google Maps', 'out of 5 stars · Google Maps') },
+    { rotulo: t('Comentários', 'Reviews'), valor: fmt(x.n), nota: x.from ? `${t('últimos 3 anos', 'last 3 years')} · ${mesAno(x.from)} – ${mesAno(x.to)}` : '' },
+    { rotulo: t('Positivos · negativos', 'Positive · negative'), valor: `${fmt(x.pos, 1)}% · ${fmt(x.neg, 1)}%`, nota: t('positivos 4–5★ · negativos 1–2★', 'positive 4–5★ · negative 1–2★'), cor: '#2E7D4F' },
+  ] : [];
+  const temas: TemaPdf[] = [];
+  for (let i = 0; i < e.temas.length; i++) temas.push({ nome: temaNome(e.temas[i].id), estado: estadoNome(e.temas[i].estado), tom: e.temas[i].estado, nota: e.temas[i].nota });
+  const cit = (r: StoredReview) => ({ texto: `${r.t.replace(/\s+/g, ' ').slice(0, 230)}${r.t.length > 230 ? '…' : ''}`, rodape: `${r.s}★ · ${mesAno(r.d.slice(0, 7))} · ${langName(r.l)}` });
+  const citPos: { texto: string; rodape: string }[] = []; for (let i = 0; i < e.citPos.length; i++) citPos.push(cit(e.citPos[i]));
+  const citNeg: { texto: string; rodape: string }[] = []; for (let i = 0; i < e.citNeg.length; i++) citNeg.push(cit(e.citNeg[i]));
+
+  // Problemas por período
+  let periodos: DadosFicha['periodos'] = null;
+  if (a) {
+    const rec: ProblemaPdf[] = []; const ant: ProblemaPdf[] = [];
+    if (v2 && v2.periodos) {
+      const r0 = v2.periodos.recentes || []; const p0 = v2.periodos.anteriores || [];
+      for (let i = 0; i < r0.length; i++) rec.push({ problema: r0[i].problema, detalhe: r0[i].detalhe || '', estado: r0[i].estado || '' });
+      for (let i = 0; i < p0.length; i++) ant.push({ problema: p0[i].problema, detalhe: p0[i].detalhe || '', estado: p0[i].estado || '' });
+    } else {
+      const r0 = a.issuesRecent || []; const p0 = a.issuesPrevious || [];
+      for (let i = 0; i < r0.length; i++) rec.push({ problema: r0[i], detalhe: '', estado: '' });
+      for (let i = 0; i < p0.length; i++) ant.push({ problema: p0[i], detalhe: '', estado: '' });
+    }
+    const tt: { id: string; recNeg: number; prevNeg: number }[] = v2 && Array.isArray(v2.temasTodos) ? v2.temasTodos : [];
+    const tR = (v2 && v2.textRec) || 0; const tP = (v2 && v2.textPrev) || 0;
+    const crit: CriticaPdf[] = [];
+    for (let i = 0; i < tt.length; i++) {
+      const z = tt[i];
+      if (z.recNeg + z.prevNeg < 2) continue;
+      const pr = tR ? (z.recNeg / tR) * 100 : 0; const pp = tP ? (z.prevNeg / tP) * 100 : 0;
+      crit.push({ tema: temaNome(z.id), pr, nr: z.recNeg, pp, np: z.prevNeg, tend: pr - pp >= 1 ? 'pior' : pr - pp <= -1 ? 'melhor' : 'igual' });
+    }
+    crit.sort((p, q) => q.pr - p.pr || q.nr - p.nr);
+    let nNovo = 0; let nDeixou = 0;
+    for (let i = 0; i < rec.length; i++) if (rec[i].estado === 'novo') nNovo++;
+    for (let i = 0; i < ant.length; i++) if (ant[i].estado === 'deixou') nDeixou++;
+    const titulo = nNovo && nDeixou ? t(`${Extenso(nNovo)} ${nNovo === 1 ? 'problema novo' : 'problemas novos'} no último ano; ${extenso(nDeixou)} ${nDeixou === 1 ? 'deixou de ser referido' : 'deixaram de ser referidos'}`, `${nNovo} new ${nNovo === 1 ? 'issue' : 'issues'} in the last year; ${nDeixou} no longer mentioned`)
+      : nNovo ? t(`${Extenso(nNovo)} ${nNovo === 1 ? 'problema novo surgiu' : 'problemas novos surgiram'} no último ano`, `${nNovo} new ${nNovo === 1 ? 'issue' : 'issues'} appeared in the last year`)
+        : nDeixou ? t(`${Extenso(nDeixou)} ${nDeixou === 1 ? 'problema deixou de ser referido' : 'problemas deixaram de ser referidos'}`, `${nDeixou} ${nDeixou === 1 ? 'issue is' : 'issues are'} no longer mentioned`)
+          : t('Os problemas mantêm-se entre os dois períodos', 'Issues remain the same across both periods');
+    if (rec.length || ant.length || crit.length) periodos = { titulo, recentes: rec, anteriores: ant, baseR: tR, baseP: tP, criticas: crit };
+  }
+
+  // Dimensões
+  const dims: DadosFicha['dimensoes'] = [];
+  if (a && a.dimensions) {
+    const lista: [string, string][] = [['localizacao', t('Localização', 'Location')], ['servico', t('Serviço', 'Service')], ['precoQualidade', t('Preço/Qualidade', 'Value for money')], ['limpeza', t('Limpeza', 'Cleanliness')], ['experiencia', t('Experiência', 'Experience')], ['acessibilidade', t('Acessibilidade', 'Accessibility')]];
+    for (let i = 0; i < lista.length; i++) {
+      const v = a.dimensions[lista[i][0]]; const nm = v2 && v2.dimsN ? v2.dimsN[lista[i][0]] : null;
+      dims.push({ nome: lista[i][1], valor: typeof v === 'number' ? v : null, mencoes: typeof nm === 'number' && lista[i][0] !== 'experiencia' ? nm : null });
+    }
+  }
+
+  // Afluência
+  let aflu: DadosFicha['afluencia'] = null;
+  if (loc.afluencia && loc.afluencia.dias && loc.afluencia.dias.length) {
+    const r = resumoAfluencia(loc.afluencia);
+    const dn = t('pt', 'en') === 'pt' ? DIAS_PT : DIAS_EN;
+    const det: string[] = [];
+    if (r.forte) det.push(`${t('Dia mais movimentado', 'Busiest day')}: **${dn[r.forte.d]}**`);
+    if (r.calmo) det.push(`${t('Dia mais calmo', 'Quietest day')}: **${dn[r.calmo.d]}**`);
+    if (loc.afluencia.recolhidoEm) det.push(t(`Recolhido a ${dataCurta(loc.afluencia.recolhidoEm)} · padrão habitual, não em tempo real`, `Collected on ${dataCurta(loc.afluencia.recolhidoEm)} · usual pattern, not real time`));
+    aflu = { titulo: r.pico.d >= 0 ? t(`Mais movimento ${dn[r.pico.d] === 'Sábado' || dn[r.pico.d] === 'Domingo' ? 'ao' : 'à'} ${dn[r.pico.d].toLowerCase()}, entre as ${r.ini}h e as ${r.fim + 1}h`, `Busiest on ${dn[r.pico.d]}, between ${r.ini}:00 and ${r.fim + 1}:00`) : t('Afluência habitual', 'Usual busyness'), detalhe: det };
+  }
+
+  // Wikipédia (últimos 12 meses vs 12 anteriores)
+  let wiki: DadosFicha['wiki'] = null;
+  if (loc.wiki) {
+    const w = loc.wiki; const meses: string[] = [];
+    const lgs = Object.keys(w.vistas);
+    for (let i = 0; i < lgs.length; i++) { const ks = Object.keys(w.vistas[lgs[i]]); for (let k = 0; k < ks.length; k++) if (meses.indexOf(ks[k]) < 0) meses.push(ks[k]); }
+    meses.sort();
+    const u12 = meses.slice(-12); const a12 = meses.slice(-24, -12);
+    const linhas: { lingua: string; a: number; v: number | null }[] = [];
+    let tot = 0;
+    for (let i = 0; i < lgs.length; i++) {
+      const o = w.vistas[lgs[i]]; let sa = 0; let sb = 0;
+      for (let k = 0; k < u12.length; k++) sa += o[u12[k]] || 0;
+      for (let k = 0; k < a12.length; k++) sb += o[a12[k]] || 0;
+      tot += sa;
+      linhas.push({ lingua: langName(lgs[i]), a: sa, v: sb ? ((sa - sb) / sb) * 100 : null });
+    }
+    linhas.sort((p, q) => q.a - p.a);
+    wiki = { titulo: t(`${fmt(tot)} visualizações na Wikipédia nos últimos 12 meses`, `${fmt(tot)} Wikipedia views in the last 12 months`), artigo: w.titulo, linhas };
+  }
+
+  // Google «Acerca de»
+  let google: DadosFicha['google'] = null;
+  if (loc.atributos && ((loc.atributos.secoes || []).length > 0 || (loc.atributos.horario || []).length > 0)) {
+    const MENUS = /map tools|map type|ferramentas do mapa|tipo de mapa|camadas|layers|map details|detalhes do mapa/i;
+    const hor: string[] = []; const h0 = loc.atributos.horario || [];
+    for (let i = 0; i < h0.length; i++) { const v = limpaGoogle(h0[i]); if (v) hor.push(v); }
+    const secs: { titulo: string; sim: string[]; nao: string[] }[] = []; const todosSim: string[] = [];
+    const s0 = loc.atributos.secoes || [];
+    for (let i = 0; i < s0.length; i++) {
+      if (MENUS.test(s0[i].titulo)) continue;
+      const tit = limpaGoogle(s0[i].titulo); const sim: string[] = []; const nao: string[] = [];
+      for (let k = 0; k < s0[i].itens.length; k++) { const tx = limpaGoogle(s0[i].itens[k].texto); if (!tx) continue; if (s0[i].itens[k].sim) { sim.push(tx); todosSim.push(tx); } else nao.push(tx); }
+      if (sim.length || nao.length) secs.push({ titulo: t(TIT_GOOGLE[tit.toLowerCase()] || tit, tit), sim, nao });
+    }
+    const tem = (re: RegExp) => algumCasa(todosSim, re);
+    const prob = (id: string) => temaAtivo(temasE, id);
+    const notas: string[] = [];
+    if (prob('acessibilidade') && tem(/cadeira de rodas|wheelchair/i)) notas.push(t('O local declara acesso para cadeira de rodas, mas há críticas de acessibilidade nos comentários. Vale a pena confirmar no terreno.', 'The place declares wheelchair access, but reviews criticise accessibility. Worth checking on site.'));
+    if (prob('servicos') && !tem(/casa de banho|casas de banho|wc|toilet|restroom/i)) notas.push(t('Há críticas a serviços e equipamentos, e o Google não indica casas de banho neste local.', 'Services and facilities are criticised, and Google lists no toilets at this place.'));
+    if (prob('acesso') && !tem(/estacionamento|parking/i)) notas.push(t('Há críticas ao acesso e estacionamento, e o Google não indica estacionamento neste local.', 'Access and parking are criticised, and Google lists no parking at this place.'));
+    google = { horario: hor, secoes: secs, notas };
+  }
+
+  // Idiomas e mercados
+  const idiomas: { nome: string; n: number; avg: number }[] = [];
+  if (e.ws && e.ws.langs) {
+    const L = e.ws.langs as { code: string; n: number; avg: number }[];
+    for (let i = 0; i < L.length; i++) if (L[i].code !== 'none' && L[i].code !== 'und' && idiomas.length < 8) idiomas.push({ nome: langName(L[i].code), n: L[i].n, avg: L[i].avg });
+    for (let i = 0; i < L.length; i++) if (L[i].code === 'und' || L[i].code === 'none') idiomas.push({ nome: langName(L[i].code), n: L[i].n, avg: L[i].avg });
+  }
+  const mercados: MercadoPdf[] = [];
+  if (e.merc.temTags) for (let i = 0; i < e.merc.lista.length; i++) {
+    const m = e.merc.lista[i]; const va: string[] = []; const cr: string[] = [];
+    for (let k = 0; k < m.elogia.length; k++) va.push(`${temaNome(m.elogia[k].id)} ${fmt(m.elogia[k].pct, 0)}%`);
+    for (let k = 0; k < m.critica.length; k++) cr.push(`${temaNome(m.critica[k].id)} ${fmt(m.critica[k].pct, 0)}%`);
+    mercados.push({ nome: langName(m.code), n: m.n, avg: m.avg, neg: m.neg, valoriza: va, critica: cr });
+  }
+
+  const meta = [loc.coords ? `${loc.coords[0].toFixed(4)}, ${loc.coords[1].toFixed(4)}` : '', 'Google Maps', loc.lastAnalyzed ? t(`analisado a ${dataCurta(loc.lastAnalyzed)}`, `analysed on ${dataCurta(loc.lastAnalyzed)}`) : ''].filter(Boolean).join(' · ');
+  return {
+    nome: loc.name, categoria: e.catLabel, meta, bomJesus: eBomJesus(loc.name), kpis: kp, alerta: e.al,
+    tituloResumo: e.tituloResumo, resumo: e.resumo, tituloTemas: e.tituloTemas, temas,
+    fortes: (a && a.keyPraises) || [], problemas: (a && a.keyIssues) || [], citPos, citNeg,
+    periodos, dimensoes: dims, tituloEvolucao: tituloEvolucao(e.qs), trimestres: e.qs,
+    tituloDist: e.ws ? tituloDist(e.ws.dist) : '', dist: e.ws ? e.ws.dist : null,
+    afluencia: aflu, wiki, google,
+    tituloMercados: e.merc.lista.length && e.merc.temTags ? tituloMercados(e.merc.lista) : e.ws ? tituloIdiomas(e.ws.langs) : t('Mercados', 'Markets'),
+    idiomas, baseIdiomas: e.ws ? e.ws.n : 0, semTexto: x && x.semTexto > 0 ? x.semTexto : null, mercados,
+    sugestoes: e.recs,
+    fonte: `${t('Fonte: Google Maps', 'Source: Google Maps')}${x && x.from ? `, ${mesAno(x.from)} – ${mesAno(x.to)}` : ''}${loc.reviewStats ? ` · ${t('importado a', 'imported on')} ${dataCurta(loc.reviewStats.lastImport)}` : ''} · ${t('índice /10 = média de estrelas × 2', 'index /10 = average stars × 2')}`,
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // FICHA DO LOCAL
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1051,6 +1208,11 @@ export function FichaLocal(props: {
   const mostraRk = pos > 5 ? [...topRk, rk[pos - 1]] : topRk;
   const qs = ws ? ws.quarters.map((z) => ({ q: z.q, avg: z.avg, n: z.n, negPct: z.negPct })) : [];
 
+  const exportarPdf = () => exportarFichaLocal(dadosFichaPdf({
+    loc, catLabel: props.catLabel(loc.category), x, a, v2, al, tituloResumo, resumo: x ? resumo : '', temas, tituloTemas: temas.length ? tituloTemas : t('Temas', 'Themes'),
+    citPos: citacoes.pos, citNeg: citacoes.neg, qs, ws, merc, recs,
+  }));
+
   const guardarIv = () => {
     if (!novaIv || !novaIv.date || !novaIv.desc.trim()) return;
     const list = [...ivs, { id: String(Date.now()), date: novaIv.date, desc: novaIv.desc.trim() }].sort((p, q2) => (p.date < q2.date ? -1 : 1));
@@ -1072,7 +1234,7 @@ export function FichaLocal(props: {
           </div>
           <div className="rb-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {!soLeitura && <button className="rb-btn" onClick={() => props.onShare?.(loc.id)}>{props.copied ? t('Link copiado', 'Link copied') : t('Link partilhável', 'Shareable link')}</button>}
-            <button className="rb-btn" onClick={() => window.print()}>{t('Exportar PDF', 'Export PDF')}</button>
+            <button className="rb-btn" onClick={exportarPdf}>{t('Exportar PDF', 'Export PDF')}</button>
             {!soLeitura && <button className="rb-btn p" disabled={!!props.analyzing} onClick={() => props.onReanalyze?.(loc.id)}>{props.analyzing === loc.id ? t('A analisar…', 'Analysing…') : t('Reanalisar', 'Re-analyse')}</button>}
           </div>
         </div>
@@ -1165,7 +1327,7 @@ export function FichaLocal(props: {
                     <span style={{ color: col.cor, fontWeight: 700, fontSize: 16, lineHeight: 1.4, flexShrink: 0 }}>{col.sinal}</span>
                     <span style={{ fontSize: 15, lineHeight: 1.55 }}>{p}</span>
                   </div>
-                )) : <p className="rb-sub">-</p>}
+                )) : <p className="rb-sub">—</p>}
                 {col.cit.length > 0 && (
                   <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--rb-line)' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--rb-text2)' }}>{t('Nas palavras dos visitantes', 'In visitors’ own words')}</div>
@@ -1182,7 +1344,7 @@ export function FichaLocal(props: {
           </section>
         )}
 
-        {/* Problemas por período - detalhe da leitura + números dos temas */}
+        {/* Problemas por período — detalhe da leitura + números dos temas */}
         {a && (() => {
           const per = v2?.periodos
             ? { recentes: (v2.periodos.recentes || []) as { problema: string; detalhe: string; estado: string }[], anteriores: (v2.periodos.anteriores || []) as { problema: string; detalhe: string; estado: string }[] }
@@ -1388,7 +1550,7 @@ export function FichaLocal(props: {
           </div>
         </section>
 
-        {/* 10. Sugestões (indicativas - o Município não gere o local) */}
+        {/* 10. Sugestões (indicativas — o Município não gere o local) */}
         <section id="rb-recomendacoes" className="rb-sec">
           <Titulo h={t('O que os comentários sugerem', 'What the reviews suggest')} cap={t('Possíveis melhorias identificadas pela IA a partir dos comentários dos visitantes · a título indicativo', 'Possible improvements identified by AI from visitor reviews · for guidance only')} />
           {recs.length ? (
@@ -1500,9 +1662,9 @@ export function LocaisLista(props: {
               return (
                 <tr key={o.l.id} className="rb-row" onClick={() => props.onOpen(o.l.id)}>
                   <td><div style={{ display: 'flex', gap: 16, alignItems: 'center' }}><Miniatura src={mini[o.l.id]} /><div><div style={{ fontWeight: 700 }}>{o.l.name}</div><div style={{ fontSize: 13, color: 'var(--rb-text2)' }}>{props.catLabel(o.l.category)}{props.analyzing === o.l.id ? ` · ${t('a analisar…', 'analysing…')}` : ''}</div><div className="rb-only-m" style={{ fontSize: 13, marginTop: 4, lineHeight: 1.4 }}>{situacao(o)}</div></div></div></td>
-                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>-</span> : fmt(o.x!.idx, 1)}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '-'}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '-'}</td>
+                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>—</span> : fmt(o.x!.idx, 1)}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '—'}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '—'}</td>
                   <td className="rb-hide-m" style={{ paddingLeft: 24, fontSize: 14 }}>{situacao(o)}</td>
                 </tr>
               );
@@ -1516,7 +1678,7 @@ export function LocaisLista(props: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VISÃO GERAL - o destino num relance (sem rankings)
+// VISÃO GERAL — o destino num relance (sem rankings)
 // ═══════════════════════════════════════════════════════════════════════════
 const MES_LONGO_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const MES_LONGO_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -1679,7 +1841,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
       </HeroFoto>
 
       <div className="rb-wrap" style={{ paddingTop: 20 }}>
-        {/* Turismo em Braga - o essencial do Observatório (mesmas contas; os dados não são alterados) */}
+        {/* Turismo em Braga — o essencial do Observatório (mesmas contas; os dados não são alterados) */}
         {(() => {
           const S: any = SEMESTRE_2026 as any;
           const H1 = (MESES as any[]).slice(0, 6);
@@ -1872,7 +2034,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SEPARADORES COMPLEMENTARES - Mapa, Comparar, Temas (Problemas) e Relatório
+// SEPARADORES COMPLEMENTARES — Mapa, Comparar, Temas (Problemas) e Relatório
 // Mesma identidade da Visão Geral e dos Locais; números da fonte única (numeros()).
 // ═══════════════════════════════════════════════════════════════════════════
 const ESTILO_EXTRA = `
@@ -2032,7 +2194,7 @@ export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => st
                   <span style={{ display: 'block', fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.l.name}</span>
                   <span style={{ display: 'block', fontSize: 12, color: d.al ? 'var(--rb-warn)' : 'var(--rb-text2)', marginTop: 2 }}>{d.al ? t('Alerta no último trimestre', 'Alert last quarter') : props.catLabel(d.l.category)}</span>
                 </span>
-                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '-'}</span>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '—'}</span>
               </button>
             ))}
             {dados.length > comCoords.length && <div className="rb-sub" style={{ padding: '12px 14px', marginTop: 0 }}>{t(`${dados.length - comCoords.length} locais sem coordenadas (edita o local para as indicar).`, `${dados.length - comCoords.length} places without coordinates (edit the place to add them).`)}</div>}
@@ -2089,7 +2251,7 @@ function LinhasComparadas({ series, rotulo, casas = 2, zero = false }: { series:
       {hover != null && (
         <div className="rb-tip" style={{ left: `${(X(hover) / W) * 100}%`, top: 0, transform: `translate(${hover > qs.length / 2 ? '-105%' : '5%'}, 0)` }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>{lab(qs[hover])}</div>
-          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, casas) : '-'}</strong></div>; })}
+          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, casas) : '—'}</strong></div>; })}
         </div>
       )}
     </div>
@@ -2149,7 +2311,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: CORES_CMP[i] }}>{props.catLabel(d.l.category)}</div>
                       <button onClick={() => props.onOpen(d.l.id)} style={{ background: 'none', border: 0, padding: 0, color: 'var(--rb-text)', font: 'inherit', fontSize: 17, fontWeight: 700, textAlign: 'left', cursor: 'pointer', margin: '6px 0 14px', lineHeight: 1.3 }}>{d.l.name}</button>
                       <div className="rb-lab">{t('Índice', 'Index')}</div>
-                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>-</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
+                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>—</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
                       <div className="rb-sub">{insuf ? t('Dados insuficientes', 'Insufficient data') : ''}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--rb-line)' }}>
                         <div><div className="rb-lab">{t('Média', 'Average')}</div><div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}><Conta v={d.x!.avg} d={2} /> <span style={{ color: 'var(--rb-star)', fontSize: 16 }}>★</span></div></div>
@@ -2190,7 +2352,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                           <div style={{ height: 8, background: 'var(--rb-muted)', borderRadius: 999, overflow: 'hidden' }}>
                             {typeof v === 'number' && <div className="rb-bar" style={{ width: `${v * 10}%`, height: '100%', background: CORES_CMP[i], borderRadius: 999, transitionDelay: `${i * 90}ms` }} />}
                           </div>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '-'}</span>
+                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '—'}</span>
                         </div>
                       );
                     })}
@@ -2208,7 +2370,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                   <tbody>{TEMAS.map((tm) => (
                     <tr key={tm.id} style={{ cursor: 'default' }}>
                       <td className="rb-fixa" style={{ fontWeight: 600 }}>{temaNome(tm.id)}</td>
-                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>-</span>}</td>; })}
+                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>; })}
                     </tr>
                   ))}</tbody>
                 </table>
@@ -2287,8 +2449,8 @@ export function TemasView(props: { locations: LocV[]; catLabel: (c: string) => s
                 <div className="rb-rise" style={{ marginTop: 16, background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '18px 22px' }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{temaNome(foco)}</div>
                   <div style={{ fontSize: 14, color: 'var(--rb-text2)', marginTop: 8, lineHeight: 1.6 }}>
-                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '-'}<br />
-                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '-'}
+                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '—'}<br />
+                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '—'}
                   </div>
                 </div>
               ); })()}
@@ -2418,7 +2580,7 @@ export function RelatorioView(props: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MERCADOS - procura (INE, balcão) × voz e satisfação (comentários)
+// MERCADOS — procura (INE, balcão) × voz e satisfação (comentários)
 // Só LÊ os dados do Observatório; não os altera.
 // ═══════════════════════════════════════════════════════════════════════════
 const LINGUA_PAIS: Record<string, string> = {
@@ -2509,9 +2671,9 @@ export function MercadosView(props: { locations: LocV[] }) {
                 <tr key={z.lg} className="rb-row" onClick={() => setSel(z.lg)} style={lgSel === z.lg ? { background: 'var(--rb-accent-bg)' } : undefined}>
                   <td><strong>{nomeLingua(z.lg)}</strong><div style={{ fontSize: 12, color: 'var(--rb-text2)', marginTop: 2 }}>{z.lg === 'pt' ? t(`Brasil e outros lusófonos (sem residentes em Portugal)${z.porPais.length ? ' · ' + z.porPais.map(([p2, v2]) => `${p2} ${fmt(totDorm ? (v2 / totDorm) * 100 : 0, 1)}%`).join(' · ') : ''}`, 'Brazil and other Portuguese-speaking countries (excl. residents in Portugal)') : z.porPais.length ? z.porPais.sort((a2, b2) => b2[1] - a2[1]).slice(0, 4).map(([p2, v2]) => `${p2} ${fmt(totDorm ? (v2 / totDorm) * 100 : 0, 1)}%`).join(' · ') : t('sem dormidas no top do INE', 'not in INE top markets')}</div></td>
                   <td data-label={t('Dormidas de estrangeiros · jan–jun 2026', 'Foreign stays · Jan–Jun 2026')}>{barra(z.pd, '#8AB0E6')}</td>
-                  <td data-label={t('Comentários em línguas estrangeiras', 'Reviews in foreign languages')}>{z.pr >= 0 ? barra(z.pr, '#7CC79A') : <span style={{ fontSize: 12.5, color: 'var(--rb-text2)' }}>{t('- (junta residentes em Portugal e brasileiros)', '- (mixes Portuguese residents and Brazilians)')}</span>}</td>
+                  <td data-label={t('Comentários em línguas estrangeiras', 'Reviews in foreign languages')}>{z.pr >= 0 ? barra(z.pr, '#7CC79A') : <span style={{ fontSize: 12.5, color: 'var(--rb-text2)' }}>{t('— (junta residentes em Portugal e brasileiros)', '— (mixes Portuguese residents and Brazilians)')}</span>}</td>
                   <td data-label={t('Atendimentos a estrangeiros no Posto', 'Foreign visitors at the Tourist Office')}>{barra(z.pb, '#E9C46A')}</td>
-                  <td className="n" data-label={t('Satisfação', 'Satisfaction')}>{z.avg != null && z.n >= 10 ? <><strong style={{ fontSize: 15 }}>{fmt(z.avg, 2)}</strong> <span style={{ color: 'var(--rb-star)' }}>★</span><div style={{ fontSize: 12, color: z.avg >= mediaGeral ? 'var(--rb-good)' : 'var(--rb-bad)' }}>{z.avg >= mediaGeral ? '+' : ''}{fmt(z.avg - mediaGeral, 2)} {t('vs média', 'vs average')}</div></> : <span style={{ color: 'var(--rb-text2)' }}>-</span>}</td>
+                  <td className="n" data-label={t('Satisfação', 'Satisfaction')}>{z.avg != null && z.n >= 10 ? <><strong style={{ fontSize: 15 }}>{fmt(z.avg, 2)}</strong> <span style={{ color: 'var(--rb-star)' }}>★</span><div style={{ fontSize: 12, color: z.avg >= mediaGeral ? 'var(--rb-good)' : 'var(--rb-bad)' }}>{z.avg >= mediaGeral ? '+' : ''}{fmt(z.avg - mediaGeral, 2)} {t('vs média', 'vs average')}</div></> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>
                 </tr>
               ))}</tbody>
             </table>
@@ -2542,7 +2704,7 @@ export function MercadosView(props: { locations: LocV[] }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PRODUTOS TURÍSTICOS - portefólio da Divisão (mapas, brochuras, roteiros)
+// PRODUTOS TURÍSTICOS — portefólio da Divisão (mapas, brochuras, roteiros)
 // Base fixa aqui; links e capas editáveis na própria página (Firestore: 'produtos', 'produtosCapas').
 // ═══════════════════════════════════════════════════════════════════════════
 type Lingua = 'pt' | 'es' | 'fr' | 'en' | 'pt-en';
