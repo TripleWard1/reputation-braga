@@ -18,8 +18,8 @@ export const PERFIL_TURISTA: any = {
   genero: { homens: 49.8, mulheres: 50.2 },
   // P21 · n=304 · o primeiro elemento é «não pernoitou»
   alojamento: [['Não pernoitou', 18.1], ['Hotel 3 a 5 estrelas', 31.3], ['Apartamento turístico', 15.1], ['Pensão', 8.2], ['Casa de familiares ou amigos', 7.6], ['Turismo rural', 6.9], ['Albergue', 5.3], ['Hotel 1 ou 2 estrelas', 2.6], ['Parque de campismo', 2.0], ['Segunda casa', 2.0], ['Casa arrendada', 1.0]], nAlojamento: 304,
-  // P4 · n=287
-  municipioAlojamento: [['Braga', 57.5], ['Porto', 13.9], ['Celorico de Basto', 8.4], ['Guimarães', 8.0], ['Barcelos', 3.5], ['Esposende', 2.4]], nMunicipio: 287,
+  // P4 (concelho de alojamento) não é usada: ninguém escolheu «não estou alojado», o que contradiz os 18,1% que não pernoitaram (P21).
+  // Nessa pergunta, 8,4% indicaram Celorico de Basto: sinal de que parte das respostas foi recolhida fora do concelho de Braga.
   // P15 · n=313 · várias respostas
   transporte: [['Carro próprio', 53.4], ['Avião', 18.5], ['Autocarro de linha', 14.7], ['Comboio', 11.2], ['Autocarro de excursão', 8.3], ['Carro alugado', 5.1], ['A pé (peregrino)', 3.8], ['Táxi', 2.2], ['Moto', 1.0], ['Bicicleta (peregrino)', 0.6]], nTransporte: 313,
   // P12 · n=310

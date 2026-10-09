@@ -112,12 +112,12 @@ export default function ImpactoEventos() {
               <div key={i} style={{ border: `1px solid ${it.tipo === 'estimativa' ? C.info + '66' : C.border}`, borderRadius: 8, padding: '12px 14px', background: it.tipo === 'estimativa' ? 'rgba(233,196,106,0.06)' : 'transparent' }}>
                 <div style={{ fontSize: 12, color: C.textMuted }}>{nomeL(it.rot)}</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: C.text, margin: '4px 0' }}>{it.valor}</div>
-                <div style={{ fontSize: 11.5, color: it.tipo === 'estimativa' ? C.info : C.textDim }}>{it.tipo === 'estimativa' ? t('Estimativa', 'Estimate') : t('Valor medido', 'Measured value')}{it.nota ? ` · ${nomeL(it.nota)}` : ''}</div>
+                <div style={{ fontSize: 11.5, color: it.tipo === 'estimativa' ? C.info : C.textDim }}>{it.tipo === 'estimativa' ? t('Estimativa', 'Estimate') : it.tipo === 'calculo' ? t('Cálculo da entidade', 'Calculated by the entity') : t('Valor medido', 'Measured value')}{it.nota ? ` · ${nomeL(it.nota)}` : ''}</div>
               </div>
             ))}
           </div>
           {ev.estudo.notas.map((n, i) => <div key={i} style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 10 }}>{nomeL(n)}</div>)}
-          <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.55, marginTop: 10 }}>{t('Os valores medidos vêm dos pagamentos eletrónicos registados pela SIBS. O ganho face a períodos normais é uma estimativa da AEB, não um cálculo desta plataforma. O estudo cobre 7 dias (31/08 a 06/09); a comparação acima cobre os 3 dias do evento.', 'Measured values come from electronic payments recorded by SIBS. The gain vs normal periods is an AEB estimate, not a calculation by this platform. The study covers 7 days (31/08 to 06/09); the comparison above covers the 3 event days.')} <a href={ev.estudo.fonte} target="_blank" rel="noreferrer" style={{ color: C.accent }}>{ev.estudo.fonteNome}</a></div>
+          <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.55, marginTop: 10 }}>{t('Os valores medidos vêm dos pagamentos eletrónicos registados pela SIBS. O impacto económico é um cálculo da AEB, não desta plataforma. O estudo cobre 7 dias (31/08 a 06/09); a comparação acima cobre os 3 dias do evento.', 'Measured values come from electronic payments recorded by SIBS. The economic impact is calculated by AEB, not by this platform. The study covers 7 days (31/08 to 06/09); the comparison above covers the 3 event days.')} <a href={ev.estudo.fonte} target="_blank" rel="noreferrer" style={{ color: C.accent }}>{ev.estudo.fonteNome}</a>{(ev.estudo.outrasFontes || []).map((o) => <span key={o.url}> · <a href={o.url} target="_blank" rel="noreferrer" style={{ color: C.accent }}>{o.nome}</a></span>)}</div>
         </Card>
       )}
       <Card title={t('Dia a dia: 3 semanas antes e depois do evento', 'Day by day: 3 weeks before and after the event')}

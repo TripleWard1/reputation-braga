@@ -6,10 +6,10 @@ import { t } from '@/app/lib/i18n';
 import { MOB_URBANA } from '@/app/lib/mobilidade-bairros-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// Monitorização da Mobilidade Urbana (plataforma i4Biz · Braga Smart Retail): trânsito, peões, TUB, rotas congestionadas e parques.
+// Monitorização da Mobilidade Urbana (plataforma Braga Smart Retail): trânsito, peões, TUB, rotas congestionadas e parques.
 // Valores em percentagem sempre que o período de cada exportação não vem indicado no ficheiro.
 const M: any = MOB_URBANA;
-const FONTE = 'i4Biz (Braga Smart Retail · Dipcode) · Monitorização da Mobilidade Urbana · exportado a 08/10/2026 · as exportações de tráfego, percursos e TUB não indicam o período a que se referem; os parques referem-se a 22/06 a 08/10/2026';
+const FONTE = 'Braga Smart Retail · Monitorização da Mobilidade Urbana · exportado a 08/10/2026 · as exportações de tráfego, percursos e TUB não indicam o período a que se referem; os parques referem-se a 22/06 a 08/10/2026';
 const SEM_PERIODO = ['Período não indicado na exportação.', 'Period not stated in the export.'];
 const COR_CLASSE: Record<string, string> = { '4': '#E5484D', '3': '#EDA06B', '2': '#7CC79A' };
 function corClasse(c: string) { return COR_CLASSE[c.charAt(0)] || C.textDim; }
@@ -92,7 +92,7 @@ export default function MobilidadeUrbana() {
             <Line type="monotone" dataKey="wifi" name={t('Afluência (Wi-Fi)', 'Footfall (Wi-Fi)')} stroke={C.cyan} strokeWidth={2.2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
-        <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{t(`Os peões têm o pico às ${picoDe(ritmo, 'peoes')}h e o trânsito às ${picoDe(ritmo, 'transito')}h. Depois das 19h, os contadores de peões e de trânsito quase não registam passagens, o que pode refletir o horário de funcionamento dos sensores (a confirmar com a Dipcode); a oferta de autocarros e o Wi-Fi continuam. ${SEM_PERIODO[0]}`, `Pedestrians peak at ${picoDe(ritmo, 'peoes')}:00 and traffic at ${picoDe(ritmo, 'transito')}:00. After 19:00, pedestrian and traffic counters record almost nothing, which may reflect sensor operating hours (to be confirmed with Dipcode); bus supply and Wi-Fi continue. ${SEM_PERIODO[1]}`)}</div>
+        <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{t(`Os peões têm o pico às ${picoDe(ritmo, 'peoes')}h e o trânsito às ${picoDe(ritmo, 'transito')}h. Depois das 19h, os contadores de peões e de trânsito quase não registam passagens, o que pode refletir o horário de funcionamento dos sensores (a confirmar); a oferta de autocarros e o Wi-Fi continuam. ${SEM_PERIODO[0]}`, `Pedestrians peak at ${picoDe(ritmo, 'peoes')}:00 and traffic at ${picoDe(ritmo, 'transito')}:00. After 19:00, pedestrian and traffic counters record almost nothing, which may reflect sensor operating hours (to be confirmed); bus supply and Wi-Fi continue. ${SEM_PERIODO[1]}`)}</div>
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 14 }}>
@@ -109,7 +109,7 @@ export default function MobilidadeUrbana() {
             </LineChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{desajuste.length ? t(`A procura supera a oferta em mais de 1,5 pontos às ${desajuste.join(', ')}: há proporcionalmente mais validações do que partidas, o que sugere autocarros mais cheios. ${SEM_PERIODO[0]}`, `Demand exceeds supply by more than 1.5 points at ${desajuste.join(', ')}: proportionally more validations than departures, suggesting fuller buses. ${SEM_PERIODO[1]}`) : t(`Oferta e procura acompanham-se ao longo do dia. ${SEM_PERIODO[0]}`, `Supply and demand move together through the day. ${SEM_PERIODO[1]}`)}</div>
-        <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.5, marginTop: 8 }}>{t('Estes dados dos TUB chegam através da plataforma i4Biz e cobrem a rede inteira (971 paragens com embarques). O separador «Mobilidade (TUB)» usa os ficheiros entregues pelos TUB, só com as 8 linhas de interesse turístico, de 1 de janeiro a 30 de setembro de 2026. Ambos se referem aos TUB, mas o âmbito e o período são diferentes, por isso os valores não se somam nem se comparam diretamente.', 'These TUB data come through the i4Biz platform and cover the whole network (971 stops with boardings). The «Mobility (TUB)» tab uses the files supplied by TUB, only for the 8 lines of tourist interest, from 1 January to 30 September 2026. Both refer to TUB, but the scope and period differ, so the figures should not be added up or compared directly.')}</div>
+        <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.5, marginTop: 8 }}>{t('Estes dados dos TUB chegam através da plataforma Braga Smart Retail e cobrem a rede inteira (971 paragens com embarques). O separador «Mobilidade (TUB)» usa os ficheiros entregues pelos TUB, só com as 8 linhas de interesse turístico, de 1 de janeiro a 30 de setembro de 2026. Ambos se referem aos TUB, mas o âmbito e o período são diferentes, por isso os valores não se somam nem se comparam diretamente.', 'These TUB data come through the Braga Smart Retail platform and cover the whole network (971 stops with boardings). The «Mobility (TUB)» tab uses the files supplied by TUB, only for the 8 lines of tourist interest, from 1 January to 30 September 2026. Both refer to TUB, but the scope and period differ, so the figures should not be added up or compared directly.')}</div>
         </Card>
         <Card title={t('Composição do tráfego contado (% das contagens)', 'Composition of counted traffic (% of counts)')}>
           <ResponsiveContainer width="100%" height={260}>

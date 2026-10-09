@@ -7787,8 +7787,8 @@ export const PARES_ES: [string, string][] = [
 "Dispositivos por día"
 ],
 [
-"Outubro inclui só os primeiros 7 dias. A descida desde a primavera pode refletir mudanças na rede (pontos ativos), e não apenas menos pessoas: convém confirmar com a Dipcode antes de tirar conclusões.",
-"Octubre incluye solo los primeros 7 días. El descenso desde la primavera puede reflejar cambios en la red (puntos activos), y no solo menos personas: conviene confirmarlo con Dipcode antes de sacar conclusiones."
+"Outubro inclui só os primeiros 7 dias. A descida desde a primavera pode refletir mudanças na rede (pontos ativos), e não apenas menos pessoas: convém confirmar com a equipa da Braga Smart Retail antes de tirar conclusões.",
+"Octubre incluye solo los primeros 7 días. El descenso desde la primavera puede reflejar cambios en la red (puntos activos), y no solo menos personas: conviene confirmarlo con el equipo de Braga Smart Retail antes de sacar conclusiones."
 ],
 [
 "Ao longo da semana e do dia (média de dispositivos)",
@@ -8335,8 +8335,8 @@ export const PARES_ES: [string, string][] = [
 "La exportación de SIBS no trajo datos de pagos electrónicos para {0} ni de retiradas de efectivo para {1}."
 ],
 [
-"Fonte: SIBS Analytics (exportação de 28/09/2026). Valores arredondados pela SIBS. O país é o do emissor do cartão, não a nacionalidade de quem paga. Os setores e os valores mensais incluem cartões portugueses. O país do emissor pode refletir o banco ou a fintech que emitiu o cartão. A variação homóloga por concelho é a do ficheiro de concelhos da SIBS e não coincide com a evolução do ficheiro mensal: confirmar com a SIBS antes de a usar.",
-"Fuente: SIBS Analytics (exportación del 28/09/2026). Valores redondeados por SIBS. El país es el del emisor de la tarjeta, no la nacionalidad de quien paga. Los sectores y los valores mensuales incluyen tarjetas portuguesas. El país del emisor puede reflejar el banco o la fintech que emitió la tarjeta. La variación interanual por municipio es la del fichero de municipios de SIBS y no coincide con la evolución del fichero mensual: confirmarla con SIBS antes de usarla."
+"Fonte: SIBS Analytics (exportação de 28/09/2026). Valores arredondados pela SIBS. O país é o do emissor do cartão, não a nacionalidade de quem paga. Os setores e os valores mensais incluem cartões portugueses. O país do emissor pode refletir o banco ou a fintech que emitiu o cartão. A evolução no tempo usa o ficheiro mensal da SIBS (mês a mês, pagamentos eletrónicos e numerário em separado); a variação anual do ficheiro de concelhos não é mostrada porque não coincide com o ficheiro mensal.",
+"Fuente: SIBS Analytics (exportación del 28/09/2026). Valores redondeados por SIBS. El país es el del emisor de la tarjeta, no la nacionalidad de quien paga. Los sectores y los valores mensuales incluyen tarjetas portuguesas. El país del emisor puede reflejar el banco o la fintech que emitió la tarjeta. La evolución en el tiempo usa el fichero mensual de SIBS (mes a mes, pagos electrónicos y efectivo por separado); la variación anual del fichero de municipios no se muestra porque no coincide con el fichero mensual."
 ],
 [
 "jan 2025 a fev 2026 (sem registos em ago 25, mar e abr 26)",
@@ -8503,8 +8503,8 @@ export const PARES_ES: [string, string][] = [
 "Distribución a lo largo del día: autobuses, tráfico, peatones y wifi (% del total diario, por hora)"
 ],
 [
-"Os peões têm o pico às {0}h e o trânsito às {1}h. Depois das 19h, os contadores de peões e de trânsito quase não registam passagens, o que pode refletir o horário de funcionamento dos sensores (a confirmar com a Dipcode); a oferta de autocarros e o Wi-Fi continuam. {2}",
-"Los peatones alcanzan el pico a las {0} h y el tráfico a las {1} h. Después de las 19 h, los contadores de peatones y de tráfico casi no registran pasos, lo que puede reflejar el horario de funcionamiento de los sensores (por confirmar con Dipcode); la oferta de autobuses y el wifi continúan. {2}"
+"Os peões têm o pico às {0}h e o trânsito às {1}h. Depois das 19h, os contadores de peões e de trânsito quase não registam passagens, o que pode refletir o horário de funcionamento dos sensores (a confirmar); a oferta de autocarros e o Wi-Fi continuam. {2}",
+"Los peatones alcanzan el pico a las {0} h y el tráfico a las {1} h. Después de las 19 h, los contadores de peatones y de tráfico casi no registran pasos, lo que puede reflejar el horario de funcionamiento de los sensores (por confirmar); la oferta de autobuses y el wifi continúan. {2}"
 ],
 [
 "A procura supera a oferta em mais de 1,5 pontos às {0}: há proporcionalmente mais validações do que partidas, o que sugere autocarros mais cheios. {1}",
@@ -9063,7 +9063,19 @@ export const PARES_ES: [string, string][] = [
 "desde"
 ],
 [
-"Estes dados dos TUB chegam através da plataforma i4Biz e cobrem a rede inteira (971 paragens com embarques). O separador «Mobilidade (TUB)» usa os ficheiros entregues pelos TUB, só com as 8 linhas de interesse turístico, de 1 de janeiro a 30 de setembro de 2026. Ambos se referem aos TUB, mas o âmbito e o período são diferentes, por isso os valores não se somam nem se comparam diretamente.",
-"Estos datos de los TUB llegan a través de la plataforma i4Biz y cubren toda la red (971 paradas con embarques). La pestaña «Movilidad (TUB)» usa los ficheros entregados por los TUB, solo con las 8 líneas de interés turístico, del 1 de enero al 30 de septiembre de 2026. Ambos se refieren a los TUB, pero el ámbito y el periodo son distintos, por lo que los valores no se suman ni se comparan directamente."
+"Estes dados dos TUB chegam através da plataforma Braga Smart Retail e cobrem a rede inteira (971 paragens com embarques). O separador «Mobilidade (TUB)» usa os ficheiros entregues pelos TUB, só com as 8 linhas de interesse turístico, de 1 de janeiro a 30 de setembro de 2026. Ambos se referem aos TUB, mas o âmbito e o período são diferentes, por isso os valores não se somam nem se comparam diretamente.",
+"Estos datos de los TUB llegan a través de la plataforma Braga Smart Retail y cubren toda la red (971 paradas con embarques). La pestaña «Movilidad (TUB)» usa los ficheros entregados por los TUB, solo con las 8 líneas de interés turístico, del 1 de enero al 30 de septiembre de 2026. Ambos se refieren a los TUB, pero el ámbito y el periodo son distintos, por lo que los valores no se suman ni se comparan directamente."
+],
+[
+"Cálculo da entidade",
+"Cálculo de la entidad"
+],
+[
+"Os valores medidos vêm dos pagamentos eletrónicos registados pela SIBS. O impacto económico é um cálculo da AEB, não desta plataforma. O estudo cobre 7 dias (31/08 a 06/09); a comparação acima cobre os 3 dias do evento.",
+"Los valores medidos proceden de los pagos electrónicos registrados por SIBS. El impacto económico es un cálculo de la AEB, no de esta plataforma. El estudio cubre 7 días (31/08 a 06/09); la comparación anterior cubre los 3 días del evento."
+],
+[
+"{0} respostas ao inquérito, exportadas a 7 de maio de 2025. Nem todos responderam a todas as perguntas: cada gráfico indica o número de respostas (n). A exportação não indica as datas nem os locais de recolha, e algumas respostas sugerem que parte dos inquéritos foi feita fora do concelho (por exemplo, 8,4% dos que indicaram onde dormiram ficaram em Celorico de Basto). Os resultados descrevem os inquiridos, não o ano inteiro nem todos os visitantes de Braga. Amostra não probabilística.",
+"{0} respuestas a la encuesta, exportadas el 7 de mayo de 2025. No todos respondieron a todas las preguntas: cada gráfico indica el número de respuestas (n). La exportación no indica las fechas ni los lugares de recogida, y algunas respuestas sugieren que parte de las encuestas se hizo fuera del municipio (por ejemplo, el 8,4 % de quienes indicaron dónde durmieron se alojó en Celorico de Basto). Los resultados describen a los encuestados, no el año entero ni a todos los visitantes de Braga. Muestra no probabilística."
 ]
 ];

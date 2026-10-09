@@ -6,10 +6,10 @@ import { t } from '@/app/lib/i18n';
 import { BAIRROS } from '@/app/lib/mobilidade-bairros-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// Bairros Comerciais Digitais · «Pessoas no Bairro» (plataforma i4Biz): presença medida pela rede Wi-Fi do centro,
+// Bairros Comerciais Digitais · «Pessoas no Bairro» (plataforma Braga Smart Retail): presença medida pela rede Wi-Fi do centro,
 // tempo de permanência, zonas e chegadas de autocarros ao Terminal Rodoviário (CCTTB).
 const B: any = BAIRROS;
-const FONTE = 'i4Biz (Braga Smart Retail · Dipcode) · Pessoas no Bairro · Wi-Fi de 1 de janeiro a 7 de outubro de 2026 · exportado a 08/10/2026';
+const FONTE = 'Braga Smart Retail · Pessoas no Bairro · Wi-Fi de 1 de janeiro a 7 de outubro de 2026 · exportado a 08/10/2026';
 const dec = (v: number, d = 1) => v.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: d, maximumFractionDigits: d });
 const MESES_PT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const MESES_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -52,7 +52,7 @@ function mesNome(ym: string) { const m = Number(ym.slice(5, 7)) - 1; return t(NO
 
 export default function Bairros() {
   const zonas: any[] = B.zonasTotal.slice().sort((a: any, b: any) => b[1] - a[1]);
-  // Média diária calculada a partir da série diária exportada (dias com registo). O painel i4Biz mostra 356,
+  // Média diária calculada a partir da série diária exportada (dias com registo). O painel da plataforma Braga Smart Retail mostra 356,
   // calculado de outra forma; usa-se o valor que se consegue reproduzir a partir dos dados.
   const diarioW: any[] = B.diario;
   let somaW = 0;
@@ -99,7 +99,7 @@ export default function Bairros() {
               <Bar dataKey="v" name={t('Dispositivos por dia', 'Devices per day')} fill={C.accent} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t('Outubro inclui só os primeiros 7 dias. A descida desde a primavera pode refletir mudanças na rede (pontos ativos), e não apenas menos pessoas: convém confirmar com a Dipcode antes de tirar conclusões.', 'October includes only the first 7 days. The drop since spring may reflect network changes (active access points), not just fewer people: worth confirming with Dipcode before drawing conclusions.')}</div>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t('Outubro inclui só os primeiros 7 dias. A descida desde a primavera pode refletir mudanças na rede (pontos ativos), e não apenas menos pessoas: convém confirmar com a equipa da Braga Smart Retail antes de tirar conclusões.', 'October includes only the first 7 days. The drop since spring may reflect network changes (active access points), not just fewer people: worth confirming with the Braga Smart Retail team before drawing conclusions.')}</div>
         </Card>
         <Card title={t('Ao longo da semana e do dia (média de dispositivos)', 'Through the week and the day (average devices)')}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 10 }}>

@@ -32,7 +32,7 @@ export default function PerfilTurista() {
     <>
       <SectionTitle sub={P.fonte}>{t(`Quem visita Braga: ${v(intl)}% estrangeiros, ${v(P.primeiraVisita)}% pela primeira vez, ${v(P.motivacao[0][1])}% em lazer`, `Who visits Braga: ${intl}% international, ${P.primeiraVisita}% first-timers, ${P.motivacao[0][1]}% for leisure`)}</SectionTitle>
       <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.55, margin: '0 0 16px', padding: '10px 14px', background: 'rgba(237,160,107,.1)', border: '1px solid rgba(237,160,107,.3)', borderRadius: 6 }}>
-        {t(`${P.amostra} respostas ao inquérito, exportadas a 7 de maio de 2025. Nem todos responderam a todas as perguntas: cada gráfico indica o número de respostas (n). A exportação não indica as datas de recolha, pelo que os resultados não devem ser lidos como média do ano inteiro. Amostra não probabilística.`, `${P.amostra} survey answers, exported on 7 May 2025. Not everyone answered every question: each chart shows the number of answers (n). The export does not state the collection dates, so the results should not be read as a full-year average. Non-probability sample.`)}
+        {t(`${P.amostra} respostas ao inquérito, exportadas a 7 de maio de 2025. Nem todos responderam a todas as perguntas: cada gráfico indica o número de respostas (n). A exportação não indica as datas nem os locais de recolha, e algumas respostas sugerem que parte dos inquéritos foi feita fora do concelho (por exemplo, 8,4% dos que indicaram onde dormiram ficaram em Celorico de Basto). Os resultados descrevem os inquiridos, não o ano inteiro nem todos os visitantes de Braga. Amostra não probabilística.`, `${P.amostra} survey answers, exported on 7 May 2025. Not everyone answered every question: each chart shows the number of answers (n). The export does not state the collection dates or locations, and some answers suggest part of the survey was carried out outside the municipality (e.g. 8.4% of those who said where they slept stayed in Celorico de Basto). The results describe the respondents, not the whole year or all visitors to Braga. Non-probability sample.`)}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 16 }}>
         <KPI label={t('Primeira visita', 'First visit')} value={`${v(P.primeiraVisita)}%`} sub={t(`${v(P.voltaramMenos2Anos)}% dos recorrentes voltaram em menos de 2 anos`, `${P.voltaramMenos2Anos}% of repeat visitors returned within 2 years`)} color={C.accent} />
@@ -64,14 +64,11 @@ export default function PerfilTurista() {
         <Card title={t(`Como chegaram (%, várias respostas, n=${P.nTransporte})`, `How they arrived (%, multiple answers, n=${P.nTransporte})`)}><BarrasPct dados={P.transporte} cor={C.accent} /></Card>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={t(`Concelho onde ficaram alojados (%, n=${P.nMunicipio})`, `Municipality where they stayed (%, n=${P.nMunicipio})`)}>
-          <BarrasPct dados={P.municipioAlojamento} cor={C.purple} />
-          {nota(t(`Nesta pergunta ninguém escolheu «não estou alojado», embora ${v(naoPernoitou)}% digam noutra pergunta que não pernoitaram. Ler com cautela.`, `In this question nobody chose «not staying overnight», although ${naoPernoitou}% say in another question that they did not stay overnight. Read with caution.`))}
-        </Card>
         <Card title={t(`Outros lugares que visitam (%, n=${P.outrosDestinos.n})`, `Other places they visit (%, n=${P.outrosDestinos.n})`)}>
           <BarrasPct dados={P.outrosDestinos.lista} cor={C.cyan} />
           {nota(t(`${v(P.outrosDestinos.soBraga)}% disseram que Braga é o único lugar da viagem.`, `${P.outrosDestinos.soBraga}% said Braga is the only place on their trip.`))}
         </Card>
+        <Card title={t(`Informação recebida já no destino (%, n=${P.nInfo})`, `Information received at the destination (%, n=${P.nInfo})`)}><BarrasPct dados={P.infoNoDestino} cor={C.cyan} /></Card>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <Card title={t(`Onde se informaram antes da viagem (%, várias respostas, n=${P.nFontes})`, `Information sources before the trip (%, multiple answers, n=${P.nFontes})`)}>
@@ -84,10 +81,7 @@ export default function PerfilTurista() {
           <BarrasPct dados={P.organizacao} cor={C.textDim} />
         </Card>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={t(`Locais visitados (%, várias respostas, n=${P.nLocais})`, `Places visited (%, multiple answers, n=${P.nLocais})`)}><BarrasPct dados={P.locais} cor={C.accent} /></Card>
-        <Card title={t(`Informação recebida já no destino (%, n=${P.nInfo})`, `Information received at the destination (%, n=${P.nInfo})`)}><BarrasPct dados={P.infoNoDestino} cor={C.cyan} /></Card>
-      </div>
+      <Card title={t(`Locais visitados (%, várias respostas, n=${P.nLocais})`, `Places visited (%, multiple answers, n=${P.nLocais})`)}><BarrasPct dados={P.locais} cor={C.accent} /></Card>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <Card title={t(`O que mais gostaram (%, várias respostas, n=${P.nPositivos})`, `What they liked most (%, multiple answers, n=${P.nPositivos})`)}><BarrasPct dados={P.positivos} cor={C.positive} /></Card>
         <Card title={t(`O que menos gostaram (%, várias respostas, n=${P.nQueixas})`, `What they liked least (%, multiple answers, n=${P.nQueixas})`)}>

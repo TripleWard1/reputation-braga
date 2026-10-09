@@ -5,10 +5,10 @@ import { t } from '@/app/lib/i18n';
 import { GEO_VISITAS } from '@/app/lib/mobilidade-bairros-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// Visitas ao concelho medidas por geolocalização agregada e anónima (Geoanalytics, na plataforma i4Biz):
+// Visitas ao concelho medidas por geolocalização agregada e anónima (Geoanalytics, na plataforma Braga Smart Retail):
 // visitas de um dia e com dormida, nacionais e internacionais, outubro a dezembro de 2025.
 const G: any = GEO_VISITAS;
-const FONTE = 'i4Biz (Braga Smart Retail · Dipcode) · Geoanalytics · outubro a dezembro de 2025 · exportado a 08/10/2026';
+const FONTE = 'Braga Smart Retail · Geoanalytics · outubro a dezembro de 2025 · exportado a 08/10/2026';
 const dec = (v: number, d = 1) => v.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: d, maximumFractionDigits: d });
 const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const MESES_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
