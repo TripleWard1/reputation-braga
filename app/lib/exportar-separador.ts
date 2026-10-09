@@ -269,6 +269,7 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
     const alvo = md.querySelector(`[${ATRIB}]`) as HTMLElement | null;
     if (!alvo || !md.defaultView) throw new Error('moldura');
     await esperarImagens(alvo);
+    removerNaoExportar(alvo);
     clarearElemento(md.defaultView, alvo);
     // Evita que a margem do primeiro título «saia» do alvo (o alvo fica no canto superior esquerdo da moldura).
     alvo.style.display = 'flow-root';
@@ -364,4 +365,10 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
     window.dispatchEvent(new Event('resize'));
     av.fechar();
   }
+}
+
+// Retira da cópia os elementos só para o ecrã (ex.: ligações de navegação).
+function removerNaoExportar(raiz: HTMLElement) {
+  const l = raiz.querySelectorAll('.obs-nao-exportar');
+  for (let i = l.length - 1; i >= 0; i--) { const e = l[i]; if (e.parentNode) e.parentNode.removeChild(e); }
 }

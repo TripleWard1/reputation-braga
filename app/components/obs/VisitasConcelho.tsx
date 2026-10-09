@@ -3,17 +3,18 @@
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { t } from '@/app/lib/i18n';
 import { GEO_VISITAS } from '@/app/lib/mobilidade-bairros-dados';
+import { HOSPEDES_BRAGA, ESTADA_MEDIA } from '@/app/lib/observatorio-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
 // Visitas ao concelho medidas por geolocalização agregada e anónima (Geoanalytics, na plataforma Braga Smart Retail):
 // visitas de um dia e com dormida, nacionais e internacionais, outubro a dezembro de 2025.
 const G: any = GEO_VISITAS;
-const FONTE = 'Braga Smart Retail · Geoanalytics · outubro a dezembro de 2025 · exportado a 08/10/2026';
+const FONTE = 'Braga Smart Retail · Geoanalytics · 9 de outubro a 31 de dezembro de 2025 · exportado a 08/10/2026 · a fonte não tem dados de geolocalização a partir de 1 de janeiro de 2026';
 const dec = (v: number, d = 1) => v.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: d, maximumFractionDigits: d });
 const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const MESES_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 function mesRot(ym: string) { const m = Number(ym.slice(5, 7)) - 1; return t(MESES_PT[m], MESES_EN[m]); }
-const DUR_PT: Record<string, string> = { '<2h': 'Menos de 2 h', '2-5h': '2 a 5 h', '6-12h': '6 a 12 h', Overnight: 'Com dormida', '>12h': 'Mais de 12 h, sem dormida' };
+const DUR_PT: Record<string, string> = { '<2h': 'Menos de 2 h', '2-5h': '2 a 5 h', '6-12h': '6 a 12 h', Overnight: 'Com noite no concelho', '>12h': 'Mais de 12 h, sem dormida' };
 const DUR_EN: Record<string, string> = { '<2h': 'Under 2 h', '2-5h': '2 to 5 h', '6-12h': '6 to 12 h', Overnight: 'Overnight', '>12h': 'Over 12 h, no overnight' };
 const TIPO_PT: Record<string, string> = { Regulares: 'Regulares', Residentes: 'Residentes', Turistas: 'Turistas', Visitantes: 'Visitantes' };
 const TIPO_EN: Record<string, string> = { Regulares: 'Regulars', Residentes: 'Residents', Turistas: 'Tourists', Visitantes: 'Visitors' };
@@ -23,6 +24,11 @@ export default function VisitasConcelho() {
   let dia = 0; let dorm = 0;
   for (let i = 0; i < diario.length; i++) { dorm += diario[i][1]; dia += diario[i][2]; }
   const pctDia = (dia / Math.max(1, dia + dorm)) * 100;
+  // Comparação com o INE em novembro e dezembro de 2025 (meses completos nas duas fontes)
+  let geoNovDez = 0;
+  for (let i = 0; i < diario.length; i++) if (diario[i][0] >= '2025-11-01' && diario[i][0] <= '2025-12-31') geoNovDez += diario[i][1];
+  const ineNovDez = (HOSPEDES_BRAGA['Novembro']['2025'] || 0) + (HOSPEDES_BRAGA['Dezembro']['2025'] || 0);
+  const razaoIne = geoNovDez / Math.max(1, ineNovDez);
   const mensal: any[] = G.mensal;
   const ult = mensal[mensal.length - 1]; const ant = mensal.length > 1 ? mensal[mensal.length - 2] : null;
   const varNac = ant ? (ult[1] / ant[1] - 1) * 100 : null;
@@ -40,16 +46,19 @@ export default function VisitasConcelho() {
   const razaoFds = media(fds) / Math.max(1, media(uteis));
   return (
     <>
-      <SectionTitle sub={FONTE}>{t(`${dec(pctDia, 0)}% das visitas ao concelho não incluem dormida: são visitas de um dia`, `${dec(pctDia, 0)}% of visits to the municipality do not include an overnight stay: they are day visits`)}</SectionTitle>
+      <SectionTitle sub={FONTE}>{t(`${fmt(dia + dorm)} visitas ao concelho registadas por geolocalização, de 9 de outubro a 31 de dezembro de 2025`, `${fmt(dia + dorm)} visits to the municipality recorded by geolocation, 9 October to 31 December 2025`)}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
-        <KPI label={t('Visitas de um dia', 'Day visits')} value={`${dec(pctDia)}%`} sub={t(`${fmt(dia)} visitas entre 9 out. e 31 dez. 2025`, `${fmt(dia)} visits between 9 Oct and 31 Dec 2025`)} color={C.accent} />
+        <KPI label={t('Sem noite no concelho', 'No night in the municipality')} value={`${dec(pctDia)}%`} sub={t('inclui deslocações diárias para trabalho, estudo ou compras: não são só excursionistas', 'includes daily trips for work, study or shopping: not only day-trippers')} color={C.accent} />
         <KPI label={t('Visitantes nacionais', 'Domestic visitors')} value={fmt(ult[1])} sub={t(`em ${mesRot(ult[0])}${varNac != null ? ` · ${varNac >= 0 ? '+' : ''}${dec(varNac)}% face a ${mesRot(ant[0])}` : ''}`, `in ${mesRot(ult[0])}${varNac != null ? ` · ${varNac >= 0 ? '+' : ''}${dec(varNac)}% vs ${mesRot(ant[0])}` : ''}`)} color={C.positive} />
         <KPI label={t('Turistas internacionais', 'International tourists')} value={fmt(ult[2])} sub={t(`em ${mesRot(ult[0])}${varInt != null ? ` · ${varInt >= 0 ? '+' : ''}${dec(varInt)}% face a ${mesRot(ant[0])}` : ''}`, `in ${mesRot(ult[0])}${varInt != null ? ` · ${varInt >= 0 ? '+' : ''}${dec(varInt)}% vs ${mesRot(ant[0])}` : ''}`)} color={C.orange} />
-        <KPI label={t('Ficam a dormir', 'Stay overnight')} value={`${dec(G.comDormida.nac)}% · ${dec(G.comDormida.int)}%`} sub={t('nacionais · internacionais', 'domestic · international')} color={C.purple} />
-        <KPI label={t('Quanto tempo ficam', 'How long they stay')} value={`${dec(G.noites.nac, 2)} · ${dec(G.noites.int, 2)}`} sub={t(`noites (com dormida, nac. · int.); de dia: ${dec(G.horasDiurna.nac, 1)} h · ${dec(G.horasDiurna.int, 1)} h`, `nights (overnight, dom. · int.); day visits: ${dec(G.horasDiurna.nac, 1)} h · ${dec(G.horasDiurna.int, 1)} h`)} color={C.cyan} />
+        <KPI label={t('Passam a noite no concelho', 'Spend the night in the municipality')} value={`${dec(G.comDormida.nac)}% · ${dec(G.comDormida.int)}%`} sub={t('nacionais · internacionais · qualquer tipo de alojamento', 'domestic · international · any type of lodging')} color={C.purple} />
+        <KPI label={t('Quanto tempo ficam', 'How long they stay')} value={`${dec(G.noites.nac, 2)} · ${dec(G.noites.int, 2)}`} sub={t(`noites (nac. · int.); INE, alojamento turístico: ${dec(ESTADA_MEDIA['2025'], 2)} em 2025 e ${dec(ESTADA_MEDIA['2026'], 2)} no 1.º semestre de 2026; de dia: ${dec(G.horasDiurna.nac, 1)} h · ${dec(G.horasDiurna.int, 1)} h`, `nights (dom. · int.); INE, tourist accommodation: ${dec(ESTADA_MEDIA['2025'], 2)} in 2025 and ${dec(ESTADA_MEDIA['2026'], 2)} in H1 2026; day visits: ${dec(G.horasDiurna.nac, 1)} h · ${dec(G.horasDiurna.int, 1)} h`)} color={C.cyan} />
+      </div>
+      <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.55, margin: '0 0 16px', padding: '10px 14px', background: 'rgba(237,160,107,.1)', border: '1px solid rgba(237,160,107,.3)', borderRadius: 6 }}>
+        {t(`Atenção: «passar a noite» aqui não é o mesmo que dormida turística. Em novembro e dezembro de 2025, a geolocalização contou ${fmt(geoNovDez)} visitas com noite no concelho; o INE registou ${fmt(ineNovDez)} hóspedes em alojamento turístico, cerca de ${dec(razaoIne, 0)} vezes menos. A diferença inclui quem dorme em casa de familiares ou amigos (sobretudo no Natal), estudantes, trabalhadores deslocados, segundas residências e alojamento que o INE não cobre. Para dormidas turísticas, use o INE (separador Procura).`, `Note: «spending the night» here is not the same as a tourist overnight stay. In November and December 2025, geolocation counted ${fmt(geoNovDez)} visits with a night in the municipality; INE recorded ${fmt(ineNovDez)} guests in tourist accommodation, about ${dec(razaoIne, 0)} times fewer. The difference includes people staying with family or friends (especially at Christmas), students, workers away from home, second homes and lodging not covered by INE. For tourist overnight stays, use INE (Demand tab).`)}
       </div>
 
-      <Card title={t('Visitas por dia: de um dia e com dormida (outubro a dezembro de 2025)', 'Visits per day: day visits and overnight (October to December 2025)')}>
+      <Card title={t('Visitas por dia: de um dia e com noite no concelho (9 de outubro a 31 de dezembro de 2025)', 'Visits per day: day visits and with a night in the municipality (9 October to 31 December 2025)')}>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={dados} margin={{ top: 6, right: 10, left: -4, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
@@ -58,10 +67,10 @@ export default function VisitasConcelho() {
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(Number(v)), n]} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <Bar dataKey="dia" name={t('De um dia', 'Day visits')} stackId="a" fill={C.accent} />
-            <Bar dataKey="dorm" name={t('Com dormida', 'Overnight')} stackId="a" fill={C.orange} />
+            <Bar dataKey="dorm" name={t('Com noite no concelho', 'With a night in the municipality')} stackId="a" fill={C.orange} />
           </BarChart>
         </ResponsiveContainer>
-        <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Cada barra é um dia. Ao fim de semana há, em média, ${dec(razaoFds)} vezes mais visitas do que num dia útil. No fim de dezembro, período de festas, sobem sobretudo as visitas com dormida.`, `Each bar is a day. At weekends there are on average ${dec(razaoFds)} times more visits than on a weekday. In late December, the holiday period, overnight visits rise the most.`)}</div>
+        <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Cada barra é um dia. Ao fim de semana há, em média, ${dec(razaoFds)} vezes mais visitas do que num dia útil. No fim de dezembro, período de festas, sobem sobretudo as visitas com noite no concelho, o que é coerente com visitas a familiares.`, `Each bar is a day. At weekends there are on average ${dec(razaoFds)} times more visits than on a weekday. In late December, the holiday period, visits with a night in the municipality rise the most, which is consistent with family visits.`)}</div>
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 14 }}>
@@ -93,7 +102,7 @@ export default function VisitasConcelho() {
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`A categoria «Visitantes», definida pelo fornecedor pelo padrão de presença, é a maior parte das presenças. A parte dos internacionais nas visitas foi de ${nacInt.map((x) => `${dec(x.int)}% em ${x.mes}`).join(', ')}.`, `The «Visitors» category, defined by the provider from presence patterns, is most of the presence. The international share of visits was ${nacInt.map((x) => `${dec(x.int)}% in ${x.mes}`).join(', ')}.`)}</div>
         </Card>
       </div>
-      <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.6, margin: '4px 2px 16px' }}>{t('Como ler: dados de geolocalização agregados e anónimos (Geoanalytics), que contam visitas e não pessoas, e distinguem residentes, visitantes e turistas pelo padrão de presença. Cobrem só outubro a dezembro de 2025, por isso ainda não mostram a época alta. Completam o inquérito ao visitante (amostra pequena) e o INE (que só conta dormidas em alojamento).', 'How to read: aggregated, anonymous geolocation data (Geoanalytics), which counts visits, not people, and distinguishes residents, visitors and tourists by presence pattern. They only cover October to December 2025, so they do not yet show the peak season. They complement the visitor survey (small sample) and INE (which only counts overnight stays in accommodation).')}</div>
+      <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.6, margin: '4px 2px 16px' }}>{t('Como ler: dados de geolocalização agregados e anónimos (Geoanalytics), que contam visitas e não pessoas, e distinguem residentes, visitantes e turistas pelo padrão de presença. Cobrem só 9 de outubro a 31 de dezembro de 2025: na exportação, a geolocalização não tem valores a partir de janeiro de 2026 (o Wi-Fi tem). Por isso ainda não mostram a época alta. Completam o inquérito ao visitante (amostra não probabilística) e o INE (que só conta dormidas em alojamento turístico).', 'How to read: aggregated, anonymous geolocation data (Geoanalytics), which counts visits, not people, and distinguishes residents, visitors and tourists by presence pattern. They only cover 9 October to 31 December 2025: in the export, geolocation has no values from January 2026 (Wi-Fi does). So they do not yet show the peak season. They complement the visitor survey (non-probability sample) and INE (which only counts overnight stays in tourist accommodation).')}</div>
     </>
   );
 }

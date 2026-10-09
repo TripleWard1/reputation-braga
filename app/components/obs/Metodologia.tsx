@@ -5,7 +5,7 @@ import { METODOLOGIA, REGISTO_CORRECOES, tx } from '@/app/lib/metodologia-dados'
 import { C, Card, SectionTitle } from './comum';
 
 // Nota curta no fundo de cada separador (entra também no PDF exportado).
-export function NotaMetodologica({ id }: { id: string }) {
+export function NotaMetodologica({ id, onVer }: { id: string; onVer?: () => void }) {
   const n = METODOLOGIA[id];
   if (!n) return null;
   const linha = (rot: string, v: string) => (
@@ -21,6 +21,7 @@ export function NotaMetodologica({ id }: { id: string }) {
       {linha(t('Extração', 'Extraction'), tx(n.extracao))}
       {linha(t('Estado', 'Status'), tx(n.estado))}
       {n.notas && linha(t('Notas', 'Notes'), tx(n.notas))}
+      {onVer && <button type="button" className="obs-nao-exportar" onClick={onVer} style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, color: C.accent, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>{t('Ver todas as fontes e o registo de correções →', 'See all sources and the corrections log →')}</button>}
     </div>
   );
 }

@@ -371,6 +371,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   const tabLabel = TABS.find((t) => t.id === tab)?.label || '';
   // Abrir um separador a partir das perguntas e das leituras (só aceita separadores existentes)
   const nomeSeparador = (id: string): string | null => TABS.find((x) => x.id === id)?.label || null;
+  const verMetodologia = () => { setTab('metodologia'); };
   const irPara = (id: string) => { const x = TABS.find((y) => y.id === id); if (x) setTab(x.id); };
   // Separadores agrupados por tema (menu mais simples, sobretudo no telemóvel)
   const GRUPOS: { id: string; label: string; icon: string; tabs: Tab[] }[] = [
@@ -943,7 +944,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'cruzamentos' && <Cruzamentos />}
         {tab === 'eventos' && <ImpactoEventos />}
         {tab === 'metodologia' && <Metodologia nomeSeparador={nomeSeparador} />}
-        {tab !== 'metodologia' && <NotaMetodologica id={tab} />}
+        {tab !== 'metodologia' && <NotaMetodologica id={tab} onVer={verMetodologia} />}
       </div>
       </div>
     </div>

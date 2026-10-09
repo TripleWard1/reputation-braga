@@ -9075,7 +9075,59 @@ export const PARES_ES: [string, string][] = [
 "Los valores medidos proceden de los pagos electrónicos registrados por SIBS. El impacto económico es un cálculo de la AEB, no de esta plataforma. El estudio cubre 7 días (31/08 a 06/09); la comparación anterior cubre los 3 días del evento."
 ],
 [
-"{0} respostas ao inquérito, exportadas a 7 de maio de 2025. Nem todos responderam a todas as perguntas: cada gráfico indica o número de respostas (n). A exportação não indica as datas nem os locais de recolha, e algumas respostas sugerem que parte dos inquéritos foi feita fora do concelho (por exemplo, 8,4% dos que indicaram onde dormiram ficaram em Celorico de Basto). Os resultados descrevem os inquiridos, não o ano inteiro nem todos os visitantes de Braga. Amostra não probabilística.",
-"{0} respuestas a la encuesta, exportadas el 7 de mayo de 2025. No todos respondieron a todas las preguntas: cada gráfico indica el número de respuestas (n). La exportación no indica las fechas ni los lugares de recogida, y algunas respuestas sugieren que parte de las encuestas se hizo fuera del municipio (por ejemplo, el 8,4 % de quienes indicaron dónde durmieron se alojó en Celorico de Basto). Los resultados describen a los encuestados, no el año entero ni a todos los visitantes de Braga. Muestra no probabilística."
+"{0} respostas ao inquérito, exportadas a 7 de maio de 2025. Nem todos responderam a todas as perguntas: cada gráfico indica o número de respostas (n). Inquérito feito em Braga, em 2025. Os resultados descrevem os inquiridos e não substituem uma amostra representativa de todo o ano. Amostra não probabilística.",
+"{0} respuestas a la encuesta, exportadas el 7 de mayo de 2025. No todos respondieron a todas las preguntas: cada gráfico indica el número de respuestas (n). Encuesta realizada en Braga, en 2025. Los resultados describen a los encuestados y no sustituyen a una muestra representativa de todo el año. Muestra no probabilística."
+],
+[
+"Passam a noite no concelho",
+"Pasan la noche en el municipio"
+],
+[
+"nacionais · internacionais · qualquer tipo de alojamento",
+"nacionales · internacionales · cualquier tipo de alojamiento"
+],
+[
+"noites (nac. · int.; INE, alojamento turístico 2025: {0}); de dia: {1} h · {2} h",
+"noches (nac. · int.; INE, alojamiento turístico 2025: {0}); de día: {1} h · {2} h"
+],
+[
+"Atenção: «passar a noite» aqui não é o mesmo que dormida turística. Em novembro e dezembro de 2025, a geolocalização contou {0} visitas com noite no concelho; o INE registou {1} hóspedes em alojamento turístico, cerca de {2} vezes menos. A diferença inclui quem dorme em casa de familiares ou amigos (sobretudo no Natal), estudantes, trabalhadores deslocados, segundas residências e alojamento que o INE não cobre. Para dormidas turísticas, use o INE (separador Procura).",
+"Atención: «pasar la noche» aquí no equivale a una pernoctación turística. En noviembre y diciembre de 2025, la geolocalización contó {0} visitas con noche en el municipio; el INE registró {1} huéspedes en alojamiento turístico, unas {2} veces menos. La diferencia incluye a quien duerme en casa de familiares o amigos (sobre todo en Navidad), estudiantes, trabajadores desplazados, segundas residencias y alojamiento que el INE no cubre. Para pernoctaciones turísticas, use el INE (pestaña Demanda)."
+],
+[
+"Visitas por dia: de um dia e com noite no concelho (9 de outubro a 31 de dezembro de 2025)",
+"Visitas por día: de un día y con noche en el municipio (9 de octubre a 31 de diciembre de 2025)"
+],
+[
+"Com noite no concelho",
+"Con noche en el municipio"
+],
+[
+"Cada barra é um dia. Ao fim de semana há, em média, {0} vezes mais visitas do que num dia útil. No fim de dezembro, período de festas, sobem sobretudo as visitas com noite no concelho, o que é coerente com visitas a familiares.",
+"Cada barra es un día. El fin de semana hay, de media, {0} veces más visitas que en un día laborable. A finales de diciembre, en época de fiestas, suben sobre todo las visitas con noche en el municipio, lo que es coherente con visitas a familiares."
+],
+[
+"Como ler: dados de geolocalização agregados e anónimos (Geoanalytics), que contam visitas e não pessoas, e distinguem residentes, visitantes e turistas pelo padrão de presença. Cobrem só 9 de outubro a 31 de dezembro de 2025: na exportação, a geolocalização não tem valores a partir de janeiro de 2026 (o Wi-Fi tem). Por isso ainda não mostram a época alta. Completam o inquérito ao visitante (amostra não probabilística) e o INE (que só conta dormidas em alojamento turístico).",
+"Cómo leer: datos de geolocalización agregados y anónimos (Geoanalytics), que cuentan visitas y no personas, y distinguen residentes, visitantes y turistas por el patrón de presencia. Solo cubren del 9 de octubre al 31 de diciembre de 2025: en la exportación, la geolocalización no tiene valores a partir de enero de 2026 (el wifi sí). Por eso aún no muestran la temporada alta. Complementan la encuesta al visitante (muestra no probabilística) y el INE (que solo cuenta pernoctaciones en alojamiento turístico)."
+],
+[
+"Ver todas as fontes e o registo de correções →",
+"Ver todas las fuentes y el registro de correcciones →"
+],
+[
+"{0} visitas ao concelho registadas por geolocalização, de 9 de outubro a 31 de dezembro de 2025",
+"{0} visitas al municipio registradas por geolocalización, del 9 de octubre al 31 de diciembre de 2025"
+],
+[
+"Sem noite no concelho",
+"Sin noche en el municipio"
+],
+[
+"inclui deslocações diárias para trabalho, estudo ou compras: não são só excursionistas",
+"incluye desplazamientos diarios por trabajo, estudios o compras: no son solo excursionistas"
+],
+[
+"noites (nac. · int.); INE, alojamento turístico: {0} em 2025 e {1} no 1.º semestre de 2026; de dia: {2} h · {3} h",
+"noches (nac. · int.); INE, alojamiento turístico: {0} en 2025 y {1} en el 1.er semestre de 2026; de día: {2} h · {3} h"
 ]
 ];
