@@ -6,7 +6,7 @@ import { AL_BRAGA } from '@/app/lib/alojamento-aeroporto-dados';
 import { SETOR_SUSTENTAVEL } from '@/app/lib/setor-sustentavel-dados';
 import { Badge, C, Card, HBars, KPI, MiniPie, SectionTitle, fmt } from './comum';
 
-// ═══ O setor turístico: negócios certificados e retrato do TIA - só leitura ═══
+// ═══ O setor turístico: negócios certificados e retrato do TIA — só leitura ═══
 function SetorSustentavel() {
   const D = SETOR_SUSTENTAVEL, T = D.tia;
   const porSelo = (D.certificados as any[]).reduce((o: Record<string, number>, c) => { o[c.selo] = (o[c.selo] || 0) + 1; return o; }, {});
@@ -34,7 +34,7 @@ function SetorSustentavel() {
           ))}
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 10 }}>{T.estrutura}</div>
           <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 8 }}>{t('Picos de procura: ', 'Demand peaks: ')}{(T.picos as string[]).join(' · ')}</div>
-          <div style={{ fontSize: 12, color: C.textDim, marginTop: 8 }}>{t(`Os números do TIA são de 2025. Hoje, a base municipal da taxa turística tem ${(AL_BRAGA as any).total} alojamentos locais ativos (o TIA contava os registos, incluindo inativos).`, `TIA figures are from 2025. Today the municipal tourist tax database lists ${(AL_BRAGA as any).total} active short-term rentals (TIA counted registrations, including inactive ones).`)}</div>
+          <div style={{ fontSize: 12, color: C.textDim, marginTop: 8 }}>{t(`Os números do TIA são de 2025. Hoje, a base municipal da taxa turística tem ${(AL_BRAGA as any).total} alojamentos locais ativos.`, `TIA figures are from 2025. Today the municipal tourist tax database lists ${(AL_BRAGA as any).total} active short-term rentals.`)}</div>
         </Card>
       </div>
     </>
@@ -57,13 +57,13 @@ function Sustentabilidade() {
           </div>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.positive, background: C.positiveBg, border: `1px solid ${C.positive}66`, borderRadius: 5, padding: '3px 9px', marginBottom: 7 }}>
-              {t('Grau máximo Green Destinations', 'Highest Green Destinations level')}
+              {t('Certificação Green Destinations', 'Green Destinations certification')}
             </div>
             <div style={{ fontSize: 19, fontWeight: 700, color: C.positive, lineHeight: 1.25 }}>
-              {t('Green Destinations - Full Certification', 'Green Destinations - Full Certification')}
+              {t('Green Destinations - Full Certification (2026)', 'Green Destinations - Full Certification (2026)')}
             </div>
             <div style={{ fontSize: 12.5, color: C.text, margin: '7px 0 0', lineHeight: 1.55 }}>
-              {t('Braga é a primeira cidade portuguesa a alcançar esta classificação e integra o restrito grupo de apenas 5 cidades em todo o mundo com esta certificação máxima.', 'Braga is the first Portuguese city to achieve this classification and joins the select group of only 5 cities worldwide holding this highest-level certification.')}
+              {t('Certificação de destino sustentável obtida em 2026, depois do Platinum Award de 2023.', 'Sustainable destination certification obtained in 2026, following the 2023 Platinum Award.')}
             </div>
             <div style={{ fontSize: 11.5, color: C.textMuted, margin: '6px 0 0' }}>
               {t('Monitorização da sustentabilidade turística, qualidade de vida e governação do destino · reconhecida pelo GSTC', 'Monitoring of tourism sustainability, quality of life and destination governance · GSTC-recognised')}
@@ -72,22 +72,22 @@ function Sustentabilidade() {
         </div>
         <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap', marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.positive}26` }}>
           <div>
-            <div style={{ fontSize: 21, fontWeight: 700, color: C.positive }}>1.ª</div>
-            <div style={{ fontSize: 11, color: C.textMuted }}>{t('cidade portuguesa', 'Portuguese city')}</div>
+            <div style={{ fontSize: 21, fontWeight: 700, color: C.positive }}>2023</div>
+            <div style={{ fontSize: 11, color: C.textMuted }}>{t('Platinum Award', 'Platinum Award')}</div>
           </div>
           <div>
-            <div style={{ fontSize: 21, fontWeight: 700, color: C.positive }}>5</div>
-            <div style={{ fontSize: 11, color: C.textMuted }}>{t('cidades a nível mundial', 'cities worldwide')}</div>
+            <div style={{ fontSize: 21, fontWeight: 700, color: C.positive }}>2026</div>
+            <div style={{ fontSize: 11, color: C.textMuted }}>{t('Full Certification', 'Full Certification')}</div>
           </div>
           <div>
-            <div style={{ fontSize: 21, fontWeight: 700, color: C.positive }}>{t('Full', 'Full')}</div>
-            <div style={{ fontSize: 11, color: C.textMuted }}>{t('grau máximo atribuído', 'highest level awarded')}</div>
+            <div style={{ fontSize: 21, fontWeight: 700, color: C.positive }}>GSTC</div>
+            <div style={{ fontSize: 11, color: C.textMuted }}>{t('programa reconhecido', 'recognised programme')}</div>
           </div>
         </div>
       </div>
 
       {/* A) Perceção dos residentes */}
-      <SectionTitle sub={`${t('Barómetro de Perceção dos Residentes ·', 'Residents Perception Barometer ·')} ${P.n} ${t('respostas ·', 'responses ·')} ${P.periodo}`}>{t('Perceção dos Residentes sobre o Turismo', 'Residents Perception of Tourism')}</SectionTitle>
+      <SectionTitle sub={`${t('Barómetro de Perceção dos Residentes ·', 'Residents Perception Barometer ·')} ${P.n} ${t('respostas (90,4% residentes; inclui quem trabalha ou estuda em Braga) ·', 'responses (90.4% residents; includes people who work or study in Braga) ·')} ${P.periodo}`}>{t('Perceção dos Residentes sobre o Turismo', 'Residents Perception of Tourism')}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 14 }}>
         <Badge icon="👍" value={`${P.positiva}%`} label={t('perceção global positiva', 'overall positive perception')} color={C.positive} />
         <Badge icon="💶" value={`${P.beneficiaEconomia}%`} label={t('o turismo beneficia a economia', 'tourism benefits the economy')} color={C.accent} />
@@ -117,17 +117,17 @@ function Sustentabilidade() {
       <SectionTitle sub={`${t('App Eco · Posto de Turismo · piloto com', 'App Eco · Tourist Office · pilot with')} ${A.submissoes} ${t('submissões', 'submissions')}`}>{t('Pegada Ambiental do Visitante', 'Visitor Environmental Footprint')}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 14 }}>
         <Badge icon="🌍" value={`${A.pegadaMedia}`} label={t('kg CO₂e por visitante (pegada média)', 'kg CO₂e per visitor (average footprint)')} color={C.accent} />
-        <Badge icon="♻️" value={`${A.taxaReciclagem}%`} label={t('dos visitantes reciclam', 'of visitors recycle')} color={C.positive} />
+        <Badge icon="♻️" value={`${A.taxaReciclagem}%`} label={t(`das submissões indicam reciclagem (${Math.round((A.taxaReciclagem / 100) * A.submissoes)} de ${A.submissoes})`, `of submissions report recycling (${Math.round((A.taxaReciclagem / 100) * A.submissoes)} of ${A.submissoes})`)} color={C.positive} />
         <Badge icon="📝" value={`${A.submissoes}`} label={t('submissões no piloto', 'pilot submissions')} color={C.info} hint={t('amostra reduzida - projeto em arranque', 'small sample - project starting up')} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
         <Card title={t('Meio de chegada do visitante (App Eco)', 'Visitor means of arrival (App Eco)')}><MiniPie data={A.transporte} /></Card>
-        <Card title={t('Alojamento escolhido (App Eco)', 'Chosen accommodation (App Eco)')}><MiniPie data={A.alojamento} /></Card>
+        <Card title={t('Alojamento escolhido (App Eco, 7 respostas)', 'Chosen accommodation (App Eco, 7 answers)')}><MiniPie data={A.alojamento} /></Card>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 4 }}>
-        <Card title={t('Nível de resíduos', 'Waste level')}><HBars data={A.residuos} color={C.positive} /></Card>
+        <Card title={t('Nível de resíduos (6 respostas)', 'Waste level (6 answers)')}><HBars data={A.residuos} color={C.positive} /></Card>
         <Card title={t('Regime alimentar', 'Diet')}><HBars data={A.dieta} color={C.accent} /></Card>
-        <Card title={t('Uso de climatização', 'Air conditioning use')}><HBars data={A.climatizacao} color={C.info} /></Card>
+        <Card title={t('Uso de climatização (13 respostas)', 'Air conditioning use (13 answers)')}><HBars data={A.climatizacao} color={C.info} /></Card>
       </div>
 
       {/* C) Indicadores do destino - Green Destinations TIA */}
@@ -135,13 +135,13 @@ function Sustentabilidade() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
         <Badge icon="📅" value={`${D.sazonalidade}%`} label={`${t('sazonalidade', 'seasonality')} (${t('nacional', 'national')} ${D.sazonalidadeNacional}%)`} color={C.positive} hint={t('abaixo da média nacional = mais equilibrado', 'below national average = more balanced')} />
         <Badge icon="👥" value={`${D.turistasPorHabitante}`} label={t('turistas por habitante (pico)', 'tourists per resident (peak)')} color={C.info} />
-        <Badge icon="🚌" value={`${D.frotaVerde}%`} label={t('frota TUB amiga do ambiente', 'eco-friendly TUB fleet')} color={C.positive} hint={`${D.autocarrosEletricos} ${t('autocarros elétricos', 'electric buses')}`} />
+        <Badge icon="🚌" value={`${D.frotaVerde}%`} label={t('frota TUB elétrica ou a gás natural', 'TUB fleet electric or natural gas')} color={C.positive} hint={t(`78 de 161 autocarros (${D.autocarrosEletricos} elétricos, 32 a gás natural); o TIA indica 60%`, `78 of 161 buses (${D.autocarrosEletricos} electric, 32 natural gas); the TIA states 60%`)} />
         <Badge icon="💡" value={`${D.iluminacaoLED}%`} label={t('iluminação pública em LED', 'public LED lighting')} color={C.accent} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
         <Badge icon="🍃" value={`+${D.biorresiduosVar}%`} label={t('biorresíduos recolhidos (2021→2023)', 'biowaste collected (2021→2023)')} color={C.positive} />
         <Badge icon="🤝" value={`>${D.economiaLocal}%`} label={t('economia turística gerida por locais', 'tourism economy run by locals')} color={C.purple} />
-        <Badge icon="🌱" value={`${D.pegadaConcelho.toLocaleString(t('pt-PT', 'en-GB'))}`} label={t('kg CO₂e/pessoa/ano (concelho)', 'kg CO₂e/person/year (municipality)')} color={C.cyan} hint={t('DECO · 1.230 testes', 'DECO · 1,230 tests')} />
+        <Badge icon="🌱" value={`${D.pegadaConcelho.toLocaleString(t('pt-PT', 'en-GB'))}`} label={t('kg CO₂e/pessoa/ano (média de testes voluntários)', 'kg CO₂e/person/year (average of voluntary tests)')} color={C.cyan} hint={t('DECO · média de 1 230 testes voluntários', 'DECO · average of 1,230 voluntary tests')} />
         <Badge icon="🚶" value={`${D.redePedestre} km`} label={t('rede de percursos pedestres', 'walking trail network')} color={C.accent} hint={`+ ${D.redeCiclavel} ${t('km de ciclovias', 'km of cycle paths')}`} />
       </div>
       <p style={{ fontSize: 11, color: C.textDim, margin: '14px 0 0', lineHeight: 1.6 }}>

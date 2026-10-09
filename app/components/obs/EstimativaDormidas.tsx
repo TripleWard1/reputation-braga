@@ -23,7 +23,7 @@ export default function EstimativaDormidas() {
   const media = (xs: { varHom: number | null }[]) => xs.reduce((a, x) => a + (x.varHom || 0), 0) / Math.max(1, xs.length);
   return (
     <>
-      <SectionTitle sub={t(`Estimativa da plataforma com base no INE/TravelBI até ${ultNome} de ${E.ano} · não é um dado oficial`, `Platform estimate based on INE/TravelBI up to ${ultNome} ${E.ano} · not official data`)}>{t(`${E.ano} deverá fechar com cerca de ${fmt(Math.round(E.total / 100) * 100)} dormidas em Braga (${pc(E.variacao)})`, `${E.ano} should close with about ${fmt(Math.round(E.total / 100) * 100)} overnight stays in Braga (${pc(E.variacao)})`)}</SectionTitle>
+      <SectionTitle sub={t(`Estimativa da plataforma com base no INE/TravelBI até ${ultNome} de ${E.ano} · não é um dado oficial`, `Platform estimate based on INE/TravelBI up to ${ultNome} ${E.ano} · not official data`)}>{t(`Projeção para ${E.ano}: cerca de ${fmt(Math.round(E.total / 100) * 100)} dormidas em Braga (${pc(E.variacao)}), se se mantiver o crescimento de jan–${ultNome}`, `${E.ano} projection: about ${fmt(Math.round(E.total / 100) * 100)} overnight stays in Braga (${pc(E.variacao)}), if Jan–${ultNome} growth holds`)}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
         <KPI label={t(`Total estimado ${E.ano}`, `Estimated total ${E.ano}`)} value={fmt(Math.round(E.total / 100) * 100)} sub={t(`entre ${fmt(Math.round(E.totalMin / 100) * 100)} e ${fmt(Math.round(E.totalMax / 100) * 100)}`, `between ${fmt(Math.round(E.totalMin / 100) * 100)} and ${fmt(Math.round(E.totalMax / 100) * 100)}`)} color={C.orange} />
         <KPI label={t(`Já publicado (jan–${ultNome})`, `Already published (Jan–${ultNome})`)} value={fmt(E.real)} sub={t(`${pc(E.g)} face a ${E.ano - 1}`, `${pc(E.g)} vs ${E.ano - 1}`)} color={C.accent} />
@@ -36,7 +36,7 @@ export default function EstimativaDormidas() {
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${Math.round(v / 1000)}k`} />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [v == null ? '-' : fmt(v), n]} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [v == null ? '—' : fmt(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar dataKey="real" name={t(`${E.ano} (INE)`, `${E.ano} (INE)`)} fill={C.accent} radius={[4, 4, 0, 0]} />
             <Bar dataKey="estimativa" name={t(`${E.ano} (estimativa)`, `${E.ano} (estimate)`)} fill={C.orange} fillOpacity={0.6} radius={[4, 4, 0, 0]} />

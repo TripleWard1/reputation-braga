@@ -80,7 +80,7 @@ function MapaAL({ pontos }: { pontos: number[][] }) {
   return <div ref={caixa} className="obs-mapa-al" style={{ height: 420, borderRadius: 6, overflow: 'hidden', border: `1px solid ${C.border}` }} />;
 }
 
-// ═══ Alojamento Local (base municipal da taxa turística; mapa do RNAL) - só leitura ═══
+// ═══ Alojamento Local (base municipal da taxa turística; mapa do RNAL) — só leitura ═══
 export default function AlojamentoLocal() {
   const A: any = AL_BRAGA;
   const MOD: Record<string, string> = { 'Apartamento': t('Apartamento', 'Apartment'), 'Moradia': t('Moradia', 'House'), 'Estabelecimento de Hospedagem/Hostel': t('Hospedagem / hostel', 'Guesthouse / hostel'), 'Quartos': t('Quartos', 'Rooms') };
@@ -112,7 +112,7 @@ export default function AlojamentoLocal() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <Card title={t('Onde estão: cada ponto é um registo', 'Where they are: each dot is a registration')}>
           <MapaAL pontos={pts} />
-          <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t(`O mapa usa as coordenadas do registo nacional (${A.fonteMapa}, ${fmt(A.registosRNAL)} registos), porque a base municipal não tem localização. Algumas coordenadas são só ao nível do código postal.`, `The map uses national registry coordinates (${A.fonteMapa}, ${fmt(A.registosRNAL)} records), since the municipal database has no location. Some coordinates are postcode-level only.`)}</div>
+          <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t(`O mapa usa as coordenadas do registo nacional (${A.fonteMapa}, ${fmt(A.registosRNAL)} registos, incluindo eventuais inativos), porque a base municipal não tem localização. Na origem, todas as coordenadas estão marcadas como não fiáveis e vários registos partilham o mesmo ponto: o mapa mostra a distribuição aproximada, não a localização exata.`, `The map uses national registry coordinates (${A.fonteMapa}, ${fmt(A.registosRNAL)} records, possibly including inactive ones), since the municipal database has no location. In the source, all coordinates are flagged as unreliable and several records share the same point: the map shows the approximate distribution, not exact locations.`)}</div>
         </Card>
         <Card title={t('Por freguesia (alojamentos ativos)', 'By parish (active rentals)')}>
           <ResponsiveContainer width="100%" height={420}>

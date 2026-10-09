@@ -203,12 +203,26 @@ function nomeFicheiro(x: string): string {
 function carregarImagem(src: string): Promise<HTMLImageElement | null> {
   return new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = src; });
 }
-function prepararClone(doc: Document): void {
-  const fora = doc.querySelectorAll('.obs-tabs, .obs-hero, .obs-toast');
-  for (let i = 0; i < fora.length; i++) (fora[i] as HTMLElement).style.setProperty('display', 'none', 'important');
-  const el = doc.querySelector(`[${ATRIB}]`) as HTMLElement | null;
-  if (el && doc.defaultView) clarearElemento(doc.defaultView, el);
+// Documento da moldura: os mesmos estilos da página, os mesmos «invólucros» (classes dos elementos acima do separador,
+// de que dependem algumas regras) e os degradês dos gráficos. O conteúdo é o HTML já desenhado no ecrã.
+export function montarHtml(el: HTMLElement): string {
+  let estilos = '';
+  const fs = document.querySelectorAll('style, link[rel="stylesheet"]');
+  for (let i = 0; i < fs.length; i++) estilos += (fs[i] as HTMLElement).outerHTML;
+  let abrir = ''; let fechar = '';
+  const cadeia: Element[] = [];
+  let p = el.parentElement;
+  while (p && p !== document.body && p !== document.documentElement) { cadeia.unshift(p); p = p.parentElement; }
+  for (let i = 0; i < cadeia.length; i++) { const cl = cadeia[i].getAttribute('class'); abrir += `<div${cl ? ` class="${cl.replace(/"/g, '&quot;')}"` : ''} style="width:${LARGURA}px;max-width:none;padding:0;margin:0;position:static;overflow:visible;transform:none;">`; fechar += '</div>'; }
+  let defs = '';
+  const svgs = document.querySelectorAll('svg');
+  for (let i = 0; i < svgs.length; i++) if (!el.contains(svgs[i]) && svgs[i].querySelector('linearGradient, radialGradient')) defs += svgs[i].outerHTML;
+  const bodyCl = document.body.getAttribute('class');
+  return `<!DOCTYPE html><html lang="${document.documentElement.lang || 'pt'}"><head><meta charset="utf-8"><base href="${window.location.origin}/">${estilos}`
+    + `<style>html,body{margin:0;padding:0;background:#fff !important;width:${LARGURA}px;overflow:visible}</style></head>`
+    + `<body${bodyCl ? ` class="${bodyCl}"` : ''}><div style="position:absolute;width:0;height:0;overflow:hidden">${defs}</div>${abrir}${el.outerHTML}${fechar}</body></html>`;
 }
+
 
 export interface OpcoesSeparador { titulo: string; eyebrow: string; subtitulo?: string; rodape?: string }
 
@@ -217,6 +231,7 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
   const antes = { width: el.style.width, maxWidth: el.style.maxWidth, minWidth: el.style.minWidth };
   let mexidos: { el: HTMLElement; estilo: string | null }[] = [];
   let estilo: HTMLStyleElement | null = null;
+  let moldura: HTMLIFrameElement | null = null;
   try {
     // 1) Todos os cartões visíveis (os que ainda não tinham aparecido ao descer)
     window.dispatchEvent(new Event('beforeprint'));
@@ -233,25 +248,39 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
     for (let i = 0; i < imgs.length; i++) { const im = imgs[i] as HTMLImageElement; if (im.loading === 'lazy') im.loading = 'eager'; }
     await Promise.all([carregar(H2C), carregar(JSPDF), esperar(2200)]);
     mexidos = abrirFaixas(el);
+    el.setAttribute(ATRIB, '1');
     await Promise.all([esperarImagens(el), esperar(400)]);
     const w = window as any;
     const html2canvas = w.html2canvas; const JsPDF = w.jspdf && w.jspdf.jsPDF;
     if (!html2canvas || !JsPDF) throw new Error('bibliotecas');
     try { if ((document as any).fonts && (document as any).fonts.ready) await (document as any).fonts.ready; } catch { /* segue */ }
 
-    const total = Math.ceil(el.scrollHeight);
+    // Cópia do conteúdo numa moldura à parte (como no motor que já funcionava em todo o lado, incluindo o StackBlitz):
+    // o gerador fotografa a moldura, e não a página viva, por isso não depende de nada que esteja fora do separador.
+    av.mudar(t('A gerar o PDF…', 'Generating the PDF…'));
+    moldura = document.createElement('iframe');
+    moldura.setAttribute('aria-hidden', 'true'); moldura.setAttribute('tabindex', '-1');
+    moldura.style.cssText = `position:fixed;left:-20000px;top:0;width:${LARGURA + 40}px;height:1200px;border:0;opacity:0;pointer-events:none;`;
+    document.body.appendChild(moldura);
+    const md = moldura.contentDocument as Document;
+    md.open(); md.write(montarHtml(el)); md.close();
+    await esperar(500);
+    try { if ((md as any).fonts && (md as any).fonts.ready) await (md as any).fonts.ready; } catch { /* segue */ }
+    const alvo = md.querySelector(`[${ATRIB}]`) as HTMLElement | null;
+    if (!alvo || !md.defaultView) throw new Error('moldura');
+    await esperarImagens(alvo);
+    clarearElemento(md.defaultView, alvo);
+    await esperar(150);
+    const total = Math.ceil(alvo.scrollHeight);
+    moldura.style.height = `${total + 60}px`;
     const largMm = 210 - MARGEM * 2;
     const pxMm = LARGURA / largMm;
     const primeira = Math.floor((297 - MARGEM * 2 - CAB_MM) * pxMm);
     const outras = Math.floor((297 - MARGEM * 2) * pxMm);
-    const partes = fatias(total, primeira, outras, zonasOcupadas(el, outras));
-
-    av.mudar(t('A gerar o PDF…', 'Generating the PDF…'));
+    const partes = fatias(total, primeira, outras, zonasOcupadas(alvo, outras));
     let escala = 2;
     if (total * escala > 30000) escala = Math.max(1, 30000 / total);
-    el.setAttribute(ATRIB, '1');
-    const tela: HTMLCanvasElement = await html2canvas(el, { scale: escala, useCORS: true, backgroundColor: '#ffffff', logging: false, windowWidth: Math.max(document.documentElement.clientWidth, LARGURA + 80), onclone: prepararClone });
-    el.removeAttribute(ATRIB);
+    const tela: HTMLCanvasElement = await html2canvas(alvo, { scale: escala, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', logging: false, windowWidth: LARGURA + 40, windowHeight: total + 60, scrollX: 0, scrollY: 0 });
 
     const pdf = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
     const logo = await carregarImagem(`${window.location.origin}/visit-braga-logo-negativo.png`);
@@ -291,9 +320,12 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
       pdf.text(t(`Página ${i + 1} de ${partes.length}`, `Page ${i + 1} of ${partes.length}`), 210 - MARGEM, 297 - MARGEM + 6.5, { align: 'right' });
     }
     pdf.save(nomeFicheiro(`${o.eyebrow} ${o.titulo}`));
-  } catch {
-    alert(t('Não foi possível gerar o PDF. Verifique a ligação à internet e tente de novo.', 'Could not generate the PDF. Check your internet connection and try again.'));
+  } catch (e: any) {
+    // A mensagem técnica fica visível, para se perceber logo o que falhou
+    console.error('Exportar PDF:', e);
+    alert(`${t('Não foi possível gerar o PDF. Verifique a ligação à internet e tente de novo.', 'Could not generate the PDF. Check your internet connection and try again.')}\n\n(${(e && e.message) || String(e)})`);
   } finally {
+    if (moldura) moldura.remove();
     el.removeAttribute(ATRIB);
     repor(mexidos);
     el.classList.remove('obs-exportando');

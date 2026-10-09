@@ -1,7 +1,8 @@
 'use client';
 
 import { t } from '@/app/lib/i18n';
-import { DORMIDAS_BRAGA, MESES } from '@/app/lib/observatorio-dados';
+import { DORMIDAS_BRAGA, DORMIDAS_ANUAL, MESES } from '@/app/lib/observatorio-dados';
+import { POP_CONCELHO } from '@/app/lib/freguesias-dados';
 import { INSTO_DADOS } from '@/app/lib/insto-dados';
 import { INDICADORES_SIMPLES } from '@/app/lib/indicadores-simples';
 import { C, SectionTitle, KPI, Card } from './comum';
@@ -17,7 +18,7 @@ const AREAS: Area[] = [
   { pt: 'Emprego', en: 'Employment', estado: 'coberta', separador: 'emprego', tem: ['Pessoal ao serviço no alojamento e restauração (2022–2024), peso no emprego e ganho médio.', 'Persons employed in accommodation and food (2022–2024), share of employment and average earnings.'] },
   { pt: 'Benefícios económicos do destino', en: 'Destination economic benefits', estado: 'coberta', separador: 'economia', tem: ['Proveitos, RevPAR, gastos com cartões estrangeiros e taxa turística.', 'Revenue, RevPAR, foreign card spending and tourist tax.'] },
   { pt: 'Satisfação dos residentes', en: 'Local satisfaction', estado: 'coberta', separador: 'sustentabilidade', tem: ['Barómetro de Perceção dos Residentes 2026 (293 respostas).', 'Residents’ Perception Barometer 2026 (293 responses).'] },
-  { pt: 'Acessibilidade', en: 'Accessibility', estado: 'coberta', separador: 'acessibilidade', tem: ['Indicadores de acessibilidade do destino e quartos adaptados na hotelaria.', 'Destination accessibility indicators and adapted hotel rooms.'] },
+  { pt: 'Acessibilidade', en: 'Accessibility', estado: 'parcial', separador: 'acessibilidade', tem: ['Indicadores de acessibilidade do destino e quartos adaptados na hotelaria.', 'Destination accessibility indicators and adapted hotel rooms.'] },
   { pt: 'Governança', en: 'Governance', estado: 'coberta', ancora: true, tem: ['Processos participativos e grupos de trabalho documentados (abaixo), certificação Full da Green Destinations e este Observatório.', 'Documented participatory processes and working groups (below), Green Destinations Full certification and this Observatory.'], nota: ['Ponto a melhorar: 45% dos residentes sentem que não são ouvidos (Barómetro 2026).', 'Area to improve: 45% of residents feel they are not heard (2026 Barometer).'] },
   { pt: 'Ação climática', en: 'Climate action', estado: 'coberta', ancora: true, tem: [`Emissões de CO₂ do concelho: −30% entre 2008 e 2024 (PAESC, maio de 2026). Meta: −40% em 2030 e neutralidade em 2050.`, `Municipal CO₂ emissions: −30% between 2008 and 2024 (SECAP, May 2026). Target: −40% by 2030 and neutrality by 2050.`] },
   { pt: 'Gestão de energia', en: 'Energy management', estado: 'coberta', ancora: true, tem: [`Consumo elétrico por habitante e por tipo de consumo (INE, ${D.energia.ano}).`, `Electricity consumption per inhabitant and by type of use (INE, ${D.energia.ano}).`], nota: ['Medido ao nível do concelho, com estimativa do peso do turismo.', 'Measured at municipal level, with an estimate of tourism’s share.'] },
@@ -33,9 +34,9 @@ export default function Insto({ irPara, nomeSeparador, semTitulo }: { irPara: (i
   const irAmbiente = () => document.getElementById('insto-ambiente')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   // Peso dos turistas na população (estimativa): dormidas/365 face à população implícita nos dados do INE
   const M = MESES as unknown as string[];
-  const dorm2025 = M.reduce((a, m) => a + ((DORMIDAS_BRAGA as any)[m]?.['2025'] ?? 0), 0);
+  const dorm2025 = Number((DORMIDAS_ANUAL as any)['2025']) || M.reduce((a, m) => a + ((DORMIDAS_BRAGA as any)[m]?.['2025'] ?? 0), 0);
   const ago = (DORMIDAS_BRAGA as any)['Agosto']?.['2025'] ?? 0;
-  const pop = D.energia.porTipoBraga.total / D.energia.porHab.Braga;
+  const pop = POP_CONCELHO.pop; // INE, Censos 2021 (resultados definitivos), o mesmo do relatório
   const pMedia = (dorm2025 / 365 / pop) * 100, pAgosto = (ago / 31 / pop) * 100;
   const cl = D.clima; const [e08, , e24] = cl.total as number[];
   const reducao = (1 - e24 / e08) * 100;
@@ -106,12 +107,12 @@ export default function Insto({ irPara, nomeSeparador, semTitulo }: { irPara: (i
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 10 }}>{t(`Consumo elétrico em Braga por tipo (${D.energia.ano}): não doméstico, onde estão o comércio, os serviços e o turismo, ${fmt((e.naoDomestico / e.total) * 100)}%; doméstico ${fmt((e.domestico / e.total) * 100)}%; indústria ${fmt((e.industria / e.total) * 100)}%.`, `Electricity use in Braga by type (${D.energia.ano}): non-domestic, which includes retail, services and tourism, ${fmt((e.naoDomestico / e.total) * 100)}%; domestic ${fmt((e.domestico / e.total) * 100)}%; industry ${fmt((e.industria / e.total) * 100)}%.`)}</div>
         </Card>
       </div>
-      <Card title={t('O peso do turismo no consumo do concelho (estimativa)', 'Tourism’s share of municipal consumption (estimate)')}>
+      <Card title={t('Turistas face à população residente (ordem de grandeza)', 'Tourists compared with the resident population (order of magnitude)')}>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'baseline' }}>
           <div><div style={{ fontSize: 30, fontWeight: 700, color: C.text }}>{fmt(pMedia, 1)}%</div><div style={{ fontSize: 13, color: C.textMuted }}>{t('da população, em média, ao longo do ano', 'of the population, on average, through the year')}</div></div>
           <div><div style={{ fontSize: 30, fontWeight: 700, color: C.orange }}>{fmt(pAgosto, 1)}%</div><div style={{ fontSize: 13, color: C.textMuted }}>{t('em agosto, o mês com mais dormidas', 'in August, the busiest month')}</div></div>
         </div>
-        <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, marginTop: 12 }}>{t(`As ${fmt(dorm2025)} dormidas de 2025 equivalem, em média, a ${fmt(dorm2025 / 365)} pessoas por dia, face a uma população de cerca de ${fmt(Math.round(pop / 100) * 100)} habitantes (implícita nos dados do INE). Se os turistas consumirem como os residentes, representam cerca de ${fmt(pMedia, 1)}% da água, da energia doméstica e dos resíduos do concelho. É uma estimativa: não inclui visitantes de um dia nem diferenças de consumo entre turistas e residentes.`, `The ${fmt(dorm2025)} overnight stays in 2025 are on average equivalent to ${fmt(dorm2025 / 365)} people a day, against a population of about ${fmt(Math.round(pop / 100) * 100)} (implied by INE data). If tourists consume like residents, they account for about ${fmt(pMedia, 1)}% of the municipality’s water, domestic energy and waste. This is an estimate: it excludes day visitors and differences in consumption between tourists and residents.`)}</div>
+        <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, marginTop: 12 }}>{t(`As ${fmt(dorm2025)} dormidas de 2025 equivalem, em média, a ${fmt(dorm2025 / 365)} pessoas por dia, face a uma população residente de ${fmt(pop)} habitantes (INE, Censos 2021): equivalem a cerca de ${fmt(pMedia, 1)}% da população. É apenas uma ordem de grandeza do peso do turismo no consumo de água e resíduos: não inclui visitantes de um dia, nem diferenças de consumo, nem o consumo dos hotéis, que é não doméstico.`, `The ${fmt(dorm2025)} overnight stays in 2025 are on average equivalent to ${fmt(dorm2025 / 365)} people a day, against a resident population of ${fmt(pop)} (INE, 2021 Census): about ${fmt(pMedia, 1)}% of the population. This is only an order of magnitude of tourism’s weight in water and waste consumption: it excludes day visitors, consumption differences, and hotel consumption, which is non-domestic.`)}</div>
       </Card>
       <Card title={t('Governança: como o destino é gerido e quem participa', 'Governance: how the destination is managed and who takes part')}>
         {(D.governanca as string[][]).map((g, i) => (

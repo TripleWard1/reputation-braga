@@ -25,7 +25,7 @@ async function comprimirFoto(fl: File): Promise<string> {
   return d;
 }
 
-function CartaoLoja({ l, ano }: { l: { nome: string; ano: number | null; morada: string; setor: string; resumo: string }; ano: number }) {
+function CartaoLoja({ l, ano }: { l: { nome: string; ano: number | null; morada: string; setor: string; resumo: string; decada?: boolean }; ano: number }) {
   const admin = useAdmin();
   const [ref, vis] = useVisivelObs<HTMLDivElement>();
   const [foto, setFoto] = useState<string | null | undefined>(undefined);
@@ -50,7 +50,7 @@ function CartaoLoja({ l, ano }: { l: { nome: string; ano: number | null; morada:
     await deleteDoc(doc(db, 'lojasFotos', id)).catch(() => {});
     setFoto(null); setPronta(false);
   };
-  const idade = l.ano ? ano - l.ano : null;
+  const idade = l.ano && !l.decada ? ano - l.ano : null;
   return (
     <div ref={ref} className="obs-loja">
       <div className="obs-loja-topo">
@@ -58,7 +58,7 @@ function CartaoLoja({ l, ano }: { l: { nome: string; ano: number | null; morada:
         {foto === null && <div className="obs-loja-vazio"><span>{l.nome.replace(/^(A|O|Casa|Restaurante|Café|Pastelaria)\s+/i, '').charAt(0)}</span></div>}
         {foto && <img className="obs-loja-img" src={foto} alt={l.nome} onLoad={() => setPronta(true)} style={{ opacity: pronta ? 1 : 0 }} />}
         <div className="obs-loja-fade" />
-        {l.ano && <span className={`obs-loja-ano${idade != null && idade >= 100 ? ' cent' : ''}`}>{l.ano}</span>}
+        {l.ano && <span className={`obs-loja-ano${idade != null && idade >= 100 ? ' cent' : ''}`}>{l.decada ? t(`déc. ${l.ano}`, `${l.ano}s`) : l.ano}</span>}
         {admin && <div className="obs-loja-acoes">
           <button onClick={() => input.current?.click()} disabled={aGravar}>{aGravar ? t('A guardar…', 'Saving…') : foto ? t('Mudar', 'Change') : t('+ Fotografia', '+ Photo')}</button>
           {foto && <button onClick={remover}>{t('Remover', 'Remove')}</button>}
@@ -74,13 +74,13 @@ function CartaoLoja({ l, ano }: { l: { nome: string; ano: number | null; morada:
   );
 }
 
-// ═══ Lojas com História (rede municipal) - só leitura ═══
+// ═══ Lojas com História (rede municipal) — só leitura ═══
 export default function LojasHistoria() {
   const [setor, setSetor] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const ano = new Date().getFullYear();
   const L = LOJAS_HISTORIA;
-  const comAno = L.filter((l) => l.ano);
+  const comAno = L.filter((l) => l.ano && !l.decada);
   const maisAntiga = [...comAno].sort((a, b) => (a.ano || 0) - (b.ano || 0))[0];
   const idades = comAno.map((l) => ano - (l.ano || ano)).sort((a, b) => a - b);
   const mediana = idades.length ? idades[Math.floor(idades.length / 2)] : 0;
@@ -95,7 +95,7 @@ export default function LojasHistoria() {
       <SectionTitle sub={LOJAS_HISTORIA_META.fonte}>{t(`${LOJAS_HISTORIA_META.total} lojas reconhecidas, ${LOJAS_HISTORIA_META.centenarias} com mais de um século`, `${LOJAS_HISTORIA_META.total} recognised shops, ${LOJAS_HISTORIA_META.centenarias} over a century old`)}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
         <KPI label={t('Lojas na rede', 'Shops in the network')} value={String(LOJAS_HISTORIA_META.total)} sub={t(`${setores.length} setores de atividade`, `${setores.length} business sectors`)} color={C.accent} />
-        <KPI label={t('Centenárias', 'Centenary shops')} value={String(LOJAS_HISTORIA_META.centenarias)} sub={t('segundo a rede Lojas com História', 'according to the Historic Shops network')} color={C.orange} />
+        <KPI label={t('Centenárias', 'Centenary shops')} value={String(LOJAS_HISTORIA_META.centenarias)} sub={t('segundo a brochura da rede; nem todas as fichas indicam o ano de fundação', 'according to the network brochure; not every entry gives a founding year')} color={C.orange} />
         {maisAntiga && <KPI label={t('A mais antiga', 'The oldest')} value={String(maisAntiga.ano)} sub={`${maisAntiga.nome} · ${ano - (maisAntiga.ano || ano)} ${t('anos', 'years')}`} color={C.purple} />}
         <KPI label={t('Idade mediana', 'Median age')} value={`${mediana} ${t('anos', 'years')}`} sub={t('metade das lojas tem mais do que isto', 'half the shops are older than this')} color={C.positive} />
       </div>

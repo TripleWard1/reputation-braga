@@ -42,9 +42,9 @@ function loc(): string { const l = getLang() as string; return l === 'en' ? 'en-
 const eur2 = (v: number) => v.toLocaleString(loc(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const mesNome = (i: number) => new Date(2026, i, 1).toLocaleDateString(loc(), { month: 'short' }).replace('.', '');
 
-// Valores praticados noutros municípios (Postal, 29/07/2026); o número máximo de noites e as isenções variam.
+// Valores praticados noutros municípios (Postal, 13/06/2025). Faro: 2 € só de março a outubro (1 € no resto do ano); Porto e Lisboa: até 7 noites.
 const REFERENCIAS: { nome: string; valor: number }[] = [
-  { nome: 'Braga', valor: 1.5 }, { nome: 'Faro', valor: 2 }, { nome: 'Porto', valor: 3 }, { nome: 'Lisboa', valor: 4 },
+  { nome: 'Braga', valor: 1.5 }, { nome: 'Faro (mar–out)', valor: 2 }, { nome: 'Porto', valor: 3 }, { nome: 'Lisboa', valor: 4 },
 ];
 
 export default function SimuladorTaxa() {
@@ -119,13 +119,13 @@ export default function SimuladorTaxa() {
       <details className="sim-met">
         <summary>{t('Como é calculado e limitações', 'How it is calculated and limitations')}</summary>
         <ul>
-          <li>{t('Noites tributadas = receita faturada ÷ 1,50 €. Cada fatura é atribuída ao mês anterior, o da dormida, porque a declaração é feita no mês seguinte.', 'Taxed nights = invoiced revenue ÷ €1.50. Each invoice is assigned to the previous month, the month of the stay, because it is declared the following month.')}</li>
+          <li>{t('Noites tributadas = receita faturada ÷ 1,50 €. Pressuposto da plataforma: cada fatura refere-se às dormidas do mês anterior (o padrão da faturação aponta nesse sentido, mas não é uma regra confirmada). Abril inclui 682,92 € que não são múltiplos de 1,50 € (juros ou acertos).', 'Taxed nights = invoiced revenue ÷ €1.50. Platform assumption: each invoice refers to the previous month’s stays (the invoicing pattern points that way, but it is not a confirmed rule). April includes €682.92 that is not a multiple of €1.50 (interest or adjustments).')}</li>
           <li>{t('Receita simulada = noites tributadas × (1 + variação das dormidas) × valor por noite, só nos meses incluídos no período de cobrança.', 'Simulated revenue = taxed nights × (1 + change in stays) × rate per night, only in the months included in the collection period.')}</li>
           <li>{t('Abril a junho de 2026 são provisórios e estão subavaliados (faturas ainda por cobrar), por isso a base é conservadora.', 'April to June 2026 are provisional and understated (invoices still unpaid), so the base is conservative.')}</li>
           <li>{t('Não é possível simular o número máximo de noites nem a idade de isenção: faltam a distribuição das estadas por número de noites e a idade dos hóspedes.', 'The maximum number of nights and the exemption age cannot be simulated: the distribution of stays by number of nights and the age of guests are not available.')}</li>
           <li>{t('O simulador não estima se um valor mais alto reduziria a procura; para isso use a variação das dormidas como cenário.', 'The simulator does not estimate whether a higher rate would reduce demand; use the change in stays as a scenario for that.')}</li>
           <li>{t('A receita simulada é o valor cobrado aos hóspedes. Os alojamentos retêm uma comissão de cobrança de 2,5% (artigo H-4/7.º do Código Regulamentar), por isso o valor que chega ao Município é cerca de 97,5% deste.', 'Simulated revenue is the amount charged to guests. Accommodation providers keep a 2.5% collection fee (article H-4/7 of the Municipal Regulatory Code), so the amount reaching the Municipality is about 97.5% of it.')}</li>
-          <li>{t('Valores de referência de outros municípios: Postal, 29/07/2026. O número máximo de noites e as isenções variam de município para município.', 'Reference rates of other municipalities: Postal, 29/07/2026. The maximum number of nights and exemptions vary between municipalities.')}</li>
+          <li>{t('Valores de referência de outros municípios: Postal, 13/06/2025 (podem ter mudado desde então). Faro cobra 2 € só de março a outubro e 1 € no resto do ano; Porto e Lisboa cobram até 7 noites. O número máximo de noites e as isenções variam de município para município.', 'Reference rates of other municipalities: Postal, 13/06/2025 (they may have changed since). Faro charges €2 only from March to October and €1 the rest of the year; Porto and Lisbon charge up to 7 nights. The maximum number of nights and exemptions vary between municipalities.')}</li>
         </ul>
       </details>
     </Card>

@@ -5,7 +5,7 @@ import { RNAAT } from '@/app/lib/rnaat-dados';
 import { PERFIL_TURISTA } from '@/app/lib/perfil-turista-dados';
 import { BarrasPct, C, Card, KPI, SectionTitle } from './comum';
 
-// ═══ Perfil do turista (estudo por inquérito) - só leitura ═══
+// ═══ Perfil do turista (estudo por inquérito) — só leitura ═══
 export default function PerfilTurista() {
   const P = PERFIL_TURISTA;
   const intl = P.origem.slice(0, 4).reduce((a: number, x: any) => a + x[1], 0);
@@ -28,8 +28,8 @@ export default function PerfilTurista() {
       <div style={{ padding: '16px 18px', marginBottom: 16, background: C.accentBg, border: '1px solid rgba(138,176,230,.3)', borderRadius: 6 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 }}>{t('Leituras para a gestão', 'Takeaways for management')}</div>
         {[
-          t(`Mais de um quarto (${String(P.alojamento[0][1]).replace('.', ',')}%) não dorme em Braga: converter visitas de um dia em estadias é a maior margem de crescimento.`, `Over a quarter (${P.alojamento[0][1]}%) do not stay overnight: turning day trips into stays is the biggest growth margin.`),
-          t(`${P.fontes[3][1]}% usaram inteligência artificial para planear e só ${P.fontes[7][1]}% o site oficial: a informação de Braga tem de estar bem presente onde os assistentes de IA a vão buscar.`, `${P.fontes[3][1]}% used AI to plan and only ${P.fontes[7][1]}% the official site: Braga’s information must be present where AI assistants look for it.`),
+          t(`Mais de um quarto (${String(P.alojamento[0][1]).replace('.', ',')}%) não dorme em Braga: converter visitas de um dia em estadias é uma margem de crescimento.`, `Over a quarter (${P.alojamento[0][1]}%) do not stay overnight: turning day trips into stays is a growth margin.`),
+          t(`${P.fontes[3][1]}% usaram inteligência artificial para planear e ${P.fontes[7][1]}% o site oficial (amostra de 112 respostas; na exportação completa do inquérito, de maio de 2025, com 336 respostas, 263 nesta pergunta, os valores são 22,8% e 29,3%).`, `${P.fontes[3][1]}% used AI to plan and ${P.fontes[7][1]}% the official site (sample of 112 answers; in the full survey export of May 2025, with 336 answers, 263 to this question, the figures are 22.8% and 29.3%).`),
           t(`Entre quem apontou algo negativo, a primeira queixa é a falta de eventos e oferta cultural (${P.negativos[0][1]}%).`, `Among those with complaints, the top issue is the lack of events and cultural offer (${P.negativos[0][1]}%).`),
           t(`Só ${P.reservas[3][1]}% reservaram atividades antes de chegar: as ${RNAAT.length} empresas de animação turística de Braga têm aqui um público por conquistar.`, `Only ${P.reservas[3][1]}% booked activities in advance: Braga’s ${RNAAT.length} tourism activity companies have an untapped audience here.`),
         ].map((x, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr)', gap: 6, fontSize: 13.5, color: C.textMuted, lineHeight: 1.55, padding: '4px 0' }}><span style={{ color: C.accent, fontWeight: 700 }}>{i + 1}</span>{x}</div>)}
@@ -56,9 +56,9 @@ export default function PerfilTurista() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <Card title={t('O que mais gostaram (%)', 'What they liked most (%)')}><BarrasPct dados={P.positivos} cor={C.positive} /></Card>
-        <Card title={t(`O que menos gostaram · entre os ${P.comQueixas}% que apontaram algo (%)`, `What they liked least · among the ${P.comQueixas}% with complaints (%)`)}><BarrasPct dados={P.negativos} cor={C.negative} max={100} /></Card>
+        <Card title={t(`O que menos gostaram · entre os ${P.comQueixas}% que apontaram algo (cerca de ${Math.round((P.comQueixas / 100) * P.amostra)} pessoas; %)`, `What they liked least · among the ${P.comQueixas}% with complaints (about ${Math.round((P.comQueixas / 100) * P.amostra)} people; %)`)}><BarrasPct dados={P.negativos} cor={C.negative} max={100} /></Card>
       </div>
-      <Card title={t('Quanto gastam por dia, por pessoa (€, sem alojamento)', 'Daily spending per person (€, excluding accommodation)')}>
+      <Card title={t('Quanto gastam por dia (€, sem alojamento; intervalos indicados por pessoa ou por grupo)', 'Daily spending (€, excluding accommodation; ranges given per person or per group)')}>
         {P.gastos.map((g: any, i: number) => (
           <div key={g[0]} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px, 240px) minmax(0,1fr) 90px', gap: 12, alignItems: 'center', margin: '9px 0', fontSize: 13.5 }}>
             <span style={{ color: C.text }}>{g[0]}</span>
@@ -69,7 +69,7 @@ export default function PerfilTurista() {
           </div>
         ))}
         <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.55, marginTop: 12 }}>
-          {t(`No total, entre ${P.gastoDiario[0]} € e ${P.gastoDiario[1]} € por dia, sem alojamento. O estudo de 2019 apontava ${P.estudo2019.gasto} € por dia com alojamento; somando o alojamento, o gasto atual deve ser semelhante ou superior.`, `In total, between ${P.gastoDiario[0]} € and ${P.gastoDiario[1]} € a day, excluding accommodation. The 2019 study found ${P.estudo2019.gasto} € a day including accommodation; adding accommodation, current spending is likely similar or higher.`)}
+          {t(`No total, entre ${P.gastoDiario[0]} € e ${P.gastoDiario[1]} € por dia, sem alojamento. O estudo de 2019 apontava ${P.estudo2019.gasto} € por dia com alojamento; os dois valores não são diretamente comparáveis (intervalos, com e sem alojamento, e parte das respostas por grupo).`, `In total, between ${P.gastoDiario[0]} € and ${P.gastoDiario[1]} € a day, excluding accommodation. The 2019 study found ${P.estudo2019.gasto} € a day including accommodation; the two figures are not directly comparable (ranges, with and without accommodation, and some answers per group).`)}
         </div>
       </Card>
     </>

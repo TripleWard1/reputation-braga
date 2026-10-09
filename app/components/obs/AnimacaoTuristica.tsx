@@ -8,7 +8,7 @@ import { PERFIL_TURISTA } from '@/app/lib/perfil-turista-dados';
 import { SETOR_SUSTENTAVEL } from '@/app/lib/setor-sustentavel-dados';
 import { C, Card, KPI, SectionTitle, tipStyle } from './comum';
 
-// ═══ Animação turística (RNAAT) - só leitura ═══
+// ═══ Animação turística (RNAAT) — só leitura ═══
 export default function AnimacaoTuristica() {
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState('');
@@ -30,10 +30,10 @@ export default function AnimacaoTuristica() {
         {CATS.map(([k, nome, cor]) => <KPI key={k} label={nome} value={String(n(k))} sub={t(`${Math.round((n(k) / E.length) * 100)}% das empresas`, `${Math.round((n(k) / E.length) * 100)}% of companies`)} color={cor} />)}
       </div>
       <div style={{ fontSize: 13.5, color: C.textMuted, lineHeight: 1.6, margin: '0 0 16px', padding: '12px 16px', background: C.accentBg, borderRadius: 6 }}>
-        {t(`Cruzamento com o perfil do turista: só ${PERFIL_TURISTA.reservas[3][1]}% dos visitantes reservaram atividades antes de chegar. Há oferta; falta ligá-la ao visitante, por exemplo no Posto de Turismo, no site e nos assistentes de IA que ${PERFIL_TURISTA.fontes[3][1]}% já usam para planear.`, `Cross-check with the visitor profile: only ${PERFIL_TURISTA.reservas[3][1]}% of visitors booked activities in advance. The offer exists; it needs connecting to visitors, e.g. at the Tourist Office, online and in the AI assistants ${PERFIL_TURISTA.fontes[3][1]}% already use to plan.`)}
+        {t(`Cruzamento com o perfil do turista: só ${PERFIL_TURISTA.reservas[3][1]}% dos inquiridos reservaram atividades antes de chegar (inquérito de 1 a 4 de março de 2025, 112 respostas). Sugere que há oferta por ligar ao visitante, por exemplo no Posto de Turismo, no site e nos assistentes de IA.`, `Cross-check with the visitor profile: only ${PERFIL_TURISTA.reservas[3][1]}% of respondents booked activities in advance (survey of 1–4 March 2025, 112 answers). It suggests there is an offer still to connect to visitors, e.g. at the Tourist Office, online and in AI assistants.`)}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card title={t('Registos por ano (empresas ativas)', 'Registrations per year (active companies)')}>
+        <Card title={t('Registos por ano (ano do n.º de registo no RNAAT)', 'Registrations per year (year of the RNAAT registration number)')}>
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={anos} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />

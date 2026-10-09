@@ -9,12 +9,12 @@ export default function Acessibilidade() {
   const A = ACESSIBILIDADE;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <SectionTitle sub={t('Necessidades especiais registadas no balcão de turismo', 'Special needs recorded at the tourism front desk')}>{t('Acessibilidade no Atendimento', 'Accessibility in Service')}</SectionTitle>
+      <SectionTitle sub={t(`Necessidades especiais registadas no balcão de turismo · ${A.periodo} · exportação de 24/09/2026`, `Special needs recorded at the tourism front desk · 1 Jan to 24 Sep 2026 · export of 24/09/2026`)}>{t('Acessibilidade no Atendimento', 'Accessibility in Service')}</SectionTitle>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
         <KPI label={t('Atendimentos registados', 'Recorded visits')} value={fmt(A.total)} color={C.accent} />
         <KPI label={t('Pessoas abrangidas', 'People covered')} value={fmt(A.pax)} color={C.info} />
-        <KPI label={t('% do total de atendimentos', '% of total visits')} value={`${A.pct.toLocaleString(t('pt-PT', 'en-GB'))}%`} color={C.purple} />
+        <KPI label={t('% dos atendimentos de 2026', '% of 2026 visits')} value={`${A.pct.toLocaleString(t('pt-PT', 'en-GB'))}%`} color={C.purple} />
       </div>
 
       <div style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 12, padding: '16px 18px' }}>

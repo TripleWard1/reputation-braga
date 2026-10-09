@@ -13,9 +13,9 @@ export default function Geral({ rep, repL, repR }: { rep?: number | null; repL?:
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 16 }}>
-        <KPI label={t('Dormidas 2025', 'Overnight stays 2025')} value={fmt(HEADLINE.dormidas2025)} sub={`+${HEADLINE.dormidasVar}% ${t('homólogo', 'YoY')}`} color={HEADLINE.dormidasVar >= 0 ? C.positive : C.negative} />
+        <KPI label={t('Dormidas 2025', 'Overnight stays 2025')} value={fmt(HEADLINE.dormidas2025)} sub={`+${HEADLINE.dormidasVar}% ${t('homólogo · provisório', 'YoY · provisional')}`} color={HEADLINE.dormidasVar >= 0 ? C.positive : C.negative} />
         <KPI label={t('Hóspedes 2025', 'Guests 2025')} value={fmt(HEADLINE.hospedes2025)} sub={`+${HEADLINE.hospedesVar}% ${t('homólogo', 'YoY')}`} color={C.accentLight} />
-        <KPI label={t('Taxa Turística 2025', 'Tourist Tax 2025')} value={fmtE(TAXA_TURISTICA['2025'].Total)} sub={t('receita municipal', 'municipal revenue')} color={C.accent} />
+        <KPI label={t('Taxa Turística 2025', 'Tourist Tax 2025')} value={fmtE(TAXA_TURISTICA['2025'].Total)} sub={t('faturação (receita municipal)', 'invoiced (municipal revenue)')} color={C.accent} />
         <KPI label={t('Atendimentos Balcão 2025', 'Front Desk Visits 2025')} value={fmt(BALCAO['2025'].atendimentos)} sub={`${fmt(BALCAO['2025'].pax)} pax`} color={C.info} />
         <KPI label={t('Estada Média', 'Average Stay')} value={`${HEADLINE.estadaMedia.Braga}`} sub={t('noites (INE 2024)', 'nights (INE 2024)')} color={C.purple} />
         <KPI label={t('Ocupação-quarto', 'Room Occupancy')} value={`${HEADLINE.ocupQuarto.Braga}%`} sub={t('líquida (INE 2024)', 'net (INE 2024)')} color={C.cyan} />
@@ -55,11 +55,11 @@ export default function Geral({ rep, repL, repR }: { rep?: number | null; repL?:
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
           <Cruz label={t('Reputação média (plataforma)', 'Average reputation (platform)')} value={rep != null ? `${rep.toFixed(1)}/10` : '-'} color={C.accent} nota={`${repL ?? 0} ${t('locais', 'places')} · ${fmt(repR ?? 0)} reviews`} />
           <Cruz label={t('Dormidas 2025 (INE)', 'Overnight stays 2025 (INE)')} value={fmt(HEADLINE.dormidas2025)} color={C.info} nota={`+${HEADLINE.dormidasVar}% ${t('homólogo', 'YoY')}`} />
-          <Cruz label={t('Atendimentos balcão 2025', 'Front desk visits 2025')} value={fmt(BALCAO['2025'].atendimentos)} color={C.positive} nota={`${fmt(BALCAO['2025'].pax)} ${t('visitantes', 'visitors')}`} />
+          <Cruz label={t('Atendimentos balcão 2025', 'Front desk visits 2025')} value={fmt(BALCAO['2025'].atendimentos)} color={C.positive} nota={`${fmt(BALCAO['2025'].pax)} ${t('pessoas atendidas (pax)', 'people served (pax)')}`} />
           <Cruz label={t('Receita taxa 2025', 'Tax revenue 2025')} value={fmtE(TAXA_TURISTICA['2025'].Total)} color={C.purple} nota={t('dado próprio do Município', 'Municipality\u2019s own data')} />
         </div>
         <p style={{ fontSize: 12, color: C.textMuted, margin: '14px 0 0', lineHeight: 1.6 }}>
-          {t('Três fontes independentes a triangular a mesma realidade: o que as pessoas ', 'Three independent sources triangulating the same reality: what people ')}<strong>{t('dizem', 'say')}</strong>{t(' (reputação), onde ', ' (reputation), where they ')}<strong>{t('dormem', 'sleep')}</strong>{t(' (INE + taxa) e o que ', ' (INE + tax) and what they ')}<strong>{t('procuram', 'seek')}</strong>{t(' ao balcão. Quando a reputação de um POI âncora cai, costuma anteceder quebras na procura - e a receita da taxa permite quantificar o retorno de cada intervenção.', ' at the front desk. When the reputation of an anchor POI falls, it usually precedes drops in demand - and the tax revenue lets you quantify the return of each intervention.')}
+          {t('Três fontes distintas, com leituras complementares: o que as pessoas ', 'Three distinct sources with complementary readings: what people ')}<strong>{t('dizem', 'say')}</strong>{t(' (reputação), onde ', ' (reputation), where they ')}<strong>{t('dormem', 'sleep')}</strong>{t(' (INE + taxa) e o que ', ' (INE + tax) and what they ')}<strong>{t('procuram', 'seek')}</strong>{t(' ao balcão. Cruzá-las pode ajudar a detetar sinais precoces (hipótese a testar; a plataforma não mede essa relação).', ' at the front desk. Crossing them may help detect early signals (a hypothesis to test; the platform does not measure that relationship).')}
         </p>
       </Card>
     </>

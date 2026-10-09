@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // LÓGICA DA REPUTAÇÃO (Visão Geral e Locais)
-// • Números: uma só fonte (reviewStats) - o topo, os rankings e o texto da IA
+// • Números: uma só fonte (reviewStats) — o topo, os rankings e o texto da IA
 //   usam todos os mesmos valores.
 // • Temas fixos: cada comentário com texto é classificado pela IA em 0–3 temas
 //   com polaridade (+ elogio / − crítica). O ESTADO de cada tema é calculado
@@ -161,8 +161,8 @@ export function numerosCoerentes(texto: string, permitidos: number[]): boolean {
 export function resumoModelo(nome: string, x: Numeros): string {
   const f = (v: number, d: number) => v.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: d, maximumFractionDigits: d });
   return [
-    t(`Nos últimos três anos, ${nome} recebeu **${f(x.n, 0)} avaliações** no Google, com média de **${f(x.avg, 2)} estrelas**.`,
-      `Over the last three years, ${nome} received **${f(x.n, 0)} reviews** on Google, averaging **${f(x.avg, 2)} stars**.`),
+    t(`Nos últimos três anos, foram analisadas **${f(x.n, 0)} avaliações** de ${nome} no Google Maps, com média de **${f(x.avg, 2)} estrelas**.`,
+      `Over the last three years, **${f(x.n, 0)} Google Maps reviews** of ${nome} were analysed, averaging **${f(x.avg, 2)} stars**.`),
     t(`**${f(x.pos, 1)}%** são positivas e **${f(x.neg, 1)}%** negativas.`, `**${f(x.pos, 1)}%** are positive and **${f(x.neg, 1)}%** negative.`),
   ].join(' ');
 }

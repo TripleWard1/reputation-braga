@@ -71,7 +71,7 @@ export default function Procura() {
             {anos.map((y) => <Line key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2025' ? 3 : 2} dot={{ r: 2 }} connectNulls />)}
           </LineChart>
         </ResponsiveContainer>
-        <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>{t('Fonte: INE / TravelBI. 2025 é ano completo; os dados de 2026 estão disponíveis até onde o INE consolidou (lag habitual de ~3 meses).', 'Source: INE / TravelBI. 2025 is a complete year; 2026 data is available as far as INE has consolidated (usual lag of ~3 months).')}</p>
+        <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>{t('Fonte: INE / TravelBI. Os dados de 2025 e 2026 são provisórios; 2026 disponível até junho.', 'Source: INE / TravelBI. 2025 and 2026 data are provisional; 2026 available up to June.')}</p>
       </Card>
 
       <Card title={`${t('Total anual de', 'Annual total of')} ${metric === 'dormidas' ? t('dormidas', 'overnight stays') : t('hóspedes', 'guests')} ${t('(anos completos)', '(complete years)')}`}>
@@ -84,7 +84,7 @@ export default function Procura() {
             <Bar dataKey="v" radius={[4, 4, 0, 0]}>{anualData.map((d) => <Cell key={d.ano} fill={YEAR_COLORS[d.ano] || C.accent} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
-        <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>{t('Nota: a quebra de 2020–2021 reflete a pandemia. Recuperação plena a partir de 2022.', 'Note: the 2020–2021 drop reflects the pandemic. Full recovery from 2022 onwards.')}</p>
+        <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>{t('Nota: a quebra de 2020–2021 reflete a pandemia; os níveis de 2019 só foram ultrapassados em 2024.', 'Note: the 2020–2021 drop reflects the pandemic; 2019 levels were only exceeded in 2024.')}</p>
       </Card>
 
       {(() => {
@@ -113,7 +113,7 @@ export default function Procura() {
               <div>
                 {bar('Braga', Ds.sazonalidade, C.positive)}
                 {bar(t('Média nacional', 'National average'), Ds.sazonalidadeNacional, C.textMuted)}
-                <p style={{ fontSize: 11, color: C.textDim, margin: '4px 0 0' }}>{t('Índice de sazonalidade: quanto menor, mais equilibrada é a procura ao longo do ano.', 'Seasonality index: the lower it is, the more balanced demand is across the year.')}</p>
+                <p style={{ fontSize: 11, color: C.textDim, margin: '4px 0 0' }}>{t('Percentagem das dormidas do ano feitas de julho a setembro (INE, 2024): quanto menor, mais equilibrada é a procura ao longo do ano.', 'Share of the year’s overnight stays in July–September (INE, 2024): the lower it is, the more balanced demand is across the year.')}</p>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div style={{ background: C.cardAlt, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px' }}>
@@ -127,7 +127,7 @@ export default function Procura() {
               </div>
             </div>
             <p style={{ fontSize: 11.5, color: C.textMuted, lineHeight: 1.6, margin: '16px 0 0' }}>
-              {t('Braga é menos sazonal do que a média nacional (', 'Braga is less seasonal than the national average (')}{fdec(Ds.sazonalidade)}% vs {fdec(Ds.sazonalidadeNacional)}%{t('), sinal de uma procura mais distribuída ao longo do ano. Ainda assim, agosto concentra o pico e o inverno regista os vales, pelo que há margem para reforçar a procura na época baixa (eventos, turismo religioso, Caminhos de Santiago). Fonte do índice: Green Destinations · curva mensal: INE/TravelBI ', '), a sign of demand more evenly spread across the year. Even so, August holds the peak and winter records the troughs, so there is room to strengthen demand in the low season (events, religious tourism, Camino de Santiago). Index source: Green Destinations · monthly curve: INE/TravelBI ')}({sazAno}).
+              {t('Braga é menos sazonal do que a média nacional (', 'Braga is less seasonal than the national average (')}{fdec(Ds.sazonalidade)}% vs {fdec(Ds.sazonalidadeNacional)}%{t('), sinal de uma procura mais distribuída ao longo do ano. Ainda assim, agosto concentra o pico e o inverno regista os vales, pelo que há margem para reforçar a procura na época baixa (eventos, turismo religioso, Caminhos de Santiago). Fonte: INE/TravelBI (índice de 2024; curva mensal ', '), a sign of demand more evenly spread across the year. Even so, August holds the peak and winter records the troughs, so there is room to strengthen demand in the low season (events, religious tourism, Camino de Santiago). Source: INE/TravelBI (2024 index; monthly curve ')}{sazAno}{t(').', ').')}
             </p>
           </Card>
         );
@@ -157,7 +157,7 @@ export default function Procura() {
               ))}
             </div>
             <p style={{ fontSize: 11.5, color: C.textMuted, lineHeight: 1.6, margin: '12px 0 0' }}>
-              {t(`Excluindo Ourém (procura marcada pelo Santuário de Fátima, não diretamente comparável), Braga é o ${posBraga}.º destino regional em dormidas no 1.º semestre e um dos poucos do grupo a crescer.`, `Excluding Ourém (demand driven by the Fátima Sanctuary, not directly comparable), Braga is the no. ${posBraga} regional destination by overnight stays in the 1st half and one of the few in the group to grow.`)}
+              {t(`Excluindo Ourém (procura marcada pelo Santuário de Fátima, não diretamente comparável), Braga é o ${posBraga}.º destino regional em dormidas no 1.º semestre e um dos ${top.filter((x) => x.variacao > 0).length} do grupo de ${top.length} a crescer.`, `Excluding Ourém (demand driven by the Fátima Sanctuary, not directly comparable), Braga is the no. ${posBraga} regional destination by overnight stays in the 1st half and one of ${top.filter((x) => x.variacao > 0).length} of the ${top.length} in the group to grow.`)}
             </p>
             <p style={{ fontSize: 11, color: C.textDim, margin: '6px 0 0' }}>
               {t('Municípios excluindo as Áreas Metropolitanas de Lisboa e do Porto, o Algarve e as Regiões Autónomas. Fonte: INE/TravelBI, jan–jun.', 'Municipalities excluding the Lisbon and Porto Metropolitan Areas, the Algarve and the Autonomous Regions. Source: INE/TravelBI, Jan–Jun.')}

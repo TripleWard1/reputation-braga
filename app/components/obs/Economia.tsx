@@ -89,7 +89,7 @@ export default function Economia() {
   return (
     <>
       {/* ── 1.º semestre de 2026 ── */}
-      <SectionTitle sub={t('INE/TravelBI · janeiro a junho · 2026 face a 2025', 'INE/TravelBI · January to June · 2026 vs 2025')}>{t('1.º semestre de 2026', '1st half of 2026')}</SectionTitle>
+      <SectionTitle sub={t('INE/TravelBI · janeiro a junho · 2026 face a 2025 · dados provisórios', 'INE/TravelBI · January to June · 2026 vs 2025 · provisional data')}>{t('1.º semestre de 2026', '1st half of 2026')}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, margin: '12px 0 14px' }}>
         <KPI label={t('Dormidas', 'Overnight stays')} value={fmt(dormH1)} sub={`${sinal(semComp[0].Braga)}% ${t('vs 2025', 'vs 2025')}`} color={C.accent} />
         <KPI label={t('Proveitos', 'Revenue')} value={fmtE(provH1)} sub={`${sinal(semComp[1].Braga)}% ${t('vs 2025', 'vs 2025')}`} color={C.positive} />
@@ -180,11 +180,12 @@ export default function Economia() {
               <Area type="monotone" dataKey="adr" stroke={C.accent} strokeWidth={2.5} fill="url(#adrg)" />
             </AreaChart>
           </ResponsiveContainer>
+          <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>{t('No ficheiro de origem, 2018 a 2022 referem-se aos estabelecimentos hoteleiros e 2023 a 2025 parecem referir-se a todo o alojamento turístico: possível quebra de série, a confirmar.', 'In the source file, 2018–2022 refer to hotel establishments and 2023–2025 appear to refer to all tourist accommodation: possible series break, to be confirmed.')}</p>
         </Card>
         <Card title={t('Proveitos do alojamento (variação 2024→2025)', 'Accommodation revenue (change 2024→2025)')}>
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 30, fontWeight: 700, color: C.accent }}>{fmtE(HEADLINE.proveitos.Braga2025 * 1e6)}</div>
-            <div style={{ fontSize: 12, color: C.textMuted }}>{t('Braga 2025 · de', 'Braga 2025 · from')} {HEADLINE.proveitos.Braga2024} {t('M€ em 2024', 'M€ in 2024')}</div>
+            <div style={{ fontSize: 30, fontWeight: 700, color: C.accent }}>{HEADLINE.proveitos.Braga2025.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} M€</div>
+            <div style={{ fontSize: 12, color: C.textMuted }}>{t('Braga 2025 (provisório) · de', 'Braga 2025 (provisional) · from')} {HEADLINE.proveitos.Braga2024.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} {t('M€ em 2024', 'M€ in 2024')}</div>
           </div>
           <CompareBars title={t('Variação dos proveitos 2024–2025 (%)', 'Revenue change 2024–2025 (%)')} vals={{ Braga: HEADLINE.proveitos.varBraga2025, Norte: HEADLINE.proveitos.varNorte2025, Portugal: HEADLINE.proveitos.varPortugal2025 }} unit="%" />
           <p style={{ fontSize: 11, color: C.textDim, margin: '10px 0 0' }}>
@@ -242,7 +243,7 @@ export default function Economia() {
       {/* ── Oferta por freguesia (RNAL + RNET) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, margin: '14px 0' }}>
         <KPI label={t('Estabelecimentos', 'Establishments')} value={fmt(fregTotal)} sub={t('AL + empreendimentos', 'AL + tourist establishments')} color={C.accent} />
-        <KPI label={t('Alojamento Local', 'Local Accommodation')} value={fmt(fregAL)} sub={t('registos RNAL', 'RNAL registrations')} color={C.info} />
+        <KPI label={t('Alojamento Local', 'Local Accommodation')} value={fmt(fregAL)} sub={t('registos RNAL (listagem municipal até março de 2026)', 'RNAL registrations (municipal list to March 2026)')} color={C.info} />
         <KPI label={t('Empreendimentos', 'Tourist establishments')} value={fmt(fregET)} sub={t('registos RNET', 'RNET registrations')} color={C.purple} />
         <KPI label={t('Concentração urbana', 'Urban concentration')} value={`${concentracao.toFixed(0)}%`} sub={t('nas 4 freguesias da cidade', 'in the 4 city parishes')} color={C.positive} />
       </div>

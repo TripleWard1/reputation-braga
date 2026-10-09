@@ -29,7 +29,7 @@ function montar(): Leitura[] {
       : t(`Dormidas em Braga no 1.º semestre de 2026, face a ${sinal(vP)} no país.`, `Overnight stays in Braga in H1 2026, vs ${sinal(vP)} nationally.`) });
   const E = estimativaDormidas();
   if (E) out.push({ id: 'estimativa', tema: t(`Estimativa ${E.ano}`, `${E.ano} estimate`), valor: num(Math.round(E.total / 1000) * 1000), separador: 'estimativa',
-    frase: t(`Dormidas previstas para ${E.ano} (${sinal(E.variacao * 100)}), com os meses ainda não publicados estimados pela plataforma.`, `Overnight stays expected in ${E.ano} (${sinal(E.variacao * 100)}), with unpublished months estimated by the platform.`) });
+    frase: t(`Projeção da plataforma para ${E.ano} (${sinal(E.variacao * 100)}), se os meses ainda não publicados crescerem ao ritmo de jan–jun. Não é um dado oficial.`, `Platform projection for ${E.ano} (${sinal(E.variacao * 100)}), if unpublished months grow at the Jan–Jun pace. Not official data.`) });
   const S: any = SEMESTRE_2026;
   const est = S?.residencia?.dormidas?.Estrangeiro, res = S?.residencia?.dormidas?.Portugal;
   const top = Array.isArray(S?.mercadosDormidas) ? [...S.mercadosDormidas].sort((a: any[], b: any[]) => b[2] - a[2])[0] : null;
@@ -37,7 +37,7 @@ function montar(): Leitura[] {
     frase: top ? t(`das dormidas são de estrangeiros; ${top[0]} é o maior mercado externo (${dec((top[2] / est) * 100)}%).`, `of overnight stays are by foreign visitors; ${top[0]} is the largest foreign market (${dec((top[2] / est) * 100)}%).`) : t('das dormidas são de estrangeiros.', 'of overnight stays are by foreign visitors.') });
   const R = EMPREGO.regioes, SB = EMPREGO.serieBraga;
   if (R?.Braga) out.push({ id: 'emprego', tema: t('Emprego', 'Employment'), valor: num(R.Braga.turismo), separador: 'emprego',
-    frase: t(`pessoas, pelo menos, no alojamento e restauração (${dec((R.Braga.turismo / R.Braga.total) * 100)}% do emprego das empresas)${SB ? `, ${sinal(((SB.turismo[SB.turismo.length - 1] / SB.turismo[0]) - 1) * 100)} desde ${SB.anos[0]}` : ''}.`, `people, at least, in accommodation and food (${dec((R.Braga.turismo / R.Braga.total) * 100)}% of company employment)${SB ? `, ${sinal(((SB.turismo[SB.turismo.length - 1] / SB.turismo[0]) - 1) * 100)} since ${SB.anos[0]}` : ''}.`) });
+    frase: t(`pessoas, aproximadamente, no alojamento e restauração (${dec((R.Braga.turismo / R.Braga.total) * 100)}% do emprego das empresas)${SB ? `, ${sinal(((SB.turismo[SB.turismo.length - 1] / SB.turismo[0]) - 1) * 100)} desde ${SB.anos[0]}` : ''}.`, `people, approximately, in accommodation and food (${dec((R.Braga.turismo / R.Braga.total) * 100)}% of company employment)${SB ? `, ${sinal(((SB.turismo[SB.turismo.length - 1] / SB.turismo[0]) - 1) * 100)} since ${SB.anos[0]}` : ''}.`) });
   const A: any = AL_BRAGA;
   if (A?.total) { const c = (A.freguesias as any[]).filter((x) => x.centro).reduce((s2, x) => s2 + x.n, 0);
     out.push({ id: 'alojamento', tema: t('Alojamento Local', 'Short-term rentals'), valor: num(A.total), separador: 'alojamento',
@@ -45,7 +45,7 @@ function montar(): Leitura[] {
   const H: any = HOTELARIA; const tod = [...H.hoteis, ...H.outros];
   const uni = tod.reduce((s2: number, x: any) => s2 + x.unidades, 0), ad = tod.reduce((s2: number, x: any) => s2 + x.adaptadas, 0);
   if (uni) out.push({ id: 'hotelaria', tema: t('Acessibilidade hoteleira', 'Hotel accessibility'), valor: `${dec((ad / uni) * 100)}%`, separador: 'hotelaria',
-    frase: t(`dos quartos de hotel estão adaptados a mobilidade reduzida; ${tod.filter((x: any) => x.adaptadas === 0).length} estabelecimentos não têm nenhum.`, `of hotel rooms are adapted for reduced mobility; ${tod.filter((x: any) => x.adaptadas === 0).length} establishments have none.`) });
+    frase: t(`das unidades dos ${tod.length} estabelecimentos listados no visitbraga.travel estão adaptadas a mobilidade reduzida; ${tod.filter((x: any) => x.adaptadas === 0).length} não têm nenhuma.`, `of the units in the ${tod.length} establishments listed on visitbraga.travel are adapted for reduced mobility; ${tod.filter((x: any) => x.adaptadas === 0).length} have none.`) });
   const sam = (TUB as any).turismo?.find((x: any) => String(x.destino).startsWith('Sameiro'));
   if (sam && sam.mediaDia?.util) out.push({ id: 'mobilidade', tema: t('Mobilidade', 'Mobility'), valor: `${dec(sam.mediaDia.dom / sam.mediaDia.util)}×`, separador: 'mobilidade',
     frase: t(`mais entradas no autocarro do Sameiro ao domingo do que num dia útil: um sinal claro de procura de lazer.`, `more bus boardings at Sameiro on Sundays than on weekdays: a clear sign of leisure demand.`) });

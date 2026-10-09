@@ -20,7 +20,8 @@ import { SETOR_SUSTENTAVEL } from '@/app/lib/setor-sustentavel-dados';
 import { estimativaDormidas } from '@/app/lib/estimativa';
 import { TUB } from '@/app/lib/tub-dados';
 import { UNESCO_BOM_JESUS } from '@/app/lib/unesco-bom-jesus';
-import { DATAS as CALENDARIO_MERCADOS } from '@/app/lib/calendario-mercados-dados';
+import { DATAS as CALENDARIO_MERCADOS, MERCADOS as CAL_MERCADOS } from '@/app/lib/calendario-mercados-dados';
+import { MOB_URBANA, BAIRROS, GEO_VISITAS } from '@/app/lib/mobilidade-bairros-dados';
 
 // "Pergunte ao Observatório": responde a perguntas com os dados da plataforma.
 // Para não esgotar o limite do Groq, envia só os blocos de dados relevantes para cada pergunta (máx. ~14 000 caracteres).
@@ -33,7 +34,24 @@ const LIMITE_TOTAL = 14000;
 const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const somaH1 = (serie: any, ano: string) => (MESES as unknown as string[]).slice(0, 6).reduce((a, m) => a + (serie?.[m]?.[ano] ?? 0), 0);
 
-interface Bloco { id: string; titulo: string; separador: string; fonte: string; palavras: string[]; dados: () => unknown }
+interface Bloco { id: string; titulo: string; separador: string; fonte: string; palavras: string[]; dados: (q: string) => unknown }
+
+// Calendário compacto: só os mercados referidos na pergunta (ou todos, se nenhum for referido), sem traduções,
+// para caber no limite do bloco sem cortar regiões.
+const CAL_ALIAS: Record<string, string[]> = { galiza: ['galiza', 'galicia', 'vigo', 'corunha', 'coruna'], espanha: ['espanha', 'espanh'], madrid: ['madrid'], catalunha: ['catalunha', 'barcelona'], paisbasco: ['pais basco', 'bilbau', 'bilbao'], valencia: ['valencia', 'alicante'], andaluzia: ['andaluzia', 'sevilha', 'malaga', 'granada'], asturias: ['asturias', 'oviedo'], baleares: ['baleares', 'maiorca', 'palma'], canarias: ['canarias'], portugal: ['portugal', 'portugues', 'nacional'], franca: ['franca', 'frances', 'paris'], reinounido: ['reino unido', 'ingl', 'britan', 'londres'] };
+function calendarioCompacto(q: string) {
+  const pedidos = Object.keys(CAL_ALIAS).filter((m) => CAL_ALIAS[m].some((w) => q.includes(w)));
+  const MES = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const meses = MES.map((m, i) => (q.includes(m) ? String(i + 1).padStart(2, '0') : '')).filter(Boolean);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const limite = new Date(Date.now() + 120 * 86400000).toISOString().slice(0, 10);
+  let lista = (CALENDARIO_MERCADOS as any[]).filter((d) => !pedidos.length || pedidos.indexOf(d.mercado) >= 0);
+  if (meses.length) lista = lista.filter((d) => meses.indexOf(String(d.ini).slice(5, 7)) >= 0 || (d.fim && meses.indexOf(String(d.fim).slice(5, 7)) >= 0));
+  else if (!pedidos.length) lista = lista.filter((d) => (d.fim || d.ini) >= hoje && d.ini <= limite);
+  const voos: Record<string, unknown> = {};
+  for (const m of Object.keys(CAL_MERCADOS)) if ((CAL_MERCADOS as any)[m].voo && (!pedidos.length || pedidos.indexOf(m) >= 0)) voos[m] = (CAL_MERCADOS as any)[m].voo;
+  return { nota: 'tipo f = feriado, e = férias escolares; r = feriado só da região. Sábados e domingos sem traslado não constam. Sem mercado nem mês na pergunta, só os próximos meses; o calendário completo vai até dezembro de 2027.', voosDiretosParaOPorto: voos, datas: lista.map((d) => [d.mercado, d.tipo === 'feriado' ? 'f' : 'e', d.ini, d.fim || '', d.nome.pt, d.regional ? 'r' : '']) };
+}
 
 const BLOCOS: Bloco[] = [
   {
@@ -68,7 +86,7 @@ const BLOCOS: Bloco[] = [
   {
     id: 'cartoes', titulo: 'Gastos com cartões estrangeiros no concelho de Braga (SIBS)', separador: 'cartoes', fonte: 'SIBS Analytics',
     palavras: ['cartao', 'cartoes', 'gast', 'sibs', 'compra', 'despesa', 'pagament', 'consumo', 'diaspora', 'emigrant', 'franceses', 'dinheiro'],
-    dados: () => { const p = [...(SIBS_PAISES as any[])].sort((a, b) => b.valor - a.valor); return { periodo: SIBS_PERIODO, totalEstrangeiro: p.reduce((a, x) => a + (x.valor || 0), 0), paises: p.slice(0, 20), setores: SIBS_SETORES, concelhosVizinhos: (SIBS_CONCELHOS as any[]).slice(0, 10) }; },
+    dados: () => { const p = [...(SIBS_PAISES as any[])].sort((a, b) => b.valor - a.valor); return { periodo: SIBS_PERIODO, totalEstrangeiro: p.reduce((a, x) => a + (x.valor || 0), 0), paises: p.slice(0, 20), setores: SIBS_SETORES, concelhosVizinhos: (SIBS_CONCELHOS as any[]).filter((c) => ['braga', 'guimarães', 'porto', 'viana do castelo', 'barcelos', 'vila nova de famalicão'].indexOf(String(c.concelho).trim().toLowerCase()) >= 0), notas: 'Valores = todas as operações registadas pela SIBS (pagamentos e levantamentos), 13 meses. O país é o do emissor do cartão. A variação homóloga por concelho não coincide com o ficheiro mensal; não a usar sem ressalva.' }; },
   },
   {
     id: 'emprego', titulo: 'Emprego e ganho médio no alojamento e restauração', separador: 'emprego', fonte: 'INE (SCIE e Quadros de Pessoal) / PORDATA',
@@ -83,7 +101,7 @@ const BLOCOS: Bloco[] = [
   {
     id: 'alojamento', titulo: 'Alojamento Local ativo (base municipal da taxa turística) e oferta por freguesia', separador: 'alojamento', fonte: 'Plataforma municipal da taxa turística; INE',
     palavras: ['alojamento local', ' al ', 'apartament', 'freguesia', 'cessad', 'airbnb', 'centro historico', 'camas', 'oferta'],
-    dados: () => { const A: any = AL_BRAGA; return { fonte: A.fonte, ativos: A.total, camas: A.camas, quartos: A.quartos, estados: A.estados, camasCessadas: A.camasCessadas, modalidades: A.modalidades, freguesias: (A.freguesias as any[]).slice(0, 12), porAnoDeInicio: A.porAno, capacidadeCamasINE: CAPACIDADE_CAMAS, quartosINE: QUARTOS, alojamentoPorFreguesiaINE: (ALOJAMENTO_FREGUESIA as any[]).slice(0, 12) }; },
+    dados: () => { const A: any = AL_BRAGA; return { fonte: A.fonte, ativos: A.total, camas: A.camas, quartos: A.quartos, estados: A.estados, camasCessadas: A.camasCessadas, modalidades: A.modalidades, freguesias: (A.freguesias as any[]).slice(0, 12), porAnoDeInicio: (A.porAno as any[]).filter((x: any) => +x.ano >= 1990), capacidadeCamasINE: CAPACIDADE_CAMAS, quartosINE: QUARTOS, alojamentoPorFreguesiaINE: (ALOJAMENTO_FREGUESIA as any[]).slice(0, 12) }; },
   },
   {
     id: 'mobilidade', titulo: 'Autocarros TUB nas linhas com interesse turístico (entradas, horários, velocidade e atrasos)', separador: 'mobilidade', fonte: 'TUB – Transportes Urbanos de Braga (jan–set 2026)',
@@ -113,7 +131,7 @@ const BLOCOS: Bloco[] = [
   {
     id: 'cultura', titulo: 'Bilheteira cultural (Theatro Circo, gnration, BMA)', separador: 'cultura', fonte: BILHETEIRA_FONTE,
     palavras: ['theatro', 'teatro', 'circo', 'gnration', 'bilhete', 'espetacul', 'concerto', 'cultura', 'bma'],
-    dados: () => Object.fromEntries(Object.entries(BILHETEIRA as Record<string, any>).map(([k, v]) => [k, { entidade: v.entidade, meses: v.meses, tipos: v.tipos, topEventos: (v.topEventos || []).slice(0, 6) }])),
+    dados: () => Object.fromEntries(Object.entries(BILHETEIRA as Record<string, any>).map(([k, v]) => [k, { entidade: v.entidade, meses: v.meses, tipos: k === 'bma' ? undefined : v.tipos, topEventos: (v.topEventos || []).slice(0, 3) }])),
   },
   {
     id: 'balcao', titulo: 'Posto de Turismo: atendimentos e acessibilidade', separador: 'balcao', fonte: 'Posto de Turismo de Braga',
@@ -121,9 +139,9 @@ const BLOCOS: Bloco[] = [
     dados: () => ({ balcao: BALCAO, acessibilidade: ACESSIBILIDADE }),
   },
   {
-    id: 'taxa', titulo: 'Taxa turística (receita mensal)', separador: 'taxa', fonte: 'Município de Braga',
+    id: 'taxa', titulo: 'Taxa turística (faturação mensal; abr–jun 2026 provisórios)', separador: 'taxa', fonte: 'Município de Braga',
     palavras: ['taxa turistica', 'taxa'],
-    dados: () => TAXA_TURISTICA,
+    dados: () => ({ notas: '1,50 € por dormida, até 4 noites seguidas, hóspedes com 16 ou mais anos (Regulamento n.º 927/2025). Até julho de 2025 cobrada de março a outubro; desde o fim de julho de 2025, todo o ano. Até março de 2026: faturação emitida (pode incluir faturas anuladas depois); abril a junho de 2026: valores cobrados até 30/06/2026, provisórios. Cada valor está no mês da fatura, não no mês da dormida. O salto de 2026 deve-se sobretudo à cobrança todo o ano.', serie: TAXA_TURISTICA }),
   },
   {
     id: 'sustentabilidade', titulo: 'Sustentabilidade: certificação, perceção dos residentes e negócios certificados', separador: 'sustentabilidade', fonte: 'Green Destinations; Barómetro de Perceção dos Residentes 2026',
@@ -133,10 +151,10 @@ const BLOCOS: Bloco[] = [
   {
     id: 'digital', titulo: 'Audiência digital (visitbraga.travel, Google) e ferramentas digitais (TOMI, SmartGuide)', separador: 'digital', fonte: 'Google Analytics, Search Console, TOMI, SmartGuide',
     palavras: ['site', 'visitbraga', 'digital', 'google', 'pesquis', 'online', 'tomi', 'mupi', 'smartguide', 'guia audio', 'app', 'utilizadores', 'redes'],
-    dados: () => ({ site: DIGITAL, sitePosAtaque: DIGITAL_POS, pesquisaGoogle: SEARCH_CONSOLE, ferramentas: { tomi: (FERRAMENTAS_DIGITAIS as any).tomi, smartguide: (FERRAMENTAS_DIGITAIS as any).smartguide } }), // sem o Super Fan (relatório confidencial)
+    dados: () => ({ notas: 'Os utilizadores da China são sobretudo tráfego automático (envolvimento perto de 0%); não os contar como audiência. Os canais referem-se ao canal do primeiro acesso. TOMI: a contagem de peões de 2025 mais do que duplica a partir de setembro (mudança na contagem), não comparar 2026 com a média de 2025.', site: DIGITAL, sitePosAtaque: DIGITAL_POS, pesquisaGoogle: SEARCH_CONSOLE, ferramentas: { tomi: (FERRAMENTAS_DIGITAIS as any).tomi, smartguide: (FERRAMENTAS_DIGITAIS as any).smartguide } }), // sem o Super Fan (relatório confidencial)
   },
   {
-    id: 'caminhos', titulo: 'Caminhos de Santiago em Braga', separador: 'caminhos', fonte: 'Caminhos de Santiago (dados enviados ao Observatório)',
+    id: 'caminhos', titulo: 'Caminhos de Santiago em Braga', separador: 'caminhos', fonte: 'Serviço de Peregrinos de Santiago (via Diário do Minho, jan. 2025 e jan. 2026) e Associação do Caminho da Geira e dos Arrieiros',
     palavras: ['caminho', 'santiago', 'peregrin', 'credencial', 'geira'],
     dados: () => CAMINHOS,
   },
@@ -148,10 +166,25 @@ const BLOCOS: Bloco[] = [
   {
     id: 'calendario', titulo: 'Feriados e férias escolares dos mercados emissores (Galiza, Espanha e regiões espanholas com voo direto para o Porto, Portugal, França, Reino Unido), outubro de 2026 a dezembro de 2027', separador: 'calendario', fonte: 'Xunta de Galicia; BORM; BOE; boletins e governos autonómicos (Madrid, Catalunha, País Basco, C. Valenciana, Andaluzia, Astúrias, Baleares, Canárias); Despacho n.º 10430/2026; Código do Trabalho; Ministério da Educação Nacional (França); bank holidays (Inglaterra e País de Gales)',
     palavras: ['feriado', 'ponte', 'ferias escolares', 'galiza', 'galicia', 'calendario', 'oportunidade', 'pascoa', 'carnaval', 'natal', 'fim de semana prolongado', 'feriado regional', 'madrid', 'barcelona', 'catalunha', 'andaluzia', 'pais basco', 'valencia', 'asturias', 'baleares', 'canarias'],
-    dados: () => CALENDARIO_MERCADOS,
+    dados: (q: string) => calendarioCompacto(q),
+  },
+  {
+    id: 'visitas', titulo: 'Visitas ao concelho por dados móveis (Geoanalytics): visitas de um dia e com dormida, nacionais e internacionais, outubro a dezembro de 2025', separador: 'visitas', fonte: 'i4Biz (Braga Smart Retail) · Geoanalytics',
+    palavras: ['visitantes de um dia', 'excursionista', 'dormida', 'pernoita', 'geoanalytics', 'telemovel', 'operador', 'turistas internacionais', 'visitantes nacionais', 'estadia'],
+    dados: () => { const G: any = GEO_VISITAS; const dd: any[] = G.diario || []; let a = 0, b = 0; for (let i = 0; i < dd.length; i++) { a += dd[i][1]; b += dd[i][2]; } return { notas: 'Geoanalytics, 9/10 a 31/12/2025. Contam visitas, não pessoas. 86% das visitas sem dormida (diurnas).', mensal: G.mensal, tipologia: G.tipologia, nacInt: G.nacInt, comDormida: G.comDormida, noites: G.noites, horasDiurna: G.horasDiurna, duracao: G.duracao, totais: { comDormida: a, diurnas: b } }; },
+  },
+  {
+    id: 'urbana', titulo: 'Mobilidade urbana: trânsito, peões, TUB, rotas congestionadas e parques de estacionamento', separador: 'urbana', fonte: 'i4Biz (Braga Smart Retail) · Monitorização da Mobilidade Urbana',
+    palavras: ['transito', 'congestion', 'peoes', 'estacionamento', 'parque', 'paragem', 'embarques', 'receita tub', 'rotas'],
+    dados: () => { const M: any = MOB_URBANA; const pq: any[] = M.parques || []; let sp = 0; for (let i = 0; i < pq.length; i++) sp += pq[i][1]; return { notas: 'As exportações de tráfego, percursos, ritmo horário e TUB não indicam o período; usar só como percentagens e rankings, dizendo que o período não está indicado. Parques (Invipo): 22/06 a 08/10/2026. Depois das 19h os contadores de peões e trânsito quase não registam (possível horário dos sensores, a confirmar).', composicao: M.composicao, totalContagens: M.totalContagens, ritmo: M.ritmo, ofertaProcura: M.ofertaProcura, receitaLinhasPct: M.receitaLinhas, embarquesTop: (M.embarques && M.embarques.top || []).slice(0, 10), passagens: { util: M.passagens.util, sab: M.passagens.sab, dom: M.passagens.dom, paragens: M.passagens.paragens, autocarros: M.passagens.autocarros, top: (M.passagens.top || []).slice(0, 10) }, rotasTop: (M.rotas || []).slice(0, 12).map((r: any) => ({ percurso: r.nome, tempoExtraPct: Math.round((r.lent - 1) * 100), piores10Pct: Math.round((r.p90 - 1) * 100), classe: r.classe })), nRotas: (M.rotas || []).length, parques: { dias: pq.length, de: pq[0] && pq[0][0], ate: pq.length ? pq[pq.length - 1][0] : null, mediaPct: pq.length ? Math.round((sp / pq.length) * 10) / 10 : null } }; },
+  },
+  {
+    id: 'bairros', titulo: 'Bairros Comerciais Digitais: dispositivos na rede Wi-Fi do centro, zonas, duração das ligações e autocarros que chegam ao Centro Coordenador de Transportes', separador: 'bairros', fonte: 'i4Biz (Braga Smart Retail) · Pessoas no Bairro',
+    palavras: ['bairro', 'wi-fi', 'wifi', 'rua do souto', 'centro historico', 'permanencia', 'autocarros de fora', 'terminal', 'expresso', 'comercio'],
+    dados: () => { const B: any = BAIRROS; const d: any[] = B.diario || []; let s = 0; for (let i = 0; i < d.length; i++) s += Number(d[i][1]) || 0; return { notas: 'Wi-Fi de 1/1 a 7/10/2026. Contam dispositivos, não pessoas. Média diária calculada = soma/dias com registo (o painel i4Biz indica 356, calculado de outra forma). Zonas = soma das contagens diárias (não dispositivos diferentes). cmbraga_bcd = nome da rede sem zona. LISTA BRANCA = categoria do ficheiro, significado por confirmar, só aparece desde janeiro de 2026. Autocarros CCTTB: 9/10/2025 a 7/10/2026. Telemóveis (Geoanalytics) só out–dez 2025.', mediaDispositivosDia: d.length ? Math.round(s / d.length) : null, diasComRegisto: d.length, mensal: B.mensal, semana: B.semana, hora: B.hora, zonasTotal: B.zonasTotal, sessaoPorZona: (B.zonas || []).map((z: any) => [z.zona, z.sessao]), sessaoSemana: B.sessaoSemana, semanaGeoWifi: B.semanaGeoWifi, autocarros: B.autocarros }; },
   },
 ];
-const IDS_SEPARADORES = ['geral', 'procura', 'estimativa', 'mercados', 'aeroporto', 'caminhos', 'perfil', 'balcao', 'economia', 'emprego', 'cartoes', 'taxa', 'hotelaria', 'alojamento', 'animacao', 'cultura', 'lojas', 'digital', 'ferramentas', 'sustentabilidade', 'mobilidade', 'acessibilidade', 'meteo', 'cruzamentos', 'calendario'];
+const IDS_SEPARADORES = ['geral', 'procura', 'estimativa', 'mercados', 'aeroporto', 'caminhos', 'perfil', 'balcao', 'economia', 'emprego', 'cartoes', 'taxa', 'hotelaria', 'alojamento', 'animacao', 'cultura', 'lojas', 'digital', 'ferramentas', 'sustentabilidade', 'mobilidade', 'acessibilidade', 'meteo', 'cruzamentos', 'calendario', 'urbana', 'bairros', 'visitas'];
 const PALAVRAS_REPUTACAO = ['reputa', 'avalia', 'estrela', 'google maps', 'comentari', 'critica', 'elogi', 'indice do destino', 'nota', 'opiniao', 'review', 'satisfac'];
 
 function escolherBlocos(pergunta: string) {
@@ -162,7 +195,7 @@ function escolherBlocos(pergunta: string) {
   for (const { b } of pont) {
     if (escolhidos.length >= 4) break;
     let txt = '';
-    try { txt = JSON.stringify(b.dados()); } catch { continue; }
+    try { txt = JSON.stringify(b.dados(q)); } catch { continue; }
     if (txt.length > LIMITE_BLOCO) txt = txt.slice(0, LIMITE_BLOCO) + '…(cortado)';
     if (total + txt.length > LIMITE_TOTAL && escolhidos.length > 0) continue;
     escolhidos.push({ b, txt }); total += txt.length;

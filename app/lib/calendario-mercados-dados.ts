@@ -1,5 +1,6 @@
 // Calendário de oportunidades por mercado: feriados e férias escolares dos mercados emissores,
-// outubro de 2026 a dezembro de 2027. Só datas confirmadas em fontes oficiais ou em duas fontes coincidentes.
+// outubro de 2026 a dezembro de 2027. Só datas confirmadas em fontes oficiais ou em meios que reproduzem a fonte oficial
+// (indicados como tal na lista de fontes).
 // Os fins de semana prolongados e as pontes são calculados pela plataforma a partir do dia da semana de cada feriado.
 
 export type Mercado = 'galiza' | 'espanha' | 'madrid' | 'catalunha' | 'paisbasco' | 'valencia' | 'andaluzia' | 'asturias' | 'baleares' | 'canarias' | 'portugal' | 'franca' | 'reinounido';
@@ -15,24 +16,24 @@ export const FONTES: Record<string, { nome: string; url: string }> = {
   xunta2026: { nome: 'Xunta de Galicia · calendário laboral 2026', url: 'https://www.xunta.gal/es/notas-de-prensa/-/nova/014100/xunta-publica-calendario-laboral-para-2026-fija-como-festivos-propios-19-marzo' },
   xunta2027: { nome: 'Xunta de Galicia · calendário laboral 2027', url: 'https://www.xunta.gal/es/notas-de-prensa/-/nova/026293/xunta-galicia-aprueba-calendario-laboral-para-2027-con-19-marzo-17-mayo-como' },
   xuntaEscolar: { nome: 'Xunta de Galicia · Orde do calendário escolar 2026/27', url: 'https://www.edu.xunta.gal/centros/cpicovaterrena/system/files/OrdeCalendario2627.pdf' },
-  espanha2027: { nome: 'BORM · calendário de festas laborais 2027 (lista nacional)', url: 'https://www.borm.es/services/anuncio/844400/pdf' },
-  portugalEscolar: { nome: 'Despacho n.º 10430/2026 · calendário escolar 2026/27', url: 'https://postal.pt/nacional/calendario-escolar-2026-2027-ja-oficial-conheca-datas-inicio-aulas-em-dias-calham-ferias/' },
-  portugalFeriados: { nome: 'Código do Trabalho, art. 234.º · feriados obrigatórios', url: 'https://executivedigest.sapo.pt/?p=809012' },
-  franca: { nome: 'Calendário escolar francês 2026-2027 (Ministério da Educação Nacional)', url: 'https://www.letudiant.fr/lifestyle/vacances-scolaires-2026-2027-et-jours-feries-le-calendrier-devoile-avec-toutes-les-dates.html' },
-  reinounido: { nome: 'Bank holidays de Inglaterra e País de Gales', url: 'https://www.centralbedfordshire.gov.uk/bank-holiday' },
-  espanha2026: { nome: 'BOE · Resolução de 17/10/2025, festas laborais de 2026 (traslados de 2/11 e 7/12 por comunidade)', url: 'https://www.laboral-social.com/sites/laboral-social.com/files/Fiestas-boe-2026.pdf' },
+  espanha2027: { nome: 'BORM (Região de Múrcia) · festas laborais 2027, com a lista nacional', url: 'https://www.borm.es/services/anuncio/844400/pdf' },
+  portugalEscolar: { nome: 'Postal · Despacho n.º 10430/2026 (calendário escolar 2026/27)', url: 'https://postal.pt/nacional/calendario-escolar-2026-2027-ja-oficial-conheca-datas-inicio-aulas-em-dias-calham-ferias/' },
+  portugalFeriados: { nome: 'Executive Digest · feriados obrigatórios (Código do Trabalho, art. 234.º)', url: 'https://executivedigest.sapo.pt/?p=809012' },
+  franca: { nome: 'L’Étudiant · calendário escolar francês 2026-2027 (datas do Ministério da Educação Nacional)', url: 'https://www.letudiant.fr/lifestyle/vacances-scolaires-2026-2027-et-jours-feries-le-calendrier-devoile-avec-toutes-les-dates.html' },
+  reinounido: { nome: 'Central Bedfordshire Council · bank holidays de Inglaterra e País de Gales', url: 'https://www.centralbedfordshire.gov.uk/bank-holiday' },
+  espanha2026: { nome: 'BOE · Resolução de 17/10/2025, festas laborais de 2026 (cópia em laboral-social.com)', url: 'https://www.laboral-social.com/sites/laboral-social.com/files/Fiestas-boe-2026.pdf' },
   espanha2026b: { nome: 'El Derecho · calendário laboral 2026 por comunidade', url: 'https://elderecho.com/el-calendario-laboral-para-2026-fija-nueve-festivos-comunes-en-toda-espana' },
-  madrid2026: { nome: 'BOCM · Decreto 75/2025 (festas laborais de 2026, Comunidade de Madrid)', url: 'https://www.laboral-social.com/sites/laboral-social.com/files/FIESTAS-COMUNIDAD-MADRID-2026.pdf' },
-  madrid2027: { nome: 'Calendário laboral 2027 da Comunidade de Madrid (aprovado em Conselho de Governo)', url: 'https://www.timeout.es/madrid/es/noticias/asi-sera-el-calendario-laboral-de-madrid-en-2027-14-dias-festivos-el-puente-de-san-jose-y-todas-las-fechas-clave-100126' },
+  madrid2026: { nome: 'BOCM · Decreto 75/2025, festas laborais de 2026 da Comunidade de Madrid (cópia em laboral-social.com)', url: 'https://www.laboral-social.com/sites/laboral-social.com/files/FIESTAS-COMUNIDAD-MADRID-2026.pdf' },
+  madrid2027: { nome: 'Time Out Madrid · calendário laboral 2027 da Comunidade de Madrid', url: 'https://www.timeout.es/madrid/es/noticias/asi-sera-el-calendario-laboral-de-madrid-en-2027-14-dias-festivos-el-puente-de-san-jose-y-todas-las-fechas-clave-100126' },
   catalunha2027: { nome: 'Generalitat de Catalunya · calendário de festas laborais 2027', url: 'https://govern.cat/salapremsa/notes-premsa/808352/govern-publica-calendari-festes-laborals-al-2027' },
-  barcelona2027: { nome: 'Ajuntament de Barcelona · festas locais 2027 (Gaseta Municipal)', url: 'https://beteve.cat/economia/calendari-laboral-2027-catalunya-barcelona-festius-ponts/' },
+  barcelona2027: { nome: 'Betevé · festas locais de Barcelona 2027', url: 'https://beteve.cat/economia/calendari-laboral-2027-catalunya-barcelona-festius-ponts/' },
   paisbasco2027: { nome: 'BOPV n.º 134 · Decreto 90/2026 (festas laborais 2027, País Basco)', url: 'https://www.euskadi.eus/bopv2/datos/2026/07/2603215a.shtml' },
-  valencia2027: { nome: 'Generalitat Valenciana · calendário laboral 2027', url: 'https://www.elespanol.com/valencia/20260321/oficial-calendario-laboral-valenciano-puentes-dias-festivos-inhabiles-trt/1003744177913_0.amp.html' },
+  valencia2027: { nome: 'El Español · calendário laboral valenciano 2027', url: 'https://www.elespanol.com/valencia/20260321/oficial-calendario-laboral-valenciano-puentes-dias-festivos-inhabiles-trt/1003744177913_0.amp.html' },
   andaluzia2027: { nome: 'BOJA · Decreto 84/2026 (festas laborais 2027, Andaluzia)', url: 'https://www.juntadeandalucia.es/eboja/2026/84/BOJA26-084-00002-5812-01_00337048.pdf' },
-  asturias2027: { nome: 'BOPA · Decreto 7/2026 (Dia das Astúrias 2027)', url: 'https://www.laboral-social.com/sites/laboral-social.com/files/Calendario-laboral-asturias-2027.pdf' },
-  baleares2027: { nome: 'Govern de les Illes Balears · calendário laboral 2027 (BOIB n.º 33, 14/03/2026)', url: 'https://www.menorca.info/balears/noticias/2026/03/13/2588403/confirmado-por-govern-estos-son-todos-dias-festivos-2027-baleares.html' },
+  asturias2027: { nome: 'Decreto 7/2026 das Astúrias, festas laborais de 2027 (cópia em laboral-social.com)', url: 'https://www.laboral-social.com/sites/laboral-social.com/files/Calendario-laboral-asturias-2027.pdf' },
+  baleares2027: { nome: 'Menorca.info · calendário laboral 2027 das Baleares (BOIB n.º 33)', url: 'https://www.menorca.info/balears/noticias/2026/03/13/2588403/confirmado-por-govern-estos-son-todos-dias-festivos-2027-baleares.html' },
   canarias2027: { nome: 'Gobierno de Canarias · calendário laboral 2027 e festas insulares', url: 'https://www3.gobiernodecanarias.org/noticias/el-gobierno-aprueba-el-calendario-laboral-de-canarias-para-2027-y-abre-el-plazo-para-fijar-las-fiestas-locales/' },
-  voos: { nome: 'Aeroporto do Porto · rotas e companhias (Wikipedia, cruzado com eSky)', url: 'https://en.wikipedia.org/wiki/Porto_Airport' },
+  voos: { nome: 'Aeroporto do Porto · rotas e companhias (Wikipedia, cruzado com eSky; Oviedo: rota Volotea desde janeiro de 2026, flightsfrom.com)', url: 'https://en.wikipedia.org/wiki/Porto_Airport' },
 };
 
 export const MERCADOS: Record<Mercado, { nome: Texto3; bandeira: string; grupo: Grupo; voo?: Voo }> = {
@@ -57,9 +58,13 @@ export const DATAS: Data[] = [
   { mercado: 'galiza', tipo: 'escolar', nome: t3('Ponte da Imaculada (Dia do Ensino e feriado)', 'Immaculate Conception long weekend (Teaching Day and holiday)', 'Puente de la Inmaculada (Día de la Enseñanza y festivo)'), ini: '2026-12-05', fim: '2026-12-08', fonte: 'xuntaEscolar' },
   { mercado: 'galiza', tipo: 'feriado', nome: t3('Natal', 'Christmas', 'Navidad'), ini: '2026-12-25', fonte: 'xunta2026' },
   { mercado: 'galiza', tipo: 'escolar', nome: t3('Férias escolares de Natal', 'Christmas school holidays', 'Vacaciones escolares de Navidad'), ini: '2026-12-22', fim: '2027-01-07', fonte: 'xuntaEscolar' },
-  { mercado: 'galiza', tipo: 'escolar', nome: t3('Entroido (Carnaval)', 'Entroido (Carnival)', 'Entroido (Carnaval)'), ini: '2027-02-06', fim: '2027-02-10', fonte: 'xuntaEscolar' },
+  { mercado: 'galiza', tipo: 'escolar', nome: t3('Entroido (Carnaval: 8 a 10 fev., com o fim de semana anterior)', 'Entroido (Carnival: 8–10 Feb, with the weekend before)', 'Entroido (Carnaval: 8 a 10 feb., con el fin de semana anterior)'), ini: '2027-02-06', fim: '2027-02-10', fonte: 'xuntaEscolar' },
   { mercado: 'galiza', tipo: 'feriado', nome: t3('São José', 'Saint Joseph’s Day', 'San José'), ini: '2027-03-19', fonte: 'xunta2027' },
-  { mercado: 'galiza', tipo: 'escolar', nome: t3('Férias escolares da Páscoa', 'Easter school holidays', 'Vacaciones escolares de Semana Santa'), ini: '2027-03-20', fim: '2027-03-29', fonte: 'xuntaEscolar' },
+  { mercado: 'galiza', tipo: 'escolar', nome: t3('Férias escolares da Páscoa (22 a 29 mar., com o fim de semana anterior)', 'Easter school holidays (22–29 Mar, with the weekend before)', 'Vacaciones escolares de Semana Santa (22 a 29 mar., con el fin de semana anterior)'), ini: '2027-03-20', fim: '2027-03-29', fonte: 'xuntaEscolar' },
+  { mercado: 'galiza', tipo: 'feriado', nome: t3('Ano Novo', 'New Year’s Day', 'Año Nuevo'), ini: '2027-01-01', fonte: 'xunta2027' },
+  { mercado: 'galiza', tipo: 'feriado', nome: t3('Dia de Reis', 'Epiphany', 'Día de Reyes'), ini: '2027-01-06', fonte: 'xunta2027' },
+  { mercado: 'galiza', tipo: 'feriado', nome: t3('Quinta-feira Santa', 'Maundy Thursday', 'Jueves Santo'), ini: '2027-03-25', fonte: 'xunta2027' },
+  { mercado: 'galiza', tipo: 'feriado', nome: t3('Sexta-feira Santa', 'Good Friday', 'Viernes Santo'), ini: '2027-03-26', fonte: 'xunta2027' },
   { mercado: 'galiza', tipo: 'feriado', nome: t3('Dia das Letras Galegas', 'Galician Literature Day', 'Día de las Letras Gallegas'), ini: '2027-05-17', fonte: 'xunta2027' },
   { mercado: 'galiza', tipo: 'escolar', nome: t3('Início das férias escolares de verão', 'Start of the summer school holidays', 'Inicio de las vacaciones escolares de verano'), ini: '2027-06-22', fonte: 'xuntaEscolar' },
   { mercado: 'galiza', tipo: 'feriado', nome: t3('Festa Nacional de Espanha', 'Spain’s National Day', 'Fiesta Nacional de España'), ini: '2027-10-12', fonte: 'xunta2027' },
@@ -79,6 +84,9 @@ export const DATAS: Data[] = [
   // ── Portugal (mercado interno) ──
   { mercado: 'portugal', tipo: 'feriado', nome: t3('Restauração da Independência', 'Restoration of Independence', 'Restauración de la Independencia'), ini: '2026-12-01', fonte: 'portugalFeriados' },
   { mercado: 'portugal', tipo: 'feriado', nome: t3('Imaculada Conceição', 'Immaculate Conception', 'Inmaculada Concepción'), ini: '2026-12-08', fonte: 'portugalFeriados' },
+  { mercado: 'portugal', tipo: 'feriado', nome: t3('Natal', 'Christmas', 'Navidad'), ini: '2026-12-25', fonte: 'portugalFeriados' },
+  { mercado: 'portugal', tipo: 'feriado', nome: t3('Ano Novo', 'New Year’s Day', 'Año Nuevo'), ini: '2027-01-01', fonte: 'portugalFeriados' },
+  { mercado: 'portugal', tipo: 'feriado', nome: t3('Sexta-feira Santa', 'Good Friday', 'Viernes Santo'), ini: '2027-03-26', fonte: 'portugalFeriados' },
   { mercado: 'portugal', tipo: 'escolar', nome: t3('Interrupção letiva do Natal', 'Christmas school break', 'Vacaciones escolares de Navidad'), ini: '2026-12-16', fim: '2027-01-03', fonte: 'portugalEscolar' },
   { mercado: 'portugal', tipo: 'escolar', nome: t3('Interrupção letiva do Carnaval', 'Carnival school break', 'Vacaciones escolares de Carnaval'), ini: '2027-02-06', fim: '2027-02-10', fonte: 'portugalEscolar' },
   { mercado: 'portugal', tipo: 'escolar', nome: t3('Interrupção letiva da Páscoa', 'Easter school break', 'Vacaciones escolares de Semana Santa'), ini: '2027-03-20', fim: '2027-04-04', fonte: 'portugalEscolar' },
@@ -87,6 +95,7 @@ export const DATAS: Data[] = [
   { mercado: 'portugal', tipo: 'feriado', nome: t3('Implantação da República', 'Republic Day', 'Implantación de la República'), ini: '2027-10-05', fonte: 'portugalFeriados' },
   { mercado: 'portugal', tipo: 'feriado', nome: t3('Todos os Santos', 'All Saints’ Day', 'Todos los Santos'), ini: '2027-11-01', fonte: 'portugalFeriados' },
   { mercado: 'portugal', tipo: 'feriado', nome: t3('Restauração da Independência', 'Restoration of Independence', 'Restauración de la Independencia'), ini: '2027-12-01', fonte: 'portugalFeriados' },
+  { mercado: 'portugal', tipo: 'feriado', nome: t3('Imaculada Conceição', 'Immaculate Conception', 'Inmaculada Concepción'), ini: '2027-12-08', fonte: 'portugalFeriados' },
   // ── França (férias escolares; zona A: Lyon, Bordeaux; zona B: Lille, Nantes, Marselha; zona C: Paris, Toulouse) ──
   { mercado: 'franca', tipo: 'escolar', nome: t3('Férias do Dia de Todos os Santos', 'All Saints’ school holidays', 'Vacaciones de Todos los Santos'), ini: '2026-10-17', fim: '2026-11-02', fonte: 'franca' },
   { mercado: 'franca', tipo: 'escolar', nome: t3('Férias de Natal', 'Christmas holidays', 'Vacaciones de Navidad'), ini: '2026-12-19', fim: '2027-01-04', fonte: 'franca' },
@@ -156,7 +165,6 @@ const REGIOES: Data[] = ([] as Data[]).concat(
   regiao('valencia', ([] as Linha[]).concat(NAC_2026, nac2027('valencia2027'), [
     ['2026-10-09', t3('Dia da Comunidade Valenciana', 'Valencian Community Day', 'Día de la Comunitat Valenciana'), 'espanha2026', true],
     ['2027-01-06', N.reis, 'valencia2027'], ['2027-03-19', N.sjose, 'valencia2027', true], ['2027-03-29', N.segPascoa, 'valencia2027', true],
-    ['2027-10-09', t3('Dia da Comunidade Valenciana', 'Valencian Community Day', 'Día de la Comunitat Valenciana'), 'valencia2027', true],
   ])),
   regiao('andaluzia', ([] as Linha[]).concat(NAC_2026, nac2027('andaluzia2027'), [
     ['2026-11-02', N.todos2, 'espanha2026b', true], ['2026-12-07', N.const7, 'espanha2026b', true],

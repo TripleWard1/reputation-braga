@@ -58,7 +58,7 @@ export default function Balcao() {
 
       {ano === '2025' && (
         <div style={{ background: C.negativeBg, border: `1px solid ${C.negative}30`, borderRadius: 10, padding: '12px 16px', fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>
-          {t('Nota: em 2025 o registo de “meio de chegada” e parte dos interesses ainda não era sistemático, daí os totais mais baixos nessas dimensões. A partir de 2026 a recolha é muito mais completa.', 'Note: in 2025 the recording of “means of arrival” and part of the interests was not yet systematic, hence the lower totals in those dimensions. From 2026 the data collection is much more complete.')}
+          {t('Nota: em 2025 o registo de “meio de chegada”, alojamento, cidade e parte dos interesses ainda não era sistemático, e alguns registos agregam grupos grandes (até 250 pessoas num só registo), daí cerca de 7,7 pessoas por registo. A partir de 2026 a recolha é muito mais completa: evite comparar 2025 com 2026.', 'Note: in 2025 the recording of “means of arrival”, accommodation, city and part of the interests was not yet systematic, and some records aggregate large groups (up to 250 people in a single record), hence about 7.7 people per record. From 2026 data collection is much more complete: avoid comparing 2025 with 2026.')}
         </div>
       )}
     </>

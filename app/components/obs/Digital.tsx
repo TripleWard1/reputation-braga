@@ -50,11 +50,11 @@ export default function Digital() {
   const comp: [string, string, string, string][] = [
     [t('Utilizadores por dia', 'Users per day'), fmt(Math.round(k.utilizadores / DIAS_ANTES)), `≈ ${fmt(Math.round(kp.utilizadores / diasPos))}`, t('cerca de 8× menos', 'about 8× fewer')],
     [t('Páginas vistas por dia', 'Page views per day'), fmt(Math.round(k.visualizacoes / DIAS_ANTES)), `≈ ${fmt(Math.round(kp.visualizacoes / diasPos))}`, t('cerca de 7× menos', 'about 7× fewer')],
-    [t('Novos utilizadores via Google', 'New users via Google'), `${pctGoogleAntes}%`, `${pctGooglePos}%`, t('o Google perdeu peso', 'Google lost weight')],
+    [t('Utilizadores via Google (canal do primeiro acesso)', 'Users via Google (first-visit channel)'), `${pctGoogleAntes}%`, `${pctGooglePos}%`, t('o Google perdeu peso', 'Google lost weight')],
     [t('Tempo médio de envolvimento', 'Average engagement time'), `${k.tempoMedioSeg} s`, `${kp.tempoMedioSeg} s`, t('quem chega fica mais', 'visitors stay longer')],
     [t('Páginas por utilizador', 'Pages per user'), nf1(k.pagsPorUtilizador), nf1(kp.pagsPorUtilizador), t('navegação mais longa', 'longer browsing')],
     [t('Utilizadores de Espanha', 'Users from Spain'), `${pctESAntes}%`, `${pctESPos}%`, t('mercado a ganhar peso', 'market gaining weight')],
-    [t('Novos utilizadores via assistentes de IA', 'New users via AI assistants'), '-', fmt(iaNovos), t('canal novo (ChatGPT)', 'new channel (ChatGPT)')],
+    [t('Utilizadores via assistentes de IA (primeiro acesso)', 'Users via AI assistants (first visit)'), '-', fmt(iaNovos), t('canal novo (ChatGPT)', 'new channel (ChatGPT)')],
   ];
   const th = { fontSize: 10.5, color: C.textMuted, textTransform: 'uppercase' as const, letterSpacing: '0.06em', padding: '8px 10px', textAlign: 'left' as const, borderBottom: `1px solid ${C.border}` };
   const td = { fontSize: 12.5, color: C.text, padding: '8px 10px', borderBottom: `1px solid ${C.border}` };
@@ -123,7 +123,7 @@ export default function Digital() {
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-        <Card title={t('Como chegam os novos utilizadores (%)', 'How new users arrive (%)')}>
+        <Card title={t('Como chegaram os utilizadores na primeira visita (%)', 'How users arrived on their first visit (%)')}>
           <ResponsiveContainer width="100%" height={230}>
             <BarChart data={canaisComp} layout="vertical" margin={{ top: 4, right: 14, left: 8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
@@ -158,7 +158,7 @@ export default function Digital() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-        <Card title={t('Top países', 'Top countries')}><HBars data={src.paises} color={C.info} /></Card>
+        <Card title={t('Top países (sem a China, tráfego sobretudo automático)', 'Top countries (excluding China, mostly automated traffic)')}><HBars data={src.paises.filter((x: any) => x[0] !== 'China')} color={C.info} /></Card>
         <Card title={t('Top idiomas', 'Top languages')}><HBars data={src.idiomas} color={C.positive} /></Card>
       </div>
 
@@ -175,7 +175,7 @@ export default function Digital() {
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 20px' }}>
         <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>{t('Leitura estratégica', 'Strategic reading')}</div>
         <ul style={{ margin: 0, paddingLeft: 18, color: C.text, fontSize: 13, lineHeight: 1.7 }}>
-          <li>{t('O site perdeu sobretudo o Google: antes do ataque,', 'The site mainly lost Google: before the attack,')} <strong>{pctGoogleAntes}%</strong> {t('dos novos utilizadores chegavam pela pesquisa orgânica; na retoma são', 'of new users came from organic search; during recovery it is')} <strong>{pctGooglePos}%</strong>{t('. Recuperar o posicionamento nas pesquisas é a prioridade.', '. Recovering search rankings is the priority.')}</li>
+          <li>{t('O site perdeu sobretudo o Google: antes do ataque,', 'The site mainly lost Google: before the attack,')} <strong>{pctGoogleAntes}%</strong> {t('dos utilizadores tinham chegado pela primeira vez através da pesquisa orgânica; na retoma são', 'of users had first arrived via organic search; during recovery it is')} <strong>{pctGooglePos}%</strong>{t('. Recuperar o posicionamento nas pesquisas é a prioridade.', '. Recovering search rankings is the priority.')}</li>
           <li>{t('Os eventos são o maior cartaz digital: dezembro valeu', 'Events are the biggest digital draw: December accounted for')} <strong>{pctDez}%</strong> {t('de todos os cliques vindos do Google, com a Passagem de Ano e as Luzes de Natal no topo.', 'of all clicks from Google, led by New Year and the Christmas Lights.')}</li>
           <li>{t('Na retoma, o público é mais internacional: Portugal passou de', 'During recovery the audience is more international: Portugal went from')} <strong>{pctPTAntes}%</strong> {t('para', 'to')} <strong>{pctPTPos}%</strong> {t('dos utilizadores e Espanha de', 'of users and Spain from')} <strong>{pctESAntes}%</strong> {t('para', 'to')} <strong>{pctESPos}%</strong>.</li>
           <li><strong>{pctMobile}%</strong> {t('dos utilizadores usam telemóvel - a experiência mobile é determinante.', 'of users are on mobile - the mobile experience is decisive.')}</li>

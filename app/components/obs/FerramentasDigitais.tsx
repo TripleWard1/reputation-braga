@@ -6,7 +6,7 @@ import { t } from '@/app/lib/i18n';
 import { FERRAMENTAS_DIGITAIS } from '@/app/lib/ferramentas-digitais-dados';
 import { BarrasPct, C, Card, KPI, SectionTitle, fmt } from './comum';
 
-// ═══ Ferramentas digitais: TOMI, SmartGuide e Super Fan - só leitura ═══
+// ═══ Ferramentas digitais: TOMI, SmartGuide e Super Fan — só leitura ═══
 export default function FerramentasDigitais() {
   const admin = useAdmin();
   const F = FERRAMENTAS_DIGITAIS;
@@ -14,7 +14,9 @@ export default function FerramentasDigitais() {
   const T = F.tomi.anos[ano];
   const dias25 = 365, dias26 = 149; // 1 jan a 29 mai 2026
   const pd25 = F.tomi.anos['2025'].peoes / dias25, pd26 = F.tomi.anos['2026'].peoes / dias26;
-  const subida = Math.round((pd26 / pd25 - 1) * 100);
+  // Não se compara 2026 com a média de 2025: a contagem de 2025 mais do que duplica a partir de setembro
+  // (relatório TOMI), o que indica uma mudança na forma de contar.
+  void pd25;
   const n = (v: number) => fmt(Math.round(v));
   const SG = F.smartguide, SF = F.superfan;
   const pct = (v: number) => `${String(v).replace('.', ',')}%`;
@@ -22,7 +24,7 @@ export default function FerramentasDigitais() {
   return (
     <>
       {/* ── TOMI ── */}
-      <SectionTitle sub={`${F.tomi.fonte} · ${T.periodo}`}>{t(`Os mupis contaram ${n(pd26)} peões por dia em 2026, mais ${subida}% do que em 2025`, `The kiosks counted ${n(pd26)} pedestrians a day in 2026, ${subida}% more than in 2025`)}</SectionTitle>
+      <SectionTitle sub={`${F.tomi.fonte} · ${T.periodo}`}>{t(`Os mupis contaram, em média, ${n(pd26)} peões por dia em 2026 (até 29 de maio)`, `The kiosks counted an average of ${n(pd26)} pedestrians a day in 2026 (to 29 May)`)}</SectionTitle>
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
         {(['2026', '2025'] as const).map((a) => <button key={a} onClick={() => setAno(a)} style={{ padding: '5px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${ano === a ? C.accent : C.border}`, background: ano === a ? C.accentBg : 'transparent', color: ano === a ? C.text : C.textMuted }}>{a === '2026' ? t('2026 (até 29 de maio)', '2026 (to 29 May)') : '2025'}</button>)}
       </div>
@@ -54,7 +56,7 @@ export default function FerramentasDigitais() {
       {/* ── SmartGuide ── */}
       <SectionTitle sub={SG.fonte}>{t(`Guia áudio SmartGuide: ${SG.utilizadores} utilizadores em cinco meses`, `SmartGuide audio guide: ${SG.utilizadores} users in five months`)}</SectionTitle>
       <div style={{ fontSize: 13.5, color: C.textMuted, lineHeight: 1.6, margin: '0 0 16px', padding: '12px 16px', background: C.accentBg, borderRadius: 6 }}>
-        {t(`Pouca adoção para um destino com milhões de visitantes. Os materiais em Braga (cartazes e códigos QR) trazem ${pct(SG.canais[1][1])} dos utilizadores: reforçar a divulgação no Posto de Turismo, nos hotéis e nos próprios monumentos é o caminho mais direto. Há ${pct(SG.paises[7][1])} de utilizadores com telemóvel polaco e ${pct(SG.linguas[9][1])} de uso em polaco: um sinal de conteúdo que falta.`, `Low adoption for a destination with millions of visitors. On-site materials in Braga (posters and QR codes) bring ${pct(SG.canais[1][1])} of users: promoting it at the Tourist Office, hotels and monuments is the most direct route. ${pct(SG.paises[7][1])} of users have Polish phones but Polish usage is ${pct(SG.linguas[9][1])}: a sign of missing content.`)}
+        {t(`Pouca adoção: ${fmt(SG.utilizadores || 0)} utilizadores no período. Os materiais em Braga (cartazes e códigos QR) trazem ${pct(SG.canais[1][1])} dos utilizadores. Sugestão: reforçar a divulgação no Posto de Turismo, nos hotéis e nos próprios monumentos. Há ${pct(SG.paises[7][1])} de utilizadores com telemóvel polaco e ${pct(SG.linguas[9][1])} de uso em polaco, o que pode indicar falta de conteúdo em polaco.`, `Low adoption: ${fmt(SG.utilizadores || 0)} users in the period. On-site materials in Braga (posters and QR codes) bring ${pct(SG.canais[1][1])} of users. Suggestion: promote it at the Tourist Office, hotels and monuments. ${pct(SG.paises[7][1])} of users have Polish phones but Polish usage is ${pct(SG.linguas[9][1])}: which may indicate missing Polish content.`)}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <Card title={t('País do telemóvel dos utilizadores (%)', 'Users’ phone country (%)')}><BarrasPct dados={SG.paises.slice(0, 8)} cor={C.accent} /></Card>
@@ -96,7 +98,7 @@ export default function FerramentasDigitais() {
           ))}
         </Card>
         <Card title={t('O que ficou', 'Key takeaways')}>
-          {[SF.appStore, t(`Taxa de conversão nas lojas: Android ${pct(SF.conversao.android)} · iOS ${pct(SF.conversao.ios)}. Utilizadores de ${SF.paises} países.`, `Store conversion rate: Android ${pct(SF.conversao.android)} · iOS ${pct(SF.conversao.ios)}. Users from ${SF.paises} countries.`), t(`Página inicial do site: +${SF.site.varInicio}% (${fmt(SF.site.inicio)} acessos em 3 dias).`, `Site home page: +${SF.site.varInicio}% (${fmt(SF.site.inicio)} visits in 3 days).`), SF.licao].map((x: string, i: number) => (
+          {[SF.appStore, t(`Taxa de conversão nas lojas: Android ${pct(SF.conversao.android)} · iOS ${pct(SF.conversao.ios)}. `, `Store conversion rate: Android ${pct(SF.conversao.android)} · iOS ${pct(SF.conversao.ios)}.`), t(`Página inicial do site: +${SF.site.varInicio}% (${fmt(SF.site.inicio)} acessos em 3 dias).`, `Site home page: +${SF.site.varInicio}% (${fmt(SF.site.inicio)} visits in 3 days).`), SF.licao].map((x: string, i: number) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr)', gap: 6, fontSize: 13.5, color: C.textMuted, lineHeight: 1.55, padding: '6px 0', borderTop: i ? `1px solid ${C.border}` : 'none' }}><span style={{ color: C.accent, fontWeight: 700 }}>{i + 1}</span>{x}</div>
           ))}
         </Card>

@@ -1,7 +1,7 @@
 'use client';
 
 import { t } from '@/app/lib/i18n';
-import { MESES, DORMIDAS_BRAGA, HOSPEDES_BRAGA, DORMIDAS_NORTE, DORMIDAS_PORTUGAL, ESTADA_MEDIA, SEMESTRE_2026, TAXA_TURISTICA } from '@/app/lib/observatorio-dados';
+import { MESES, DORMIDAS_BRAGA, HOSPEDES_BRAGA, DORMIDAS_NORTE, DORMIDAS_PORTUGAL, SEMESTRE_2026, TAXA_TURISTICA } from '@/app/lib/observatorio-dados';
 import { AEROPORTO_PORTO } from '@/app/lib/alojamento-aeroporto-dados';
 import { SIBS_MENSAL } from '@/app/lib/sibs-dados';
 
@@ -54,18 +54,20 @@ function calcularSinais(): Sinal[] {
       const dif = vb - vn;
       if (Math.abs(dif) >= 0.5) r.push({ id: 'dorm-regiao', tom: dif < 0 ? 'atencao' : 'positivo', tema: t('Procura', 'Demand'), separador: 'procura', peso: Math.abs(dif),
         titulo: t(`Braga face ao Norte (janeiro a ${mesNome(ate)})`, `Braga vs the North (January to ${mesNome(ate)})`), valor: `${dif >= 0 ? '+' : ''}${dif.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} p.p.`,
-        texto: t(`Dormidas em Braga ${pct(vb)}, na Região Norte ${pct(vn)} e em Portugal ${pct(vp)}. ${dif < 0 ? 'Braga cresce menos do que a região: a diferença justifica atenção à captação.' : 'Braga cresce mais do que a região.'}`,
-          `Overnight stays in Braga ${pct(vb)}, in the North ${pct(vn)} and in Portugal ${pct(vp)}. ${dif < 0 ? 'Braga is growing less than the region: the gap calls for attention to demand generation.' : 'Braga is growing faster than the region.'}`) });
+        texto: t(`Dormidas em Braga ${pct(vb)}, na Região Norte ${pct(vn)} e em Portugal ${pct(vp)}. ${dif < 0 ? 'Braga cresce menos do que a região.' : 'Braga cresce mais do que a região.'}`,
+          `Overnight stays in Braga ${pct(vb)}, in the North ${pct(vn)} and in Portugal ${pct(vp)}. ${dif < 0 ? 'Braga is growing less than the region.' : 'Braga is growing faster than the region.'}`) });
     }
   } catch { /* indicador indisponível */ }
   // 3) Estada média
   try {
-    const e = ESTADA_MEDIA as unknown as Record<string, number>;
-    const a = e[String(ANO)], b = e[String(ANO - 1)];
+    // Compara o mesmo período nos dois anos (janeiro até ao último mês publicado).
+    const ue = ultimoMes(DORMIDAS_BRAGA, ANO);
+    const hA = ue >= 0 ? acumulado(HOSPEDES_BRAGA, ANO, ue) : 0, hB = ue >= 0 ? acumulado(HOSPEDES_BRAGA, ANO - 1, ue) : 0;
+    const a = hA ? acumulado(DORMIDAS_BRAGA, ANO, ue) / hA : 0, b = hB ? acumulado(DORMIDAS_BRAGA, ANO - 1, ue) / hB : 0;
     if (a && b && Math.abs(a - b) >= 0.03) r.push({ id: 'estada', tom: a > b ? 'positivo' : 'atencao', tema: t('Procura', 'Demand'), separador: 'procura', peso: Math.abs(a - b) * 20,
-      titulo: t('Estada média', 'Average length of stay'), valor: `${a.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t('noites', 'nights')}`,
-      texto: t(`Em ${ANO - 1} era de ${b.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} noites. ${a > b ? 'Os visitantes ficam mais tempo, o que aumenta o valor de cada visita.' : 'Os visitantes ficam menos tempo.'}`,
-        `In ${ANO - 1} it was ${b.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nights. ${a > b ? 'Visitors are staying longer, raising the value of each visit.' : 'Visitors are staying for less time.'}`) });
+      titulo: t(`Estada média (janeiro a ${mesNome(ue)})`, `Average length of stay (January to ${mesNome(ue)})`), valor: `${a.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t('noites', 'nights')}`,
+      texto: t(`No mesmo período de ${ANO - 1} era de ${b.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} noites. ${a > b ? 'Os hóspedes ficaram, em média, mais noites.' : 'Os hóspedes ficaram, em média, menos noites.'}`,
+        `In the same period of ${ANO - 1} it was ${b.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} nights. ${a > b ? 'Guests stayed more nights on average.' : 'Guests stayed fewer nights on average.'}`) });
   } catch { /* indisponível */ }
   // 4) Mercados (1.º semestre): maiores subidas e descidas entre os 10 principais
   try {
@@ -110,8 +112,8 @@ function calcularSinais(): Sinal[] {
         const [aa, mm] = ult.mes.split('-').map(Number);
         r.push({ id: 'aero', tom: dif < 0 ? 'atencao' : 'positivo', tema: t('Aeroporto', 'Airport'), separador: 'aeroporto', peso: Math.abs(dif) / 3,
           titulo: t(`Aeroporto do Porto em ${mesNome(mm - 1)} de ${aa}`, `Porto Airport in ${mesNome(mm - 1)} ${aa}`), valor: pct(ult.varHom),
-          texto: t(`Passageiros desembarcados ${pct(ult.varHom)} face ao mesmo mês do ano anterior, contra uma média de ${pct(mu)} nos 12 meses antes. ${dif < 0 ? 'O abrandamento costuma chegar às dormidas de Braga nos meses seguintes.' : 'A aceleração costuma refletir-se nas dormidas de Braga nos meses seguintes.'}`,
-            `Arriving passengers ${pct(ult.varHom)} vs the same month a year earlier, against an average of ${pct(mu)} over the previous 12 months. ${dif < 0 ? 'The slowdown usually reaches Braga’s overnight stays in the following months.' : 'The acceleration usually shows up in Braga’s overnight stays in the following months.'}`) });
+          texto: t(`Passageiros desembarcados ${pct(ult.varHom)} face ao mesmo mês do ano anterior, contra uma média de ${pct(mu)} nos 12 meses antes. ${dif < 0 ? 'Pode antecipar um abrandamento das dormidas em Braga (relação não testada).' : 'Pode antecipar uma aceleração das dormidas em Braga (relação não testada).'}`,
+            `Arriving passengers ${pct(ult.varHom)} vs the same month a year earlier, against an average of ${pct(mu)} over the previous 12 months. ${dif < 0 ? 'It may anticipate a slowdown in Braga’s overnight stays (relationship not tested).' : 'It may anticipate an acceleration in Braga’s overnight stays (relationship not tested).'}`) });
       }
     }
   } catch { /* indisponível */ }
@@ -131,8 +133,8 @@ function calcularSinais(): Sinal[] {
     const u = ultimoMes(HOSPEDES_BRAGA, ANO); const h = u >= 0 ? homologa(HOSPEDES_BRAGA, u, ANO) : null; const d = u >= 0 ? homologa(DORMIDAS_BRAGA, u, ANO) : null;
     if (h && d && Math.abs(h.v - d.v) >= 3) r.push({ id: 'hosp', tom: 'info', tema: t('Procura', 'Demand'), separador: 'procura', peso: Math.abs(h.v - d.v) / 4,
       titulo: t(`Hóspedes e dormidas divergem em ${mesNome(u)}`, `Guests and overnight stays diverge in ${mesNome(u)}`), valor: pct(h.v),
-      texto: t(`Hóspedes ${pct(h.v)} e dormidas ${pct(d.v)}. ${h.v > d.v ? 'Chegaram mais pessoas, mas ficaram menos noites cada uma.' : 'Chegaram menos pessoas, mas ficaram mais noites.'}`,
-        `Guests ${pct(h.v)} and overnight stays ${pct(d.v)}. ${h.v > d.v ? 'More people came, but each stayed fewer nights.' : 'Fewer people came, but they stayed longer.'}`) });
+      texto: t(`Hóspedes ${pct(h.v)} e dormidas ${pct(d.v)}. ${h.v > d.v ? 'Registaram-se mais hóspedes, mas menos dormidas por hóspede.' : 'Registaram-se menos hóspedes, mas mais dormidas por hóspede.'}`,
+        `Guests ${pct(h.v)} and overnight stays ${pct(d.v)}. ${h.v > d.v ? 'More guests were recorded, but fewer nights per guest.' : 'Fewer guests were recorded, but more nights per guest.'}`) });
   } catch { /* indisponível */ }
   return r.sort(ordenarSinais);
 }

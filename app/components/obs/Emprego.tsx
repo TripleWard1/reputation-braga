@@ -5,7 +5,7 @@ import { t } from '@/app/lib/i18n';
 import { EMPREGO } from '@/app/lib/emprego-dados';
 import { BarrasPct, C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// ═══ Emprego no turismo (INE, SCIE) - só leitura ═══
+// ═══ Emprego no turismo (INE, SCIE) — só leitura ═══
 export default function Emprego() {
   const R = EMPREGO.regioes, S = EMPREGO.separacao, SB = EMPREGO.serieBraga;
   const cresc = SB ? ((SB.turismo[SB.turismo.length - 1] / SB.turismo[0]) - 1) * 100 : 0;
@@ -20,14 +20,14 @@ export default function Emprego() {
     [t('Atividades administrativas e serviços de apoio', 'Administrative and support services'), R['Braga'].administrativas, C.textDim],
     [t('Consultoria, atividades científicas e técnicas', 'Consulting, scientific and technical'), R['Braga'].consultoria, C.textDim],
     [t('Alojamento, restauração e similares', 'Accommodation and food services'), R['Braga'].turismo, C.accent],
-    [t('Agências de viagem e operadores turísticos', 'Travel agencies and tour operators'), R['Braga'].agencias, C.orange],
+    [t('Agências de viagem e operadores turísticos (incluídas nas atividades administrativas)', 'Travel agencies and tour operators (included in administrative activities)'), R['Braga'].agencias, C.orange],
   ];
   const maxS = Math.max(...setores.map((x) => x[1]));
   return (
     <>
-      <SectionTitle sub={EMPREGO.fonte}>{t(`Pelo menos ${fmt(R['Braga'].turismo)} pessoas trabalham no alojamento e na restauração em Braga`, `At least ${fmt(R['Braga'].turismo)} people work in accommodation and food services in Braga`)}</SectionTitle>
+      <SectionTitle sub={EMPREGO.fonte}>{t(`Cerca de ${fmt(R['Braga'].turismo)} pessoas trabalham no alojamento e na restauração em Braga`, `About ${fmt(R['Braga'].turismo)} people work in accommodation and food services in Braga`)}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
-        <KPI label={t('Alojamento e restauração · Braga', 'Accommodation and food · Braga')} value={fmt(R['Braga'].turismo)} sub={t(`pelo menos · ${v(peso('Braga'))}% das ${fmt(R['Braga'].total)} pessoas ao serviço nas empresas · +${v(cresc)}% desde ${SB.anos[0]}`, `${v(peso('Braga'))}% of ${fmt(R['Braga'].total)} people employed in companies · +${v(cresc)}% since ${SB.anos[0]}`)} color={C.accent} />
+        <KPI label={t('Alojamento e restauração · Braga', 'Accommodation and food · Braga')} value={fmt(R['Braga'].turismo)} sub={t(`${v(peso('Braga'))}% das ${fmt(R['Braga'].total)} pessoas ao serviço nas empresas · +${v(cresc)}% desde ${SB.anos[0]}`, `${v(peso('Braga'))}% of ${fmt(R['Braga'].total)} people employed in companies · +${v(cresc)}% since ${SB.anos[0]}`)} color={C.accent} />
         <KPI label={t('Peso no emprego das empresas: comparação', 'Share of company employment: comparison')} value={`${v(peso('Portugal'))}%`} sub={t(`Portugal · Norte ${v(peso('Norte'))}% · Cávado ${v(peso('Cávado'))}%`, `Portugal · North ${v(peso('Norte'))}% · Cávado ${v(peso('Cávado'))}%`)} color={C.textDim} />
         <KPI label={t('Braga no Cávado', 'Braga within Cávado')} value={`${v(bragaNoCavado, 0)}%`} sub={t(`do emprego turístico da região (e ${v(bragaNoCavadoTotal, 0)}% do emprego total)`, `of the region’s tourism employment (and ${v(bragaNoCavadoTotal, 0)}% of total employment)`)} color={C.purple} />
         <KPI label={t('Agências e operadores turísticos', 'Travel agencies and operators')} value={fmt(R['Braga'].agencias)} sub={t(`${v(agNoCavado, 0)}% deste emprego no Cávado está em Braga`, `${v(agNoCavado, 0)}% of this Cávado employment is in Braga`)} color={C.orange} />
@@ -35,7 +35,7 @@ export default function Emprego() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <Card title={t('Peso do alojamento e restauração no emprego das empresas (%)', 'Accommodation and food services share of company employment (%)')}>
           <BarrasPct dados={regs.map((r) => [r, Math.round(peso(r) * 10) / 10] as [string, number])} cor={C.accent} max={10} />
-          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 10 }}>{t('O turismo pesa menos no emprego de Braga do que no país: natural num concelho com uma base industrial, universitária e de serviços forte. Não é um sinal de fraqueza do turismo, mas de uma economia diversificada.', 'Tourism weighs less in Braga’s employment than nationally: natural in a municipality with a strong industrial, university and services base. It signals a diversified economy rather than weak tourism.')}</div>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 10 }}>{t(`O peso do alojamento e restauração no emprego das empresas é inferior em Braga (${v(peso('Braga'))}%) ao do país (${v(peso('Portugal'))}%).`, `The share of accommodation and food in company employment is lower in Braga (${v(peso('Braga'))}%) than nationally (${v(peso('Portugal'))}%).`)}</div>
         </Card>
         <Card title={t('Alojamento ou restauração? (% do emprego turístico)', 'Accommodation or food services? (% of tourism employment)')}>
           {['Cávado', 'Norte', 'Portugal'].map((r, i) => {
@@ -112,7 +112,7 @@ export default function Emprego() {
                 <Bar dataKey="total" name={t('Todas as atividades', 'All activities')} fill={C.textDim} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-            <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{t(`Por dimensão da empresa (n.º de pessoas ao serviço). O INE só publica este indicador ao nível da região ${G.regiao}, sem concelho. Como em Braga predominam micro e pequenas empresas turísticas (TIA 2025), os salários locais do setor deverão estar mais perto dos valores das empresas pequenas. Fonte: ${G.fonte}.`, `By company size (persons employed). INE only publishes this indicator at ${G.regiao} region level, not by municipality. Since micro and small tourism firms predominate in Braga (TIA 2025), local wages are likely closer to small-firm values. Source: ${G.fonte}.`)}</div>
+            <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{t(`Por dimensão da empresa (n.º de pessoas ao serviço). O INE só publica este indicador ao nível da região ${G.regiao}, sem concelho. Fonte: ${G.fonte}.`, `By company size (persons employed). INE only publishes this indicator at ${G.regiao} region level, not by municipality. Source: ${G.fonte}.`)}</div>
           </Card>
         );
       })()}
@@ -141,7 +141,7 @@ export default function Emprego() {
           </div>
         ))}
       </Card>
-      <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, marginTop: 4 }}>{t(`Notas: o INE conta este emprego pela localização da empresa, que pode ser a sede; os trabalhadores de hotéis de cadeias com sede noutro concelho podem não estar incluídos em Braga, por isso o valor deve ser lido como mínimo. O total refere-se às empresas não financeiras e não inclui a administração pública. A restauração serve também os residentes, por isso nem todo este emprego se deve ao turismo. A comparação entre regiões é de ${EMPREGO.ano}, o último ano publicado; a evolução de Braga desde 2022 vem do PORDATA (mesma fonte, INE). "Pessoal ao serviço" inclui trabalhadores por conta de outrem, proprietários e familiares que trabalham na empresa.`, `Notes: INE counts this employment by company location, which may be the head office; staff at hotels of chains headquartered in another municipality may not be counted in Braga, so the figure should be read as a minimum. The total refers to non-financial companies and excludes public administration. Food services also serve residents, so not all this employment is due to tourism. The regional comparison is for ${EMPREGO.ano}, the latest published year; Braga’s trend since 2022 comes from PORDATA (same source, INE). "Persons employed" includes employees, owners and family members working in the company.`)}</div>
+      <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, marginTop: 4 }}>{t(`Notas: o INE conta este emprego pela localização da empresa, que pode ser a sede; por isso o valor pode estar subavaliado (hotéis de cadeias com sede noutro concelho) ou sobreavaliado (empresas com sede em Braga e estabelecimentos noutros concelhos). O total refere-se às empresas não financeiras e não inclui a administração pública. A restauração serve também os residentes, por isso nem todo este emprego se deve ao turismo. A comparação entre regiões é de ${EMPREGO.ano}, o último ano publicado; a evolução de Braga desde 2022 vem do PORDATA (mesma fonte, INE). "Pessoal ao serviço" inclui trabalhadores por conta de outrem, proprietários e familiares que trabalham na empresa.`, `Notes: INE counts this employment by company location, which may be the head office; so the figure may be understated (chains headquartered elsewhere) or overstated (companies headquartered in Braga with establishments elsewhere). The total refers to non-financial companies and excludes public administration. Food services also serve residents, so not all this employment is due to tourism. The regional comparison is for ${EMPREGO.ano}, the latest published year; Braga’s trend since 2022 comes from PORDATA (same source, INE). "Persons employed" includes employees, owners and family members working in the company.`)}</div>
     </>
   );
 }

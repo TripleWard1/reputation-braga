@@ -18,14 +18,14 @@ export default function Caminhos() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <SectionTitle sub={t('Compostelas emitidas a quem iniciou a peregrinação na Sé de Braga. Fonte: Serviço de Peregrinos da Catedral de Santiago de Compostela.', 'Compostelas issued to those who began their pilgrimage at Braga Cathedral. Source: Pilgrims Office of the Cathedral of Santiago de Compostela.')}>
+      <SectionTitle sub={t('Compostelas emitidas a quem iniciou a peregrinação na Sé de Braga. Fonte: Serviço de Peregrinos da Catedral de Santiago de Compostela, divulgado pelo Diário do Minho (05/01/2025 e 05/01/2026) e pela Associação do Caminho da Geira e dos Arrieiros.', 'Compostelas issued to those who began their pilgrimage at Braga Cathedral. Source: Pilgrims Office of the Cathedral of Santiago de Compostela.')}>
         {t('Caminhos de Santiago', 'Camino de Santiago')}
       </SectionTitle>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
-        <Badge icon="🥾" value={fmt(partFim)} label={`${t('partidas de Braga em 2025', 'departures from Braga in 2025')} (${t('recorde; eram', 'record; were')} ${fmt(partInicio)} ${t('em 2022', 'in 2022')})`} color={C.accent} />
+        <Badge icon="🥾" value={fmt(partFim)} label={`${t('partidas de Braga em 2025', 'departures from Braga in 2025')} (${t('o valor mais alto da série; eram', 'highest in the series; were')} ${fmt(partInicio)} ${t('em 2022', 'in 2022')})`} color={C.accent} />
         <Badge icon="🏅" value={`${K.rankingNacional}.ª`} label={`${t('posição nacional como ponto de partida', 'national position as a starting point')} (${t('líder:', 'leader:')} ${K.liderNacional})`} color={C.info} />
-        <Badge icon="🧭" value={fmt(geira2025)} label={t('partidas pelo Caminho da Geira em 2025 - lidera pela 1.ª vez', 'departures via the Geira route in 2025 - leads for the first time')} color={C.positive} />
+        <Badge icon="🧭" value={fmt(geira2025)} label={t('partidas pelo Caminho da Geira em 2025 - ultrapassou o Caminho Central pela 1.ª vez', 'departures via the Geira route in 2025 - overtook the Central route for the first time')} color={C.positive} />
         <Badge icon="📜" value={fmt(K.acumulado.peregrinos)} label={t('peregrinos no Caminho da Geira desde 2017', 'pilgrims on the Geira route since 2017')} color={C.purple} />
       </div>
 
@@ -63,7 +63,7 @@ export default function Caminhos() {
         </Card>
         <Card title={t('Meses de maior procura - Caminho da Geira (% dos peregrinos)', 'Peak months - Geira route (% of pilgrims)')}>
           <HBars data={K.cga2025.meses} color={C.purple} />
-          <p style={{ fontSize: 11, color: C.textDim, marginTop: 10 }}>{t('Maioria entre os 46 e 65 anos; cerca de', 'Mostly between 46 and 65 years old; about')} {K.cga2025.homens}{t('% são homens.', '% are men.')}</p>
+          <p style={{ fontSize: 11, color: C.textDim, marginTop: 10 }}>{t('Cerca de 60% entre os 46 e 65 anos (421 peregrinos); cerca de', 'About 60% aged 46 to 65 (421 pilgrims); about')} {K.cga2025.homens}{t('% são homens.', '% are men.')}</p>
         </Card>
       </div>
 
@@ -88,22 +88,22 @@ export default function Caminhos() {
             </div>
           </div>
         </div>
-        <p style={{ fontSize: 11, color: C.textDim, marginTop: 12, lineHeight: 1.6 }}>{t('*Dados de 2026 parciais (até meados de junho). O salto reflete sobretudo o registo mais sistemático deste interesse a partir de 2026, mas é coerente com a procura crescente pela rota.', '*Partial 2026 data (to mid-June). The jump reflects mostly the more systematic recording of this interest from 2026, but it is consistent with the growing demand for the route.')}</p>
+        <p style={{ fontSize: 11, color: C.textDim, marginTop: 12, lineHeight: 1.6 }}>{t('*Dados de 2026 parciais (até 24 de setembro), registos de visitantes. O campo «peregrino» só passou a ser registado em 2026, por isso a comparação com 2025 não mede um aumento real.', '*Partial 2026 data (to 24 September), visitor records. The «pilgrim» field was only recorded from 2026, so the comparison with 2025 does not measure a real increase.')}</p>
       </Card>
 
       <Card title={t('Valor económico do peregrino', 'Economic value of the pilgrim')}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
           <Cruz label={t('impacto de cada peregrino', 'impact of each pilgrim')} value={`${String(K.economia.fatorTurista).replace('.', t(',', '.'))}×`} color={C.accent} nota={t('equivalente a turistas convencionais', 'equivalent to conventional tourists')} />
-          <Cruz label={t('mais produto', 'more output')} value={`+${K.economia.maisProduto}%`} color={C.positive} nota={t('por cada euro gasto pelo peregrino', 'per euro spent by the pilgrim')} />
-          <Cruz label={t('mais emprego', 'more jobs')} value={`+${K.economia.maisEmprego}%`} color={C.info} nota={t('por cada euro gasto pelo peregrino', 'per euro spent by the pilgrim')} />
+          <Cruz label={t('mais produto', 'more output')} value={`${t('até', 'up to')} +${K.economia.maisProduto}%`} color={C.positive} nota={t('por cada euro gasto pelo peregrino', 'per euro spent by the pilgrim')} />
+          <Cruz label={t('mais emprego', 'more jobs')} value={`${t('até', 'up to')} +${K.economia.maisEmprego}%`} color={C.info} nota={t('por cada euro gasto pelo peregrino', 'per euro spent by the pilgrim')} />
         </div>
         <p style={{ fontSize: 11, color: C.textDim, marginTop: 12, lineHeight: 1.6 }}>
-          {t('Estimativas do estudo da Universidade de Santiago de Compostela (USC/IDEGA) sobre o Caminho na Galiza - não específico de Braga. Servem de enquadramento sobre o peso económico do peregrino, não como medição local.', 'Estimates from the University of Santiago de Compostela (USC/IDEGA) study on the Camino in Galicia - not specific to Braga. They serve as context on the economic weight of the pilgrim, not as a local measurement.')}
+          {t('Primeiras conclusões do estudo da Universidade de Santiago de Compostela (USC/IDEGA) sobre o Caminho na Galiza, divulgadas em abril de 2018 - não específico de Braga. Servem de enquadramento sobre o peso económico do peregrino, não como medição local.', 'Preliminary findings of the University of Santiago de Compostela (USC/IDEGA) study on the Camino in Galicia, released in April 2018 - not specific to Braga. They serve as context on the economic weight of the pilgrim, not as a local measurement.')}
         </p>
       </Card>
 
       <p style={{ fontSize: 11, color: C.textDim, lineHeight: 1.7 }}>
-        {t('Notas de leitura: os valores correspondem a Compostelas emitidas pelo Serviço de Peregrinos da Catedral de Santiago, pelo que subestimam o total real - muitos peregrinos não solicitam o documento (as associações estimam números superiores). O Caminho da Geira e dos Arrieiros tem 239 km, parte da Sé de Braga e atravessa Amares, Terras de Bouro e Melgaço até entrar na Galiza pela Portela do Homem. No acumulado 2017–2025:', 'Reading notes: the figures correspond to Compostelas issued by the Pilgrims Office of the Cathedral of Santiago, so they underestimate the real total - many pilgrims do not request the document (associations estimate higher numbers). The Geira e dos Arrieiros route is 239 km long, starts at Braga Cathedral and crosses Amares, Terras de Bouro and Melgaço before entering Galicia via Portela do Homem. Cumulative 2017–2025:')} {fmt(K.acumulado.peregrinos)} {t('peregrinos e', 'pilgrims and')} {fmt(K.acumulado.compostelas)} {t('Compostelas, dos quais', 'Compostelas, of which')} {K.acumulado.pt}{t('% portugueses,', '% Portuguese,')} {K.acumulado.es}{t('% espanhóis e', '% Spanish and')} {K.acumulado.outros}{t('% de outras nacionalidades.', '% of other nationalities.')}
+        {t('Notas de leitura: os valores correspondem a Compostelas emitidas pelo Serviço de Peregrinos da Catedral de Santiago, pelo que subestimam o total real - muitos peregrinos não solicitam o documento (as associações estimam números superiores). O Caminho da Geira e dos Arrieiros tem 239 km, parte da Sé de Braga e atravessa Amares e Terras de Bouro até entrar na Galiza pela Portela do Homem (Lobios). No acumulado 2017–2025, segundo a Associação:', 'Reading notes: the figures correspond to Compostelas issued by the Pilgrims Office of the Cathedral of Santiago, so they underestimate the real total - many pilgrims do not request the document (associations estimate higher numbers). The Geira e dos Arrieiros route is 239 km long, starts at Braga Cathedral and crosses Amares and Terras de Bouro before entering Galicia via Portela do Homem (Lobios). Cumulative 2017–2025, according to the Association:')} {fmt(K.acumulado.peregrinos)} {t('peregrinos e', 'pilgrims and')} {fmt(K.acumulado.compostelas)} {t('Compostelas.', 'Compostelas.')}
       </p>
     </div>
   );

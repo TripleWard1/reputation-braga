@@ -43,6 +43,9 @@ const Mercados = dynamic(comRecuperacao(() => import('./obs/Mercados')), { ssr: 
 const Calendario = dynamic(comRecuperacao(() => import('./obs/Calendario')), { ssr: false, loading: ACarregar });
 const Meteorologia = dynamic(comRecuperacao(() => import('./obs/Meteorologia')), { ssr: false, loading: ACarregar });
 const Mobilidade = dynamic(comRecuperacao(() => import('./obs/Mobilidade')), { ssr: false, loading: ACarregar });
+const MobilidadeUrbana = dynamic(comRecuperacao(() => import('./obs/MobilidadeUrbana')), { ssr: false, loading: ACarregar });
+const Bairros = dynamic(comRecuperacao(() => import('./obs/Bairros')), { ssr: false, loading: ACarregar });
+const VisitasConcelho = dynamic(comRecuperacao(() => import('./obs/VisitasConcelho')), { ssr: false, loading: ACarregar });
 const PerfilTurista = dynamic(comRecuperacao(() => import('./obs/PerfilTurista')), { ssr: false, loading: ACarregar });
 const Procura = dynamic(comRecuperacao(() => import('./obs/Procura')), { ssr: false, loading: ACarregar });
 const Sustentabilidade = dynamic(comRecuperacao(() => import('./obs/Sustentabilidade')), { ssr: false, loading: ACarregar });
@@ -283,10 +286,10 @@ const OBS_CSS = `
 @media print { .obs-hero, .obs-tabs { display: none !important; } .obs-body { padding: 0; max-width: none; } .obs-card { opacity: 1 !important; transform: none !important; } }
 `;
 
-type Tab = 'geral' | 'insto' | 'procura' | 'estimativa' | 'mobilidade' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'calendario' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
+type Tab = 'geral' | 'insto' | 'procura' | 'estimativa' | 'mobilidade' | 'urbana' | 'bairros' | 'visitas' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'calendario' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
 // Sem tipo estrito: o separador funciona mesmo que o módulo do calendário ainda não tenha a exportação em PDF
 function abrirCalendarioPdf(m: any) { if (m && typeof m.exportarCalendarioPdf === 'function') m.exportarCalendarioPdf(); }
-const IDS_TAB: string[] = ['insto', 'geral', 'procura', 'estimativa', 'mobilidade', 'economia', 'emprego', 'cartoes', 'perfil', 'animacao', 'ferramentas', 'hotelaria', 'cultura', 'lojas', 'alojamento', 'aeroporto', 'mercados', 'calendario', 'balcao', 'taxa', 'sustentabilidade', 'digital', 'acessibilidade', 'meteo', 'caminhos', 'cruzamentos'];
+const IDS_TAB: string[] = ['insto', 'geral', 'procura', 'estimativa', 'mobilidade', 'urbana', 'bairros', 'visitas', 'economia', 'emprego', 'cartoes', 'perfil', 'animacao', 'ferramentas', 'hotelaria', 'cultura', 'lojas', 'alojamento', 'aeroporto', 'mercados', 'calendario', 'balcao', 'taxa', 'sustentabilidade', 'digital', 'acessibilidade', 'meteo', 'caminhos', 'cruzamentos'];
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; reputacaoResumo?: string; separadorInicial?: string; }
 
@@ -337,10 +340,13 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'emprego', label: t('Emprego', 'Employment') },
     { id: 'cartoes', label: t('Gastos com cartão', 'Card spending') },
     { id: 'perfil', label: t('Perfil do turista', 'Visitor profile') },
+    { id: 'visitas', label: t('Visitas ao concelho', 'Visits to the municipality') },
     { id: 'animacao', label: t('Animação turística', 'Tourism activities') },
     { id: 'cultura', label: t('Cultura', 'Culture') },
     { id: 'lojas', label: t('Lojas com História', 'Historic Shops') },
     { id: 'mobilidade', label: t('Mobilidade (TUB)', 'Mobility (TUB)') },
+    { id: 'urbana', label: t('Mobilidade urbana', 'Urban mobility') },
+    { id: 'bairros', label: t('Bairros Comerciais Digitais', 'Digital Commercial Districts') },
     { id: 'hotelaria', label: t('Hotelaria', 'Hotels') },
     { id: 'alojamento', label: t('Alojamento Local', 'Short-term rentals') },
     { id: 'aeroporto', label: t('Aeroporto', 'Airport') },
@@ -365,11 +371,11 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   const GRUPOS: { id: string; label: string; icon: string; tabs: Tab[] }[] = [
     { id: 'resumo', label: t('Resumo', 'Summary'), icon: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z', tabs: ['geral', 'cruzamentos'] },
     { id: 'procura', label: t('Procura', 'Demand'), icon: 'M3 17l6-6 4 4 8-8M15 7h6v6', tabs: ['procura', 'estimativa', 'mercados', 'calendario', 'aeroporto', 'caminhos'] },
-    { id: 'visitante', label: t('Visitante', 'Visitor'), icon: 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21v-1a6 6 0 0112 0v1M16 3.5a4 4 0 010 7.5M22 21v-1a6 6 0 00-4-5.6', tabs: ['perfil', 'balcao'] },
+    { id: 'visitante', label: t('Visitante', 'Visitor'), icon: 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21v-1a6 6 0 0112 0v1M16 3.5a4 4 0 010 7.5M22 21v-1a6 6 0 00-4-5.6', tabs: ['perfil', 'visitas', 'balcao'] },
     { id: 'economia', label: t('Economia', 'Economy'), icon: 'M18 7a7 7 0 100 10M5 10h9M5 14h9', tabs: ['economia', 'emprego', 'cartoes', 'taxa'] },
     { id: 'oferta', label: t('Oferta', 'Supply'), icon: 'M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1v-9z', tabs: ['hotelaria', 'alojamento', 'animacao', 'cultura', 'lojas'] },
     { id: 'digital', label: t('Digital', 'Digital'), icon: 'M8 2h8a2 2 0 012 2v16a2 2 0 01-2 2H8a2 2 0 01-2-2V4a2 2 0 012-2zM11 18h2', tabs: ['digital', 'ferramentas'] },
-    { id: 'territorio', label: t('Território', 'Territory'), icon: 'M5 21c0-9 6-15 16-16-1 10-7 16-16 16zM5 21l8-8', tabs: ['sustentabilidade', 'mobilidade', 'acessibilidade', 'meteo'] },
+    { id: 'territorio', label: t('Território', 'Territory'), icon: 'M5 21c0-9 6-15 16-16-1 10-7 16-16 16zM5 21l8-8', tabs: ['sustentabilidade', 'mobilidade', 'urbana', 'bairros', 'acessibilidade', 'meteo'] },
   ];
   const grupoAtual = GRUPOS.find((g) => g.tabs.includes(tab)) || GRUPOS[0];
   const [ultimoDoGrupo, setUltimoDoGrupo] = useState<Record<string, Tab>>({});
@@ -407,16 +413,16 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         t(`Para enquadramento regional, no acumulado de 2025 (dados preliminares) o conjunto do país cresceu ${pct(H.dormidasPTVar)} em dormidas e a Região Norte ${pct(H.dormidasNorteVar)}.`, `For regional context, in the cumulative 2025 figures (preliminary data) the country as a whole grew ${pct(H.dormidasPTVar)} in overnight stays and the Norte Region ${pct(H.dormidasNorteVar)}.`),
       ] },
       { kind: 'bars', title: t('Dormidas anuais em Braga (2019–2025)', 'Annual overnight stays in Braga (2019–2025)'), data: dormBars,
-        note: t('A quebra de 2020–2021 reflete a pandemia; recuperação plena a partir de 2022. 2025 é ano completo; 2026 ainda em curso.', 'The 2020–2021 drop reflects the pandemic; full recovery from 2022. 2025 is a complete year; 2026 still ongoing.') },
+        note: t('A quebra de 2020–2021 reflete a pandemia; os níveis de 2019 só foram ultrapassados em 2024. Dados de 2025 e 2026 provisórios (INE); 2026 ainda em curso.', 'The 2020–2021 drop reflects the pandemic; 2019 levels were only exceeded in 2024. 2025 and 2026 data provisional (INE); 2026 still ongoing.') },
       { kind: 'table', title: t('Braga no contexto regional e nacional', 'Braga in the regional and national context'), head: [t('Indicador', 'Indicator'), 'Braga', t('Norte', 'North'), 'Portugal'],
         rows: [
-          [t('Ocupação por quarto', 'Room occupancy'), dec(H.ocupQuarto.Braga) + '%', dec(H.ocupQuarto.Norte) + '%', dec(H.ocupQuarto.Portugal) + '%'],
-          [t('Ocupação por cama', 'Bed occupancy'), dec(H.ocupCama.Braga) + '%', dec(H.ocupCama.Norte) + '%', dec(H.ocupCama.Portugal) + '%'],
-          [t('Estada média (noites)', 'Average stay (nights)'), dec(H.estadaMedia.Braga), dec(H.estadaMedia.Norte), dec(H.estadaMedia.Portugal)],
-          [t('Variação das dormidas (homóloga)', 'Change in overnight stays (YoY)'), pct(H.dormidasVar), pct(H.dormidasNorteVar), pct(H.dormidasPTVar)],
+          [t('Ocupação por quarto (2024)', 'Room occupancy (2024)'), dec(H.ocupQuarto.Braga) + '%', dec(H.ocupQuarto.Norte) + '%', dec(H.ocupQuarto.Portugal) + '%'],
+          [t('Ocupação por cama (2024)', 'Bed occupancy (2024)'), dec(H.ocupCama.Braga) + '%', dec(H.ocupCama.Norte) + '%', dec(H.ocupCama.Portugal) + '%'],
+          [t('Estada média (noites, 2024)', 'Average stay (nights, 2024)'), dec(H.estadaMedia.Braga), dec(H.estadaMedia.Norte), dec(H.estadaMedia.Portugal)],
+          [t('Variação das dormidas 2025 vs 2024', 'Change in overnight stays 2025 vs 2024'), pct(H.dormidasVar), pct(H.dormidasNorteVar), pct(H.dormidasPTVar)],
         ],
         emphasizeRow: 0,
-        note: t('Fonte: INE/TravelBI. Indicadores do período mais recente consolidado.', 'Source: INE/TravelBI. Indicators for the most recent consolidated period.') },
+        note: t('Fonte: INE/TravelBI. Ocupação e estada média: 2024; variação das dormidas: 2025 (provisório).', 'Source: INE/TravelBI. Occupancy and average stay: 2024; change in overnight stays: 2025 (provisional).') },
       { kind: 'stats', title: t('Sazonalidade da procura', 'Seasonality of demand'), items: [
         { label: t('Índice de sazonalidade (Braga)', 'Seasonality index (Braga)'), value: dec(Ds.sazonalidade) + '%', sub: t('menor = mais equilibrado', 'lower = more balanced') },
         { label: t('Média nacional', 'National average'), value: dec(Ds.sazonalidadeNacional) + '%' },
@@ -424,10 +430,10 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         { label: t('Rácio pico / vale', 'Peak / trough ratio'), value: dec(+pkRatio.toFixed(1)) + '×', sub: dl(MESES[pkI]) + ' vs ' + dl(MESES[trI]) },
       ] },
       { kind: 'prose', title: t('Leitura', 'Analysis'), paras: [
-        t(`A ocupação por quarto em Braga (${dec(H.ocupQuarto.Braga)}%) supera a média da Região Norte e aproxima-se da nacional, sinal de uma procura sólida apesar da estada curta.`, `Room occupancy in Braga (${dec(H.ocupQuarto.Braga)}%) exceeds the Norte Region average and approaches the national one, a sign of solid demand despite the short stay.`),
-        t(`A estada média de ${dec(H.estadaMedia.Braga)} noites (${dec(H.estadaMedia.naoResidentes)} entre não residentes) confirma Braga como destino de curtas estadias e porta de entrada do Minho, com margem para estratégias que aumentem o número de noites.`, `The average stay of ${dec(H.estadaMedia.Braga)} nights (${dec(H.estadaMedia.naoResidentes)} among non-residents) confirms Braga as a short-stay destination and a gateway to the Minho, with room for strategies that increase the number of nights.`),
+        t(`A ocupação por quarto em Braga (${dec(H.ocupQuarto.Braga)}%) (2024) supera a média da Região Norte e está ligeiramente acima da nacional (${dec(H.ocupQuarto.Portugal)}%).`, `Room occupancy in Braga (${dec(H.ocupQuarto.Braga)}%) (2024) exceeds the Norte Region average and is slightly above the national one (${dec(H.ocupQuarto.Portugal)}%).`),
+        t(`A estada média de ${dec(H.estadaMedia.Braga)} noites (${dec(H.estadaMedia.naoResidentes)} entre não residentes) mostra que Braga é sobretudo um destino de curtas estadias.`, `The average stay of ${dec(H.estadaMedia.Braga)} nights (${dec(H.estadaMedia.naoResidentes)} among non-residents) shows that Braga is mainly a short-stay destination.`),
         t(`Braga é menos sazonal do que a média nacional (${dec(Ds.sazonalidade)}% vs ${dec(Ds.sazonalidadeNacional)}%): a procura está mais distribuída ao longo do ano. O pico mantém-se no verão (${dl(MESES[pkI])}), pelo que há margem para reforçar a época baixa.`, `Braga is less seasonal than the national average (${dec(Ds.sazonalidade)}% vs ${dec(Ds.sazonalidadeNacional)}%): demand is more spread across the year. The peak stays in summer (${dl(MESES[pkI])}), so there is room to strengthen the low season.`),
-        t('2025 está completo. Os dados de 2026 são parciais (jan–abr), com as dormidas a crescerem cerca de +3,8% face ao mesmo período de 2025.', '2025 is complete. The 2026 data is partial (Jan–Apr), with overnight stays growing about +3.8% versus the same period in 2025.'),
+        t('Os dados de 2026 são parciais e provisórios (jan–jun), com as dormidas a crescerem 4,4% face ao mesmo período de 2025.', 'The 2026 data is partial and provisional (Jan–Jun), with overnight stays growing 4.4% versus the same period in 2025.'),
       ] },
     ];
 
@@ -435,12 +441,12 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       logo: LOGO,
       eyebrow: t('Município de Braga · Observatório', 'Municipality of Braga · Observatory'),
       title: t('Procura Turística', 'Tourism Demand'),
-      subtitle: t(H.periodo, H.periodo.replace('(ano completo)', '(complete year)')),
+      subtitle: t('2025 · INE/TravelBI (dados provisórios)', '2025 · INE/TravelBI (provisional data)'),
       kpis: [
         { label: t('Dormidas 2025', 'Overnight stays 2025'), value: nf(H.dormidas2025), sub: pct(H.dormidasVar) + t(' homólogo', ' YoY') },
         { label: t('Hóspedes 2025', 'Guests 2025'), value: nf(H.hospedes2025), sub: pct(H.hospedesVar) + t(' homólogo', ' YoY') },
-        { label: t('Ocupação / quarto', 'Room occupancy'), value: dec(H.ocupQuarto.Braga) + '%', sub: t('Braga · Norte ', 'Braga · North ') + dec(H.ocupQuarto.Norte) + '%' },
-        { label: t('Estada média', 'Average stay'), value: dec(H.estadaMedia.Braga) + t(' noites', ' nights'), sub: dec(H.estadaMedia.naoResidentes) + t(' não residentes', ' non-residents') },
+        { label: t('Ocupação / quarto (2024)', 'Room occupancy (2024)'), value: dec(H.ocupQuarto.Braga) + '%', sub: t('Braga · Norte ', 'Braga · North ') + dec(H.ocupQuarto.Norte) + '%' },
+        { label: t('Estada média (2024)', 'Average stay (2024)'), value: dec(H.estadaMedia.Braga) + t(' noites', ' nights'), sub: dec(H.estadaMedia.naoResidentes) + t(' não residentes', ' non-residents') },
       ],
       sections,
       footerR: t('Procura Turística · Fonte INE/TravelBI', 'Tourism Demand · Source INE/TravelBI'),
@@ -476,8 +482,8 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
           ],
           note: t(`Proveitos de alojamento em Braga: ${dDec(H.proveitos.Braga2023)} M€ (2023) para ${dDec(H.proveitos.Braga2024)} M€ (2024).`, `Accommodation revenue in Braga: ${dDec(H.proveitos.Braga2023)} M€ (2023) to ${dDec(H.proveitos.Braga2024)} M€ (2024).`) },
         { kind: 'prose', title: 'Leitura', paras: [
-          t(`Braga apresenta RevPAR e ADR abaixo das médias regional e nacional - preços médios mais baixos - mas uma ocupação por quarto (${dDec(H.ocupQuarto.Braga)}%) superior à da Região Norte e próxima da nacional.`, `Braga shows RevPAR and ADR below the regional and national averages - lower average prices - but a room occupancy (${dDec(H.ocupQuarto.Braga)}%) higher than the Norte Region and close to the national one.`),
-          t('A combinação de ocupação elevada com preço médio contido aponta margem para estratégias de valorização do preço médio (qualificação da oferta, eventos âncora, captação de segmentos de maior valor), sem dependência de aumentar volumes.', 'The combination of high occupancy with a contained average price points to room for strategies that raise the average price (upgrading the offer, anchor events, attracting higher-value segments), without relying on increasing volumes.'),
+          t(`Braga apresenta RevPAR e ADR abaixo das médias regional e nacional - preços médios mais baixos - mas uma ocupação por quarto (${dDec(H.ocupQuarto.Braga)}%) superior à da Região Norte e ligeiramente acima da nacional.`, `Braga shows RevPAR and ADR below the regional and national averages - lower average prices - but a room occupancy (${dDec(H.ocupQuarto.Braga)}%) higher than the Norte Region and slightly above the national one.`),
+          t('Leitura da equipa: a combinação de ocupação elevada com preço médio contido aponta margem para estratégias de valorização do preço médio (qualificação da oferta, eventos âncora, captação de segmentos de maior valor), sem dependência de aumentar volumes.', 'Team reading: the combination of high occupancy with a contained average price points to room for strategies that raise the average price (upgrading the offer, anchor events, attracting higher-value segments), without relying on increasing volumes.'),
         ] },
       ],
       footerR: t('Economia do Alojamento · Fonte INE/TravelBI', 'Accommodation Economy · Source INE/TravelBI'),
@@ -499,13 +505,13 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       sections: [
         { kind: 'table', title: t('Principais mercados internacionais (INE 2025, por dormidas)', 'Main international markets (INE 2025, by overnight stays)'),
           head: ['#', t('Mercado', 'Market')], rows: top.map((m, i) => [String(i + 1), dl(m)]), emphasizeRow: 0,
-          note: t('Espanha lidera, seguida de Brasil, França e Reino Unido.', 'Spain leads, followed by Brazil, France and the United Kingdom.') },
+          note: t('Espanha lidera, seguida de Reino Unido, Brasil e França. Dados de 2025 provisórios (INE).', 'Spain leads, followed by the United Kingdom, Brazil and France. 2025 data provisional (INE).') },
         { kind: 'bars', title: t('Nacionalidades no balcão (2026, top 10)', 'Front desk nationalities (2026, top 10)'),
           data: b26.nacionalidades.slice(0, 10).map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#60a5fa' },
         { kind: 'bars', title: t('Cidades de origem dos visitantes (balcão 2026, top 10)', 'Visitor origin cities (front desk 2026, top 10)'),
           data: b26.cidades.slice(0, 10).map((x: [string, number]) => ({ label: dl(x[0]), value: x[1], display: dNum(x[1]) })), color: '#8AB0E6' },
         { kind: 'prose', title: 'Leitura', paras: [
-          t('O domínio ibérico é claro: Espanha encabeça tanto as dormidas (INE) como o atendimento físico no balcão, reforçada por cidades como Madrid, Vigo, A Coruña e Bilbao no topo das origens.', 'Iberian dominance is clear: Spain leads both overnight stays (INE) and physical front desk visits, reinforced by cities such as Madrid, Vigo, A Coruña and Bilbao at the top of the origins.'),
+          t('O domínio ibérico é claro: Espanha encabeça tanto as dormidas (INE) como o atendimento físico no balcão, reforçada por cidades como Madrid, Barcelona e Bilbau no topo das origens espanholas do balcão (2026).', 'Iberian dominance is clear: Spain leads both overnight stays (INE) and physical front desk visits, reinforced by cities such as Madrid, Barcelona and Bilbao at the top of the Spanish front-desk origins (2026).'),
           t(`Para referência, em 2025 o balcão registou ${dNum(b25.nacionalidades[0][1])} atendimentos a espanhóis; em 2026 (ano em curso) já vai em ${dNum(b26.nacionalidades[0][1])}.`, `For reference, in 2025 the front desk recorded ${dNum(b25.nacionalidades[0][1])} visits by Spaniards; in 2026 (ongoing year) it already stands at ${dNum(b26.nacionalidades[0][1])}.`),
         ] },
       ],
@@ -557,7 +563,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
           data: anos.map((y) => ({ label: y, value: TX[y].Total, display: dEur(TX[y].Total) })),
           note: t('Crescimento sustentado desde a retoma pós-pandemia.', 'Sustained growth since the post-pandemic recovery.') },
         { kind: 'prose', title: t('Enquadramento', 'Context'), paras: [
-          t('Regulamento n.º 927/2025: 1,50 € por dormida, até ao máximo de 4 noites, aplicável a hóspedes com mais de 16 anos.', 'Regulation no. 927/2025: €1.50 per overnight stay, up to a maximum of 4 nights, applicable to guests over 16 years old.'),
+          t('Regulamento n.º 927/2025: 1,50 € por dormida, até ao máximo de 4 noites, aplicável a hóspedes com 16 ou mais anos.', 'Regulation no. 927/2025: €1.50 per overnight stay, up to a maximum of 4 nights, applicable to guests aged 16 or over.'),
           t(`A receita de 2025 totalizou ${dEur(TX['2025'].Total)}, mais ${dPct(((TX['2025'].Total - TX['2024'].Total) / TX['2024'].Total) * 100)} do que em 2024. Desde o fim de julho de 2025 (Regulamento n.º 927/2025), a taxa é cobrada todo o ano, e não só de março a outubro, mantendo 1,50 € por noite: daí a receita nos meses de inverno (janeiro de 2026: ${dEur(TX['2026'].Janeiro)}).`, `The 2025 revenue totalled ${dEur(TX['2025'].Total)}, ${dPct(((TX['2025'].Total - TX['2024'].Total) / TX['2024'].Total) * 100)} more than in 2024. Since late July 2025 (Regulation no. 927/2025), the tax has been charged all year round, not only from March to October, keeping €1.50 per night: hence the revenue in the winter months (January 2026: ${dEur(TX['2026'].Janeiro)}).`),
         ] },
       ],
@@ -571,7 +577,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       logo: LOGO, eyebrow: t('Município de Braga · Green Destinations', 'Municipality of Braga · Green Destinations'),
       title: t('Sustentabilidade do Destino', 'Destination Sustainability'), subtitle: t(`Certificação ${D.certificacao} · perceção e indicadores`, `${D.certificacao} certification · perception and indicators`),
       kpis: [
-        { label: t('Certificação', 'Certification'), value: 'Full', sub: t('Green Destinations · 1.ª cidade portuguesa', 'Green Destinations · 1st Portuguese city') },
+        { label: t('Certificação', 'Certification'), value: 'Full', sub: t('Green Destinations · certificação de destino sustentável (2026)', 'Green Destinations · sustainable destination certification (2026)') },
         { label: t('Perceção positiva', 'Positive perception'), value: dDec(P.positiva) + '%', sub: t(`residentes · n=${P.n}`, `residents · n=${P.n}`) },
         { label: t('Sazonalidade', 'Seasonality'), value: dDec(D.sazonalidade) + '%', sub: t(`nacional ${dDec(D.sazonalidadeNacional)}%`, `national ${dDec(D.sazonalidadeNacional)}%`) },
         { label: t('Frota TUB verde', 'Green TUB fleet'), value: dDec(D.frotaVerde) + '%', sub: t(`${D.autocarrosEletricos} elétricos`, `${D.autocarrosEletricos} electric`) },
@@ -650,15 +656,15 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     const A = ACESSIBILIDADE;
     openPremiumDoc({
       logo: LOGO, eyebrow: t('Município de Braga · Posto de Turismo', 'Municipality of Braga · Tourist Office'),
-      title: t('Acessibilidade no Atendimento', 'Accessibility in Service'), subtitle: t('Necessidades especiais registadas no balcão', 'Special needs recorded at the front desk'),
+      title: t('Acessibilidade no Atendimento', 'Accessibility in Service'), subtitle: t('Necessidades especiais registadas no balcão · 1 jan a 24 set 2026', 'Special needs recorded at the front desk · 1 Jan to 24 Sep 2026'),
       kpis: [
         { label: t('Atendimentos registados', 'Recorded visits'), value: dNum(A.total) },
         { label: t('Pessoas abrangidas', 'People covered'), value: dNum(A.pax) },
-        { label: t('% do total de atendimentos', '% of total visits'), value: dDec(A.pct) + '%' },
+        { label: t('% dos atendimentos de 2026', '% of 2026 visits'), value: dDec(A.pct) + '%' },
       ],
       sections: [
         { kind: 'prose', title: t('Amostra reduzida - leitura cautelosa', 'Small sample - read with caution'), paras: [
-          t(`O registo de necessidades especiais só começou em 2026 e está fortemente subutilizado (${A.total} em ${dNum(A.totalAtendimentos)} atendimentos). Os números abaixo são um ponto de partida e não refletem a procura real.`, `Recording of special needs only began in 2026 and is heavily underused (${A.total} of ${dNum(A.totalAtendimentos)} visits). The numbers below are a starting point and do not reflect real demand.`),
+          t(`O registo de necessidades especiais só começou em 2026 e está fortemente subutilizado (${A.total} em ${dNum(A.totalAtendimentos)} atendimentos de 2026). Os números abaixo são um ponto de partida e não refletem a procura real.`, `Recording of special needs only began in 2026 and is heavily underused (${A.total} of ${dNum(A.totalAtendimentos)} visits in 2026). The numbers below are a starting point and do not reflect real demand.`),
           t('O valor deste indicador cresce com o registo sistemático no balcão - vale a pena reforçar essa prática junto da equipa de atendimento.', 'The value of this indicator grows with systematic recording at the front desk - it is worth reinforcing this practice with the service team.'),
         ] },
         { kind: 'bars', title: t('Por tipo de necessidade', 'By type of need'),
@@ -707,7 +713,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       logo: LOGO, eyebrow: t('Município de Braga · Observatório', 'Municipality of Braga · Observatory'),
       title: t('Síntese do Destino', 'Destination Overview'), subtitle: t('Indicadores-chave do turismo de Braga', 'Key indicators of Braga tourism'),
       kpis: [
-        { label: t('Reputação média', 'Average reputation'), value: reputacaoMedia != null ? dDec(+reputacaoMedia.toFixed(1)) + '/10' : '-', sub: t(`${reputacaoLocais ?? 0} locais · ${dNum(reputacaoReviews ?? 0)} reviews`, `${reputacaoLocais ?? 0} sites · ${dNum(reputacaoReviews ?? 0)} reviews`) },
+        { label: t('Reputação média', 'Average reputation'), value: reputacaoMedia != null ? dDec(+reputacaoMedia.toFixed(1)) + '/10' : '-', sub: t(`${reputacaoLocais ?? 0} locais com dados suficientes · ${dNum(reputacaoReviews ?? 0)} avaliações do Google`, `${reputacaoLocais ?? 0} places with enough data · ${dNum(reputacaoReviews ?? 0)} Google reviews`) },
         { label: t('Dormidas 2025', 'Overnight stays 2025'), value: dNum(H.dormidas2025), sub: dPct(H.dormidasVar) + t(' homólogo', ' YoY') },
         { label: t('Hóspedes 2025', 'Guests 2025'), value: dNum(H.hospedes2025), sub: dPct(H.hospedesVar) + t(' homólogo', ' YoY') },
         { label: t('Receita da taxa 2025', 'Tax revenue 2025'), value: dEur(TAXA_TURISTICA['2025'].Total) },
@@ -716,10 +722,10 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       ],
       sections: [
         { kind: 'bars', title: t('Dormidas anuais em Braga (2019–2025)', 'Annual overnight stays in Braga (2019–2025)'), data: dormBars, note: t('Fonte: INE/TravelBI.', 'Source: INE/TravelBI.') },
-        { kind: 'bars', title: t('Receita da Taxa Municipal Turística (€/ano)', 'Municipal Tourist Tax revenue (€/year)'), data: taxaBars, color: '#a78bfa', note: t('Taxa de 1,50 € por dormida (regulamento n.º 927/2025).', 'Tax of €1.50 per overnight stay (regulation no. 927/2025).') },
+        { kind: 'bars', title: t('Receita da Taxa Municipal Turística (€/ano)', 'Municipal Tourist Tax revenue (€/year)'), data: taxaBars, color: '#a78bfa', note: t('Taxa de 1,50 € por dormida; até julho de 2025 cobrada de março a outubro, desde o fim de julho de 2025 todo o ano (Regulamento n.º 927/2025). Valores de faturação.', 'Tax of €1.50 per overnight stay; until July 2025 charged March to October, since late July 2025 all year (Regulation no. 927/2025). Invoiced amounts.') },
         { kind: 'prose', title: t('Cruzamento reputação × procura', 'Reputation × demand cross-analysis'), paras: [
-          t('Três fontes independentes triangulam a mesma realidade: o que as pessoas dizem (reputação online), onde dormem (INE e taxa turística) e o que procuram ao balcão.', 'Three independent sources triangulate the same reality: what people say (online reputation), where they stay (INE and tourist tax) and what they look for at the front desk.'),
-          t('Quando a reputação de um ponto de interesse âncora cai, isso costuma anteceder quebras na procura; a receita da taxa permite quantificar o retorno de cada intervenção.', 'When the reputation of an anchor point of interest drops, it usually precedes falls in demand; the tax revenue allows quantifying the return of each intervention.'),
+          t('Três fontes distintas dão leituras complementares: o que as pessoas dizem (reputação online), onde dormem (INE e taxa turística) e o que procuram ao balcão.', 'Three distinct sources give complementary readings: what people say (online reputation), where they stay (INE and tourist tax) and what they look for at the front desk.'),
+          t('Uma descida da reputação de um ponto de interesse âncora deve ser acompanhada, porque pode afetar a procura (relação não medida nesta plataforma).', 'A drop in the reputation of an anchor point of interest should be monitored, as it may affect demand (a relationship not measured on this platform).'),
         ] },
       ],
       footerR: t('Síntese do Destino', 'Destination Overview'),
@@ -829,7 +835,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         <div className="obs-hero-in">
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: C.accent }}>Braga</div>
           <h1 className="obs-h1">{t('Observatório de Turismo de Braga', 'Braga Tourism Observatory')}</h1>
-          <p style={{ color: C.textMuted, fontSize: 15, margin: 0, maxWidth: 760, lineHeight: 1.55 }}>{t('Análise integrada de dados reais - INE/TravelBI · Atendimento de Balcão · Taxa Municipal Turística', 'Integrated analysis of real data - INE/TravelBI · Front Desk · Municipal Tourist Tax')}</p>
+          <p style={{ color: C.textMuted, fontSize: 15, margin: 0, maxWidth: 760, lineHeight: 1.55 }}>{t('Análise integrada de dados do INE/TravelBI, do Município e de parceiros · fonte indicada em cada gráfico', 'Integrated analysis of data from INE/TravelBI, the Municipality and partners · source shown on each chart')}</p>
           {tab !== 'meteo' && (
             <button className="obs-pdf-m" onClick={exportarAtual}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v11m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></svg>
@@ -920,6 +926,9 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'estimativa' && <EstimativaDormidas />}
         {tab === 'insto' && <Insto irPara={irPara} nomeSeparador={nomeSeparador} />}
         {tab === 'mobilidade' && <Mobilidade />}
+        {tab === 'urbana' && <MobilidadeUrbana />}
+        {tab === 'bairros' && <Bairros />}
+        {tab === 'visitas' && <VisitasConcelho />}
         {tab === 'hotelaria' && <Hotelaria />}
         {tab === 'alojamento' && <AlojamentoLocal />}
         {tab === 'aeroporto' && <Aeroporto />}

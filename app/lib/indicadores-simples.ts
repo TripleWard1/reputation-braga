@@ -13,8 +13,8 @@ export const INDICADORES_SIMPLES: IndicadorSimples[] = [
     en: ['Average annual growth (CAGR)', 'How much demand grew, on average, each year over a period. A CAGR of 1% between 2019 and 2025 means that, had it grown at a steady pace, it would have risen 1% a year.'],
   },
   {
-    pt: ['Coeficiente de Gini da sazonalidade', 'Mede se os turistas vêm ao longo de todo o ano ou se se concentram em poucos meses. Vai de 0 (todos os meses iguais) até perto de 1 (tudo num só mês): quanto mais baixo, menos sazonal é o destino. Lê-se comparando com o Norte e com o país.'],
-    en: ['Seasonality Gini coefficient', 'Measures whether visitors come all year round or are concentrated in a few months. It ranges from 0 (every month equal) to close to 1 (everything in one month): the lower, the less seasonal the destination. It is read by comparison with the North and the country.'],
+    pt: ['Coeficiente de Gini da sazonalidade', 'Mede se os turistas vêm ao longo de todo o ano ou se se concentram em poucos meses. Vai de 0 (todos os meses iguais) até cerca de 0,92 (tudo num só mês, com 12 meses): quanto mais baixo, menos sazonal é o destino. Lê-se comparando com o Norte e com o país.'],
+    en: ['Seasonality Gini coefficient', 'Measures whether visitors come all year round or are concentrated in a few months. It ranges from 0 (every month equal) to about 0.92 (everything in one month, with 12 months): the lower, the less seasonal the destination. It is read by comparison with the North and the country.'],
   },
   {
     pt: ['Índice de Herfindahl-Hirschman (IHH)', 'Mede se o destino depende de poucos mercados. Soma-se o quadrado da quota de cada país: se todos os turistas viessem de um só país, daria 10 000; com muitos países equilibrados, fica perto de 0. Acima de 1 800 considera-se uma dependência elevada.'],
@@ -41,7 +41,7 @@ export const INDICADORES_SIMPLES: IndicadorSimples[] = [
     en: ['Real average rate', 'The average price per occupied room (ADR) after removing inflation. It shows whether prices rose more or less than the cost of living.'],
   },
   {
-    pt: ['Índice de sazonalidade mensal', 'Dormidas de um mês a dividir pela média dos meses. 1,00 é um mês médio; abaixo de 0,9 é um mês fraco, onde vale a pena captar visitantes.'],
-    en: ['Monthly seasonality index', 'Overnight stays in a month divided by the monthly average. 1.00 is an average month; below 0.9 is a weak month, worth targeting for visitors.'],
+    pt: ['Índice de sazonalidade mensal', 'Dormidas de um mês a dividir pela média dos meses. 1,00 é um mês médio; nesta plataforma, abaixo de 0,9 considera-se um mês fraco (convenção da plataforma, não uma norma).'],
+    en: ['Monthly seasonality index', 'Overnight stays in a month divided by the monthly average. 1.00 is an average month; on this platform, below 0.9 is treated as a weak month (a platform convention, not a standard).'],
   },
 ];

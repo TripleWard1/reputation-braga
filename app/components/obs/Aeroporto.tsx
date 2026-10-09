@@ -6,7 +6,7 @@ import { t } from '@/app/lib/i18n';
 import { AEROPORTO_PORTO } from '@/app/lib/alojamento-aeroporto-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// ═══ Aeroporto do Porto (INE) - só leitura; cruzado com as dormidas de Braga ═══
+// ═══ Aeroporto do Porto (INE) — só leitura; cruzado com as dormidas de Braga ═══
 export default function Aeroporto() {
   const M = AEROPORTO_PORTO.meses;
   const MC = [t('jan', 'Jan'), t('fev', 'Feb'), t('mar', 'Mar'), t('abr', 'Apr'), t('mai', 'May'), t('jun', 'Jun'), t('jul', 'Jul'), t('ago', 'Aug'), t('set', 'Sep'), t('out', 'Oct'), t('nov', 'Nov'), t('dez', 'Dec')];
@@ -25,7 +25,7 @@ export default function Aeroporto() {
         <KPI label={t(`Último mês · ${rot(ult.mes)}`, `Latest month · ${rot(ult.mes)}`)} value={fmt(ult.n)} sub={ult.varHom != null ? t(`${ult.varHom >= 0 ? '+' : ''}${ult.varHom.toLocaleString('pt-PT')}% face ao ano anterior`, `${ult.varHom >= 0 ? '+' : ''}${ult.varHom.toLocaleString('en-GB')}% year on year`) : ''} color={C.accent} />
         <KPI label={t('Últimos 12 meses', 'Last 12 months')} value={`${(ult12 / 1e6).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 2 })} M`} sub={t('passageiros desembarcados', 'passengers landed')} color={C.positive} />
         <KPI label={t('Mês com mais movimento', 'Busiest month')} value={rot(pico.mes)} sub={`${fmt(pico.n)} ${t('passageiros', 'passengers')}`} color={C.orange} />
-        {comAmbos.length > 0 && <KPI label={t('Aeroporto e Braga em sintonia', 'Airport and Braga in step')} value={`${acordo} ${t('de', 'of')} ${comAmbos.length}`} sub={t(`meses em que os passageiros no Porto e as dormidas em Braga subiram ou desceram ao mesmo tempo (${Math.round((acordo / comAmbos.length) * 100)}%)`, `months in which Porto passengers and Braga overnight stays rose or fell together (${Math.round((acordo / comAmbos.length) * 100)}%)`)} color={C.purple} />}
+        {comAmbos.length > 0 && <KPI label={t('Meses em que aeroporto e dormidas em Braga variaram no mesmo sentido', 'Months in which the airport and Braga stays moved the same way')} value={`${acordo} ${t('de', 'of')} ${comAmbos.length}`} sub={t('face ao mesmo mês do ano anterior; o aeroporto cresceu em quase todos os meses, por isso isto não mede uma relação de causa', 'vs the same month a year earlier; the airport grew in almost every month, so this does not measure a causal link')} color={C.purple} />}
       </div>
       <Card title={t('Passageiros desembarcados por mês (milhares) · últimos 3 anos', 'Passengers landed per month (thousands) · last 3 years')}>
         <ResponsiveContainer width="100%" height={300}>
@@ -44,13 +44,13 @@ export default function Aeroporto() {
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} interval={2} />
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
-            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '-' : `${String(v).replace('.', ',')}%`, n]} />
+            <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '—' : `${String(v).replace('.', ',')}%`, n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Line type="monotone" dataKey="aeroporto" name={t('Aeroporto do Porto', 'Porto airport')} stroke={C.accent} strokeWidth={2} dot={false} connectNulls />
             <Line type="monotone" dataKey="braga" name={t('Dormidas em Braga', 'Braga overnight stays')} stroke={C.orange} strokeWidth={2} dot={false} connectNulls />
           </LineChart>
         </ResponsiveContainer>
-        <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t('Quando as duas linhas andam juntas, o aeroporto serve de sinal antecipado: os dados do aeroporto saem antes das dormidas do INE. Este ficheiro traz só o total de passageiros; o país de origem do voo não está incluído.', 'When both lines move together, the airport works as an early signal: airport data is released before INE overnight stays. This file only has total passengers; the flight’s country of origin is not included.')}</div>
+        <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t('As duas séries comparam o mesmo mês; não demonstram que o aeroporto antecipe as dormidas em Braga. Este ficheiro traz só o total de passageiros; o país de origem do voo não está incluído.', 'Both series compare the same month; they do not show that the airport anticipates Braga’s overnight stays. This file only has total passengers; the flight’s country of origin is not included.')}</div>
       </Card>
     </>
   );

@@ -268,7 +268,7 @@ function LinhaMatriz({ l, anos }: { l: LinhaFeira; anos: number[] }) {
   );
 }
 function CelulaMatriz({ ano, lista, varia }: { ano: number; lista?: Evento[]; varia: boolean }) {
-  if (!lista || !lista.length) return <td data-l={ano} className="vazia"><span aria-label={t('sem participação', 'no participation')}>-</span></td>;
+  if (!lista || !lista.length) return <td data-l={ano} className="vazia"><span aria-label={t('sem participação', 'no participation')}>—</span></td>;
   const e = lista[0];
   return (
     <td data-l={ano} className={futuro(e) ? 'prevista' : 'feita'}>
@@ -482,8 +482,8 @@ function SinteseAnual() {
         </div>
       </div>
       <div key={`l-${ano}`} className="bm-sa-listas">
-        <div><h4 className="bm-sa-h">{t('Feiras', 'Trade fairs')} <span>{feiras.length}</span></h4>{feiras.length ? <ul className="bm-le-l-ul">{feiras.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} />)}</ul> : <p className="bm-sa-vazio">-</p>}</div>
-        <div><h4 className="bm-sa-h">{t('Projetos e ações', 'Projects and actions')} <span>{projetos.length}</span></h4>{projetos.length ? <ul className="bm-le-l-ul">{projetos.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} comTipo />)}</ul> : <p className="bm-sa-vazio">-</p>}</div>
+        <div><h4 className="bm-sa-h">{t('Feiras', 'Trade fairs')} <span>{feiras.length}</span></h4>{feiras.length ? <ul className="bm-le-l-ul">{feiras.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} />)}</ul> : <p className="bm-sa-vazio">—</p>}</div>
+        <div><h4 className="bm-sa-h">{t('Projetos e ações', 'Projects and actions')} <span>{projetos.length}</span></h4>{projetos.length ? <ul className="bm-le-l-ul">{projetos.map((e, i) => <LinhaEvento key={`${e.ini}-${i}`} e={e} comTipo />)}</ul> : <p className="bm-sa-vazio">—</p>}</div>
       </div>
     </div>
   );
@@ -616,7 +616,7 @@ export default function BragaMundo() {
         <div className="bm-hero-in">
           <div className="bm-kicker">{t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}</div>
           <h1 className="bm-h1">{t('Internacionalização', 'Internationalisation')}</h1>
-          <p className="bm-sub">{t('Participação em feiras de turismo, projetos de cooperação europeia e distinções do destino, de 2023 a 2026.', 'Participation in tourism fairs, European cooperation projects and destination distinctions, from 2023 to 2026.')}</p>
+          <p className="bm-sub">{t('Participação em feiras de turismo, projetos de cooperação europeia e distinções do destino, de 2023 a 2027.', 'Participation in tourism fairs, European cooperation projects and destination distinctions, from 2023 to 2027.')}</p>
           <div className="bm-nums">
             <div className="bm-num"><div className="bm-num-v"><Contador valor={contarTipos(['vencedora'])} /></div><div className="bm-num-r">{t('títulos internacionais', 'international titles')}</div></div>
             <div className="bm-num"><div className="bm-num-v"><Contador valor={feitas.length} /></div><div className="bm-num-r">{t('participações em feiras', 'trade fair participations')}</div></div>
@@ -635,7 +635,7 @@ export default function BragaMundo() {
           <ul className="bm-dcs">{principais.map((d) => <CartaoDistincao key={d.titulo.pt} d={d} />)}</ul>
           <h3 className="bm-sub-h">{t('Candidaturas finalistas', 'Finalist bids')}</h3>
           <ul className="bm-dcs pequenos">{finalistas.map((d) => <CartaoDistincao key={d.titulo.pt} d={d} pequeno />)}</ul>
-          <p className="bm-nota">{t('Só constam distinções confirmadas em fontes públicas, com a ligação para cada uma. Finalistas e nomeações não são apresentados como vitórias, e as distinções de monumentos ou praias estão identificadas como tal.', 'Only distinctions confirmed in public sources are listed, each with its link. Finalists and nominations are not presented as wins, and distinctions of monuments or beaches are labelled as such.')}</p>
+          <p className="bm-nota">{t('Só constam distinções confirmadas em fontes públicas (com a ligação) ou em documentos do Município (certificados e lista de distinções). Finalistas e nomeações não são apresentados como vitórias, e as distinções de monumentos ou praias estão identificadas como tal.', 'Only distinctions confirmed in public sources (with their link) or in Municipality documents (certificates and list of distinctions) are listed. Finalists and nominations are not presented as wins, and distinctions of monuments or beaches are labelled as such.')}</p>
         </Capitulo>
 
         <Capitulo id="bm-anos" kicker="02" titulo={t('Síntese anual', 'Annual summary')} resumo={t('Distinções, feiras e projetos de cada ano. Escolha o ano.', 'Distinctions, fairs and projects for each year. Choose the year.')}>

@@ -5,7 +5,7 @@ import { t } from '@/app/lib/i18n';
 import { BILHETEIRA, BILHETEIRA_FONTE } from '@/app/lib/bilheteira-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// ═══ Cultura: bilheteira do Theatro Circo, gnration e BMA (FazCultura) - só leitura ═══
+// ═══ Cultura: bilheteira do Theatro Circo, gnration e BMA (FazCultura) — só leitura ═══
 export default function Cultura() {
   const ents = ['theatro circo', 'gnration', 'bma'].filter((k) => BILHETEIRA[k]);
   const CORES_E: Record<string, string> = { 'theatro circo': C.accent, gnration: C.positive, bma: C.orange };
@@ -29,7 +29,7 @@ export default function Cultura() {
       <SectionTitle sub={BILHETEIRA_FONTE}>{tc25 ? t(`Theatro Circo: ${fmt(tc26)} bilhetes de janeiro a abril de 2026 (${tc26 >= tc25 ? '+' : ''}${(((tc26 - tc25) / tc25) * 100).toLocaleString('pt-PT', { maximumFractionDigits: 1 })}% face a 2025)`, `Theatro Circo: ${fmt(tc26)} tickets from January to April 2026 (${tc26 >= tc25 ? '+' : ''}${(((tc26 - tc25) / tc25) * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}% vs 2025)`) : t('Bilheteira cultural', 'Cultural box office')}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
         {resumo.map((r) => (
-          <KPI key={r.k} label={`${r.nome} · ${t('jan 2025 a abr 2026', 'Jan 2025 to Apr 2026')}`} value={fmt(r.bil)} color={CORES_E[r.k]}
+          <KPI key={r.k} label={`${r.nome} · ${r.k === 'bma' ? t('jan 2025 a fev 2026 (sem registos em ago 25, mar e abr 26)', 'Jan 2025 to Feb 2026 (no records Aug 25, Mar and Apr 26)') : t('jan 2025 a abr 2026', 'Jan 2025 to Apr 2026')}`} value={fmt(r.bil)} color={CORES_E[r.k]}
             sub={t(`bilhetes · ${fmt(r.ses)} sessões · ${eur(r.rec)}${r.ocup != null ? ` · ocupação ${r.ocup.toLocaleString('pt-PT', { maximumFractionDigits: 0 })}% (2026)` : ''}`, `tickets · ${fmt(r.ses)} sessions · ${eur(r.rec)}${r.ocup != null ? ` · occupancy ${r.ocup.toLocaleString('en-GB', { maximumFractionDigits: 0 })}% (2026)` : ''}`)} />
         ))}
       </div>

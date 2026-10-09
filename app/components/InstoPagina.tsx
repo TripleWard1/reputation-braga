@@ -44,7 +44,7 @@ export default function InstoPagina({ irPara }: { irPara: (id: string) => void }
           <div className="ip-txt">
             <div className="ip-kicker">{t('ONU Turismo · INSTO', 'UN Tourism · INSTO')}</div>
             <h1>{t('Rede INSTO', 'INSTO network')}</h1>
-            <p>{t('A rede internacional de observatórios de turismo sustentável da ONU Turismo exige que cada destino monitorize 11 áreas. Braga já as mede todas, nesta plataforma.', 'UN Tourism’s international network of sustainable tourism observatories requires each destination to monitor 11 areas. Braga already measures all of them, on this platform.')}</p>
+            <p>{t('A rede internacional de observatórios de turismo sustentável da ONU Turismo exige que cada destino monitorize 11 áreas. Braga já tem indicadores nas 11 áreas nesta plataforma; algumas ainda são parciais (ver o estado de cada área).', 'UN Tourism’s international network of sustainable tourism observatories requires each destination to monitor 11 areas. Braga already has indicators for all 11 areas on this platform; some are still partial (see each area’s status).')}</p>
             <button type="button" className="ip-rel" onClick={() => gerarRelatorioInsto()}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M12 18v-6M9 15l3 3 3-3" /></svg>
               {t('Gerar Relatório Anual INSTO (PDF)', 'Generate INSTO Annual Report (PDF)')}

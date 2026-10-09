@@ -8,7 +8,7 @@ import { HOTELARIA } from '@/app/lib/hotelaria-dados';
 import { SETOR_SUSTENTAVEL } from '@/app/lib/setor-sustentavel-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// ═══ Hotelaria (oferta do visitbraga.travel) - só leitura ═══
+// ═══ Hotelaria (oferta do visitbraga.travel) — só leitura ═══
 export default function Hotelaria() {
   const Hh = HOTELARIA;
   const todos: any[] = [...Hh.hoteis.map((x: any) => ({ ...x, tipo: t('Hotel', 'Hotel') })), ...Hh.outros.map((x: any) => ({ ...x, tipo: t('Aparthotel / rural', 'Aparthotel / rural') }))];
@@ -24,11 +24,11 @@ export default function Hotelaria() {
   const capCert = cert.reduce((a, x) => a + x.capacidade, 0);
   return (
     <>
-      <SectionTitle sub={Hh.fonte}>{t(`Só ${String(pctAd.toFixed(1)).replace('.', ',')}% dos quartos de hotel estão adaptados a mobilidade reduzida`, `Only ${pctAd.toFixed(1)}% of hotel rooms are adapted for reduced mobility`)}</SectionTitle>
+      <SectionTitle sub={Hh.fonte}>{t(`Só ${String(pctAd.toFixed(1)).replace('.', ',')}% das unidades de alojamento dos ${todos.length} estabelecimentos listados estão adaptadas a mobilidade reduzida`, `Only ${pctAd.toFixed(1)}% of the units in the ${todos.length} listed establishments are adapted for reduced mobility`)}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
         <KPI label={t('Estabelecimentos', 'Establishments')} value={String(todos.length)} sub={t(`${Hh.hoteis.length} hotéis · ${Hh.outros.length} aparthotéis e rurais`, `${Hh.hoteis.length} hotels · ${Hh.outros.length} aparthotels and rural`)} color={C.accent} />
         <KPI label={t('Capacidade', 'Capacity')} value={fmt(cap)} sub={t(`${fmt(uni)} quartos / unidades`, `${fmt(uni)} rooms / units`)} color={C.purple} />
-        <KPI label={t('Quartos adaptados', 'Adapted rooms')} value={String(ad)} sub={t(`${String(pctAd.toFixed(1)).replace('.', ',')}% do total`, `${pctAd.toFixed(1)}% of the total`)} color={C.orange} />
+        <KPI label={t('Unidades adaptadas', 'Adapted units')} value={String(ad)} sub={t(`${String(pctAd.toFixed(1)).replace('.', ',')}% do total`, `${pctAd.toFixed(1)}% of the total`)} color={C.orange} />
         <KPI label={t('Sem nenhum quarto adaptado', 'No adapted room')} value={String(semAd.length)} sub={t(`de ${todos.length} estabelecimentos`, `of ${todos.length} establishments`)} color={C.negative} />
         <KPI label={t('Com certificação ambiental', 'With environmental certification')} value={`${cert.length}`} sub={t(`${Math.round((capCert / Math.max(1, cap)) * 100)}% da capacidade · Green Key`, `${Math.round((capCert / Math.max(1, cap)) * 100)}% of capacity · Green Key`)} color={C.positive} />
         {alCap > 0 && <KPI label={t('Alojamento Local ativo (comparação)', 'Active short-term rentals (comparison)')} value={fmt(alCap)} sub={t(`camas: ${alCap > cap ? 'acima' : 'abaixo'} dos ${fmt(cap)} lugares da hotelaria`, `beds: ${alCap > cap ? 'above' : 'below'} the ${fmt(cap)} hotel places`)} color={C.cyan} />}
@@ -48,7 +48,7 @@ export default function Hotelaria() {
         <Card title={t('Leitura', 'Reading')}>
           {[
             t(`${semAd.length} estabelecimentos não têm nenhum quarto adaptado, incluindo ${semAd.filter((x) => x.estrelas >= 4).length} de 4 ou 5 estrelas.`, `${semAd.length} establishments have no adapted room, including ${semAd.filter((x) => x.estrelas >= 4).length} with 4 or 5 stars.`),
-            t(`O Meliá (5 ★) tem ${Hh.hoteis[0].unidades} quartos e ${Hh.hoteis[0].adaptadas} adaptados; o B&B Lamaçães é o hotel com mais quartos adaptados (4).`, `The Meliá (5 ★) has ${Hh.hoteis[0].unidades} rooms and ${Hh.hoteis[0].adaptadas} adapted; B&B Lamaçães has the most adapted rooms among hotels (4).`),
+            t(`O Meliá (5 ★) tem ${Hh.hoteis[0].unidades} quartos e ${Hh.hoteis[0].adaptadas} adaptados; o B&B Lamaçães é o hotel com mais quartos adaptados (4); a Quinta de Chousas (turismo rural) tem as 5 unidades adaptadas.`, `The Meliá (5 ★) has ${Hh.hoteis[0].unidades} rooms and ${Hh.hoteis[0].adaptadas} adapted; B&B Lamaçães has the most adapted rooms among hotels (4); Quinta de Chousas (rural tourism) has all 5 units adapted.`),
             alCap > 0 ? t(`O Alojamento Local ativo tem ${fmt(alCap)} camas, ${alCap > cap ? 'mais' : 'menos'} do que os ${fmt(cap)} lugares destes estabelecimentos (base municipal da taxa turística).`, `Active short-term rentals have ${fmt(alCap)} beds, ${alCap > cap ? 'more' : 'fewer'} than the ${fmt(cap)} places in these establishments (municipal tourist tax database).`) : '',
             (() => { const top5 = [...todos].sort((a, b) => b.unidades - a.unidades).slice(0, 5).reduce((a, x) => a + x.unidades, 0); const p5 = Math.round((top5 / Math.max(1, uni)) * 100); return t(`Para congressos e grupos grandes: os cinco maiores estabelecimentos concentram ${p5}% dos quartos.`, `For conferences and large groups: the five largest establishments hold ${p5}% of rooms.`); })(),
           ].filter(Boolean).map((x, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr)', gap: 6, fontSize: 13.5, color: C.textMuted, lineHeight: 1.55, padding: '6px 0', borderTop: i ? `1px solid ${C.border}` : 'none' }}><span style={{ color: C.accent, fontWeight: 700 }}>{i + 1}</span>{x}</div>)}
@@ -65,11 +65,11 @@ export default function Hotelaria() {
             <tbody>{lista.map((x) => (
               <tr key={x.nome} style={{ borderTop: `1px solid ${C.border}` }}>
                 <td style={{ padding: '9px 6px', color: C.text, fontWeight: 600 }}>{x.nome}<div style={{ fontSize: 11.5, color: C.textDim, fontWeight: 400 }}>{x.tipo}</div></td>
-                <td data-l={t('Categoria', 'Category')} style={{ padding: '9px 6px', color: '#F2C14E', whiteSpace: 'nowrap' }}>{x.estrelas ? '★'.repeat(x.estrelas) : <span style={{ color: C.textDim }}>-</span>}</td>
+                <td data-l={t('Categoria', 'Category')} style={{ padding: '9px 6px', color: '#F2C14E', whiteSpace: 'nowrap' }}>{x.estrelas ? '★'.repeat(x.estrelas) : <span style={{ color: C.textDim }}>—</span>}</td>
                 <td data-l={t('Capacidade', 'Capacity')} style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{fmt(x.capacidade)}</td>
                 <td data-l={t('Quartos', 'Rooms')} style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{fmt(x.unidades)}</td>
                 <td data-l={t('Adaptados', 'Adapted')} style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 700, color: x.adaptadas === 0 ? C.negative : C.positive }}>{x.adaptadas}</td>
-                <td data-l={t('Certificação ambiental', 'Environmental certification')} style={{ padding: '9px 6px' }}>{seloDe(x.nome) ? <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 9px', borderRadius: 999, color: C.positive, border: `1px solid ${C.positive}66`, background: C.positiveBg, whiteSpace: 'nowrap' }}>{seloDe(x.nome)}</span> : <span style={{ color: C.textDim }}>-</span>}</td>
+                <td data-l={t('Certificação ambiental', 'Environmental certification')} style={{ padding: '9px 6px' }}>{seloDe(x.nome) ? <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 9px', borderRadius: 999, color: C.positive, border: `1px solid ${C.positive}66`, background: C.positiveBg, whiteSpace: 'nowrap' }}>{seloDe(x.nome)}</span> : <span style={{ color: C.textDim }}>—</span>}</td>
               </tr>
             ))}</tbody>
           </table>

@@ -99,7 +99,7 @@ export default function Meteorologia() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <SectionTitle sub={`${t('Atendimentos do balcão × meteorologia ·', 'Front desk visits × weather ·')} ${BALCAO_DIARIO.length} ${t('dias', 'days')}`}>{t('Meteorologia e Afluência', 'Weather and Footfall')}</SectionTitle>
+      <SectionTitle sub={`${t('Atendimentos do balcão × meteorologia ·', 'Front desk visits × weather ·')} ${BALCAO_DIARIO.length} ${t('dias', 'days')} · ${BALCAO_DIARIO_INICIO.split('-').reverse().join('/')} ${t('a', 'to')} ${BALCAO_DIARIO_FIM.split('-').reverse().join('/')}`}>{t('Meteorologia e Afluência', 'Weather and Footfall')}</SectionTitle>
 
       <div style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 12, padding: '16px 18px' }}>
         <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 600, marginBottom: 6 }}>{t('Leitura exploratória', 'Exploratory reading')}</div>
