@@ -9157,5 +9157,33 @@ export const PARES_ES: [string, string][] = [
 [
 "{0} no mesmo período de {1} · {2} em {3}",
 "{0} en el mismo periodo de {1} · {2} en {3}"
+],
+[
+"Braga teve {0} dormidas em 2025 ({1}{2}%) e os locais monitorizados têm média de {3} estrelas",
+"Braga tuvo {0} pernoctaciones en 2025 ({1}{2} %) y los lugares monitorizados tienen una media de {3} estrellas"
+],
+[
+"Estada média de {0} noites (janeiro a {1} de {2}) · ",
+"Estancia media de {0} noches (enero a {1} de {2}) · "
+],
+[
+"indicadores nas 11 áreas da Rede INSTO",
+"indicadores en las 11 áreas de la Red INSTO"
+],
+[
+". Fontes: INE (provisório) e avaliações do Google Maps dos últimos 3 anos.",
+". Fuentes: INE (provisional) y valoraciones de Google Maps de los últimos 3 años."
+],
+[
+" · 1 local mudou no último trimestre",
+" · 1 lugar cambió en el último trimestre"
+],
+[
+" · {0} locais mudaram no último trimestre",
+" · {0} lugares cambiaron en el último trimestre"
+],
+[
+"Visão geral do destino",
+"Visión general del destino"
 ]
 ];

@@ -1,7 +1,7 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REPUTAÇÃO - Visão Geral, lista de Locais e Ficha do local
+// REPUTAÇÃO — Visão Geral, lista de Locais e Ficha do local
 // Segue o mockup aprovado (versão escura). Na impressão/PDF usa a versão clara.
 // Todos os números vêm de app/lib/temas.ts → numeros() (fonte única).
 // ═══════════════════════════════════════════════════════════════════════════
@@ -12,11 +12,12 @@ import { doc, getDoc, setDoc, getDocs, collection, deleteDoc } from 'firebase/fi
 import { db } from '../firebase';
 import { useAdmin } from './modo';
 import { descarregarDados, type Linha } from '@/app/lib/exportar-dados';
-import { t } from '@/app/lib/i18n';
+import { t, getLang } from '@/app/lib/i18n';
 import { dispAnalysis } from '@/app/lib/ai-translate';
 import { limparFotoBraga } from '@/app/lib/foto-braga';
 import { windowStats, langName, cutoffDate, loadWindowReviews, parseReviewFile, groupByPlace, buildStats, type StoredReview, type ReviewStats } from '@/app/lib/reviews';
-import { SEMESTRE_2026, BALCAO, DORMIDAS_BRAGA, DORMIDAS_PORTUGAL, MESES } from '@/app/lib/observatorio-dados';
+import { SEMESTRE_2026, BALCAO, DORMIDAS_BRAGA, DORMIDAS_PORTUGAL, MESES, HEADLINE } from '@/app/lib/observatorio-dados';
+import { estadaRecente } from '@/app/lib/estada-media';
 import { BILHETEIRA, BILHETEIRA_FONTE, type Bilheteira } from '@/app/lib/bilheteira-dados';
 import { UNESCO_BOM_JESUS } from '@/app/lib/unesco-bom-jesus';
 import { exportarFichaLocal, type DadosFicha, type TemaPdf, type ProblemaPdf, type CriticaPdf, type MercadoPdf } from '@/app/lib/ficha-local-pdf';
@@ -262,8 +263,9 @@ const ESTILO = `
 .rb-hero-top { position: absolute; top: 24px; left: 48px; right: 48px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
 .rb-hero-h1 { font-size: clamp(34px, 5vw, 58px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.04; margin: 12px 0 14px; text-shadow: 0 2px 24px rgba(0,0,0,.35); }
 .rb-row:hover .rb-th img { transform: scale(1.08); }
-.rb-vg-logo { position: absolute; top: 96px; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
-.rb-vg-logo img { width: clamp(240px, 34vw, 480px); height: auto; display: block; filter: drop-shadow(0 4px 18px rgba(0,0,0,.25)); }
+/* O logo fica no fluxo, por cima do título: nunca se sobrepõe ao texto, seja qual for o tamanho do título. */
+.rb-vg-logo { position: relative; display: flex; justify-content: center; margin: 0 0 30px; pointer-events: none; }
+.rb-vg-logo img { width: clamp(220px, 26vw, 400px); height: auto; display: block; filter: drop-shadow(0 4px 18px rgba(0,0,0,.25)); }
 @media (max-width: 900px) { .rb-vg-logo { position: relative; top: auto; margin: 4px 0 22px; } .rb-vg-logo img { width: 220px; } }
 @media print { .rb-vg-logo { display: none; } }
 .rb-vg-placa { display: none; }
@@ -357,7 +359,7 @@ function Faixa({ x, a }: { x: Numeros | null; a?: any }) {
     <div className="rb-strip rb-rise">
       <div>
         <div className="rb-lab">{t('Índice de reputação', 'Reputation index')}</div>
-        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>-</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
+        {insuf ? <div className="rb-big" style={{ color: 'var(--rb-text2)' }}>—</div> : <div className="rb-big"><Conta v={x.idx} d={1} /><small>/10</small></div>}
         <div className="rb-sub">{insuf ? t(`Dados insuficientes · menos de ${MIN_ROBUSTO} avaliações`, `Insufficient data · fewer than ${MIN_ROBUSTO} reviews`) : `${x.robustez === 'alta' ? t('Robustez alta', 'High robustness') : t('Robustez média', 'Medium robustness')} · ${fmt(x.textN)} ${t('com texto', 'with text')}`}{x.basis === 'ia' ? ` · ${t('estimado pela IA', 'AI estimate')}` : ''}</div>
       </div>
       <div>
@@ -415,7 +417,7 @@ function DadosGrafico({ titulo, linhas }: { titulo: string; linhas: Linha[] }) {
       <table className="rb-sr">
         <caption>{titulo}</caption>
         <thead><tr>{cab.map((c) => <th key={c} scope="col">{c}</th>)}</tr></thead>
-        <tbody>{linhas.map((r, i) => <tr key={i}>{cab.map((c) => <td key={c}>{r[c] == null ? '-' : String(r[c])}</td>)}</tr>)}</tbody>
+        <tbody>{linhas.map((r, i) => <tr key={i}>{cab.map((c) => <td key={c}>{r[c] == null ? '—' : String(r[c])}</td>)}</tr>)}</tbody>
       </table>
     </>
   );
@@ -614,7 +616,7 @@ function MercadosDetalhe({ lista }: { lista: Mercado[] }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr)', gap: '8px 12px', marginTop: 10, alignItems: 'start' }}>
             <span style={{ fontSize: 13, color: 'var(--rb-good)', fontWeight: 700, paddingTop: 3 }}>{t('Valoriza', 'Values')}</span>
-            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>-</span>}</div>
+            <div>{m.elogia.length ? m.elogia.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-good)', 'var(--rb-good-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>—</span>}</div>
             <span style={{ fontSize: 13, color: 'var(--rb-bad)', fontWeight: 700, paddingTop: 3 }}>{t('Critica', 'Criticises')}</span>
             <div>{m.critica.length ? m.critica.map((z) => chip(`${temaNome(z.id)} · ${fmt(z.pct, 0)}%`, 'var(--rb-bad)', 'var(--rb-bad-bg)')) : <span className="rb-sub" style={{ marginTop: 0 }}>{t('sem críticas relevantes', 'no relevant criticism')}</span>}</div>
           </div>
@@ -673,7 +675,7 @@ function AfluenciaMapa({ a }: { a: Afluencia }) {
 
 
 
-// ─── PATRIMÓNIO MUNDIAL (só no Bom Jesus) - informação técnica, sem história ─────
+// ─── PATRIMÓNIO MUNDIAL (só no Bom Jesus) — informação técnica, sem história ─────
 const eBomJesus = (nome: string) => /bom jesus/i.test(nome);
 function LogoUnesco({ tam = 56 }: { tam?: number }) {
   return (
@@ -974,7 +976,7 @@ function dadosFichaPdf(e: EntradaPdf): DadosFicha {
   const temasE = e.temas;
   const insuf = !x || x.robustez === 'insuficiente';
   const kp = x ? [
-    { rotulo: t('Índice de reputação', 'Reputation index'), valor: insuf ? '-' : `${fmt(x.idx, 1)}/10`, nota: insuf ? t(`menos de ${MIN_ROBUSTO} avaliações`, `fewer than ${MIN_ROBUSTO} reviews`) : `${x.robustez === 'alta' ? t('Robustez alta', 'High robustness') : t('Robustez média', 'Medium robustness')} · ${fmt(x.textN)} ${t('com texto', 'with text')}` },
+    { rotulo: t('Índice de reputação', 'Reputation index'), valor: insuf ? '—' : `${fmt(x.idx, 1)}/10`, nota: insuf ? t(`menos de ${MIN_ROBUSTO} avaliações`, `fewer than ${MIN_ROBUSTO} reviews`) : `${x.robustez === 'alta' ? t('Robustez alta', 'High robustness') : t('Robustez média', 'Medium robustness')} · ${fmt(x.textN)} ${t('com texto', 'with text')}` },
     { rotulo: t('Média Google', 'Google average'), valor: `${fmt(x.avg, 2)} ★`, nota: t('em 5 estrelas · Google Maps', 'out of 5 stars · Google Maps') },
     { rotulo: t('Comentários', 'Reviews'), valor: fmt(x.n), nota: x.from ? `${t('últimos 3 anos', 'last 3 years')} · ${mesAno(x.from)} – ${mesAno(x.to)}` : '' },
     { rotulo: t('Positivos · negativos', 'Positive · negative'), valor: `${fmt(x.pos, 1)}% · ${fmt(x.neg, 1)}%`, nota: t('positivos 4–5★ · negativos 1–2★', 'positive 4–5★ · negative 1–2★'), cor: '#2E7D4F' },
@@ -1327,7 +1329,7 @@ export function FichaLocal(props: {
                     <span style={{ color: col.cor, fontWeight: 700, fontSize: 16, lineHeight: 1.4, flexShrink: 0 }}>{col.sinal}</span>
                     <span style={{ fontSize: 15, lineHeight: 1.55 }}>{p}</span>
                   </div>
-                )) : <p className="rb-sub">-</p>}
+                )) : <p className="rb-sub">—</p>}
                 {col.cit.length > 0 && (
                   <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--rb-line)' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--rb-text2)' }}>{t('Nas palavras dos visitantes', 'In visitors’ own words')}</div>
@@ -1344,7 +1346,7 @@ export function FichaLocal(props: {
           </section>
         )}
 
-        {/* Problemas por período - detalhe da leitura + números dos temas */}
+        {/* Problemas por período — detalhe da leitura + números dos temas */}
         {a && (() => {
           const per = v2?.periodos
             ? { recentes: (v2.periodos.recentes || []) as { problema: string; detalhe: string; estado: string }[], anteriores: (v2.periodos.anteriores || []) as { problema: string; detalhe: string; estado: string }[] }
@@ -1550,7 +1552,7 @@ export function FichaLocal(props: {
           </div>
         </section>
 
-        {/* 10. Sugestões (indicativas - o Município não gere o local) */}
+        {/* 10. Sugestões (indicativas — o Município não gere o local) */}
         <section id="rb-recomendacoes" className="rb-sec">
           <Titulo h={t('O que os comentários sugerem', 'What the reviews suggest')} cap={t('Possíveis melhorias identificadas pela IA a partir dos comentários dos visitantes · a título indicativo', 'Possible improvements identified by AI from visitor reviews · for guidance only')} />
           {recs.length ? (
@@ -1662,9 +1664,9 @@ export function LocaisLista(props: {
               return (
                 <tr key={o.l.id} className="rb-row" onClick={() => props.onOpen(o.l.id)}>
                   <td><div style={{ display: 'flex', gap: 16, alignItems: 'center' }}><Miniatura src={mini[o.l.id]} /><div><div style={{ fontWeight: 700 }}>{o.l.name}</div><div style={{ fontSize: 13, color: 'var(--rb-text2)' }}>{props.catLabel(o.l.category)}{props.analyzing === o.l.id ? ` · ${t('a analisar…', 'analysing…')}` : ''}</div><div className="rb-only-m" style={{ fontSize: 13, marginTop: 4, lineHeight: 1.4 }}>{situacao(o)}</div></div></div></td>
-                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>-</span> : fmt(o.x!.idx, 1)}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '-'}</td>
-                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '-'}</td>
+                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>—</span> : fmt(o.x!.idx, 1)}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '—'}</td>
+                  <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '—'}</td>
                   <td className="rb-hide-m" style={{ paddingLeft: 24, fontSize: 14 }}>{situacao(o)}</td>
                 </tr>
               );
@@ -1678,7 +1680,7 @@ export function LocaisLista(props: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VISÃO GERAL - o destino num relance (sem rankings)
+// VISÃO GERAL — o destino num relance (sem rankings)
 // ═══════════════════════════════════════════════════════════════════════════
 const MES_LONGO_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const MES_LONGO_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -1718,7 +1720,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
 
   const topoFoto = (
     <div className="rb-hero-top rb-vg-top">
-      <div style={{ fontSize: 14, color: 'var(--rb-text2)' }}>{t('Reputação · Visão geral', 'Reputation · Overview')}</div>
+      <div style={{ fontSize: 14, color: 'var(--rb-text2)' }}>{t('Visão geral do destino', 'Destination overview')}</div>
       <div className="rb-vg-placa"><img src="/visit-braga-logo-negativo.png" alt="Visit Braga" /></div>
     </div>
   );
@@ -1745,9 +1747,15 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
   const avg = w((x) => x.avg), pos = w((x) => x.pos), neg = w((x) => x.neg);
   const totalN = dados.reduce((s, d) => s + (d.x?.n ?? 0), 0);
   const alertas = dados.filter((d) => d.al && d.x && d.x.robustez !== 'insuficiente');
-  const titulo = alertas.length
-    ? t(`Os locais monitorizados de Braga têm média de ${fmt(avg, 2)} estrelas; ${alertas.length} ${alertas.length === 1 ? 'local mudou' : 'locais mudaram'} no último trimestre`, `Braga’s monitored places average ${fmt(avg, 2)} stars; ${alertas.length} ${alertas.length === 1 ? 'place changed' : 'places changed'} last quarter`)
-    : t(`Os locais monitorizados de Braga têm média de ${fmt(avg, 2)} estrelas`, `Braga’s monitored places average ${fmt(avg, 2)} stars`);
+  // Título do destino: junta Observatório (INE), Rede INSTO e reputação, para refletir a plataforma inteira.
+  const ER = estadaRecente();
+  const dVar = HEADLINE.dormidasVar;
+  const titulo = t(`Braga teve ${fmt(HEADLINE.dormidas2025)} dormidas em 2025 (${dVar >= 0 ? '+' : ''}${fmt(dVar, 1)}%) e os locais monitorizados têm média de ${fmt(avg, 2)} estrelas`,
+    `Braga had ${fmt(HEADLINE.dormidas2025)} overnight stays in 2025 (${dVar >= 0 ? '+' : ''}${fmt(dVar, 1)}%) and its monitored places average ${fmt(avg, 2)} stars`);
+  const MES_ER = ER ? (getLang() === 'es' ? ER.mesEs : ER.mesPt) : '';
+  const partEstada = ER ? t(`Estada média de ${fmt(ER.valor, 2)} noites (janeiro a ${MES_ER} de ${ER.ano}) · `, `Average stay of ${fmt(ER.valor, 2)} nights (January to ${ER.mesEn} ${ER.ano}) · `) : '';
+  const partAlertas = alertas.length === 1 ? t(' · 1 local mudou no último trimestre', ' · 1 place changed last quarter') : alertas.length > 1 ? t(` · ${alertas.length} locais mudaram no último trimestre`, ` · ${alertas.length} places changed last quarter`) : '';
+  const subtitulo = partEstada + t('indicadores nas 11 áreas da Rede INSTO', 'indicators in all 11 INSTO network areas') + partAlertas + t('. Fontes: INE (provisório) e avaliações do Google Maps dos últimos 3 anos.', '. Sources: INE (provisional) and Google Maps reviews from the last 3 years.');
 
   // ── Evolução do destino (trimestral, ponderada) ──
   const qa: Record<string, { n: number; s: number }> = {};
@@ -1822,7 +1830,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
         <div className="rb-enter" style={{ maxWidth: 880 }}>
           <div className="rb-kicker" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>Braga</div>
           <h1 className="rb-hero-h1">{titulo}</h1>
-          <p style={{ fontSize: 15, color: 'var(--rb-text2)', lineHeight: 1.55, margin: 0, maxWidth: 680 }}>{t(`Avaliações do Google Maps nos últimos 3 anos · médias ponderadas pelo número de avaliações de cada local.`, `Google Maps reviews over the last 3 years · averages weighted by each place’s number of reviews.`)}</p>
+          <p style={{ fontSize: 15, color: 'var(--rb-text2)', lineHeight: 1.55, margin: 0, maxWidth: 680 }}>{subtitulo}</p>
         </div>
         <div className="rb-glass rb-kpis rb-enter" style={{ marginTop: 28, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', animationDelay: '220ms' }}>
           {[
@@ -1841,7 +1849,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
       </HeroFoto>
 
       <div className="rb-wrap" style={{ paddingTop: 20 }}>
-        {/* Turismo em Braga - o essencial do Observatório (mesmas contas; os dados não são alterados) */}
+        {/* Turismo em Braga — o essencial do Observatório (mesmas contas; os dados não são alterados) */}
         {(() => {
           const S: any = SEMESTRE_2026 as any;
           const H1 = (MESES as any[]).slice(0, 6);
@@ -2034,7 +2042,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SEPARADORES COMPLEMENTARES - Mapa, Comparar, Temas (Problemas) e Relatório
+// SEPARADORES COMPLEMENTARES — Mapa, Comparar, Temas (Problemas) e Relatório
 // Mesma identidade da Visão Geral e dos Locais; números da fonte única (numeros()).
 // ═══════════════════════════════════════════════════════════════════════════
 const ESTILO_EXTRA = `
@@ -2194,7 +2202,7 @@ export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => st
                   <span style={{ display: 'block', fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.l.name}</span>
                   <span style={{ display: 'block', fontSize: 12, color: d.al ? 'var(--rb-warn)' : 'var(--rb-text2)', marginTop: 2 }}>{d.al ? t('Alerta no último trimestre', 'Alert last quarter') : props.catLabel(d.l.category)}</span>
                 </span>
-                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '-'}</span>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.x && d.x.robustez !== 'insuficiente' ? fmt(d.x.idx, 1) : '—'}</span>
               </button>
             ))}
             {dados.length > comCoords.length && <div className="rb-sub" style={{ padding: '12px 14px', marginTop: 0 }}>{t(`${dados.length - comCoords.length} locais sem coordenadas (edita o local para as indicar).`, `${dados.length - comCoords.length} places without coordinates (edit the place to add them).`)}</div>}
@@ -2251,7 +2259,7 @@ function LinhasComparadas({ series, rotulo, casas = 2, zero = false }: { series:
       {hover != null && (
         <div className="rb-tip" style={{ left: `${(X(hover) / W) * 100}%`, top: 0, transform: `translate(${hover > qs.length / 2 ? '-105%' : '5%'}, 0)` }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>{lab(qs[hover])}</div>
-          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, casas) : '-'}</strong></div>; })}
+          {series.map((s) => { const z = s.q.find((y) => y.q === qs[hover]); return <div key={s.nome} style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: s.cor }} /><span style={{ color: 'var(--rb-text2)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.nome}</span><strong style={{ marginLeft: 'auto' }}>{z ? fmt(z.avg, casas) : '—'}</strong></div>; })}
         </div>
       )}
     </div>
@@ -2311,7 +2319,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: CORES_CMP[i] }}>{props.catLabel(d.l.category)}</div>
                       <button onClick={() => props.onOpen(d.l.id)} style={{ background: 'none', border: 0, padding: 0, color: 'var(--rb-text)', font: 'inherit', fontSize: 17, fontWeight: 700, textAlign: 'left', cursor: 'pointer', margin: '6px 0 14px', lineHeight: 1.3 }}>{d.l.name}</button>
                       <div className="rb-lab">{t('Índice', 'Index')}</div>
-                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>-</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
+                      <div className="rb-big">{insuf ? <span style={{ color: 'var(--rb-text2)' }}>—</span> : <><Conta v={d.x!.idx} d={1} /><small>/10</small></>}</div>
                       <div className="rb-sub">{insuf ? t('Dados insuficientes', 'Insufficient data') : ''}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--rb-line)' }}>
                         <div><div className="rb-lab">{t('Média', 'Average')}</div><div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}><Conta v={d.x!.avg} d={2} /> <span style={{ color: 'var(--rb-star)', fontSize: 16 }}>★</span></div></div>
@@ -2352,7 +2360,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                           <div style={{ height: 8, background: 'var(--rb-muted)', borderRadius: 999, overflow: 'hidden' }}>
                             {typeof v === 'number' && <div className="rb-bar" style={{ width: `${v * 10}%`, height: '100%', background: CORES_CMP[i], borderRadius: 999, transitionDelay: `${i * 90}ms` }} />}
                           </div>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '-'}</span>
+                          <span style={{ fontSize: 13.5, fontWeight: 700, textAlign: 'right' }}>{typeof v === 'number' ? fmt(v, 1) : '—'}</span>
                         </div>
                       );
                     })}
@@ -2370,7 +2378,7 @@ export function CompararView(props: { locations: LocV[]; catLabel: (c: string) =
                   <tbody>{TEMAS.map((tm) => (
                     <tr key={tm.id} style={{ cursor: 'default' }}>
                       <td className="rb-fixa" style={{ fontWeight: 600 }}>{temaNome(tm.id)}</td>
-                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>-</span>}</td>; })}
+                      {escolhidos.map((d) => { const z = temasDe(d).find((y) => y.id === tm.id); return <td key={d.l.id}>{z && z.estado ? <Tag e={z.estado} /> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>; })}
                     </tr>
                   ))}</tbody>
                 </table>
@@ -2449,8 +2457,8 @@ export function TemasView(props: { locations: LocV[]; catLabel: (c: string) => s
                 <div className="rb-rise" style={{ marginTop: 16, background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '18px 22px' }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{temaNome(foco)}</div>
                   <div style={{ fontSize: 14, color: 'var(--rb-text2)', marginTop: 8, lineHeight: 1.6 }}>
-                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '-'}<br />
-                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '-'}
+                    <strong style={{ color: 'var(--rb-warn)' }}>{t('Problema em: ', 'Issue at: ')}</strong>{z.prob.length ? z.prob.join(' · ') : '—'}<br />
+                    <strong style={{ color: 'var(--rb-good)' }}>{t('Ponto forte em: ', 'Strength at: ')}</strong>{z.forte.length ? z.forte.join(' · ') : '—'}
                   </div>
                 </div>
               ); })()}
@@ -2580,7 +2588,7 @@ export function RelatorioView(props: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MERCADOS - procura (INE, balcão) × voz e satisfação (comentários)
+// MERCADOS — procura (INE, balcão) × voz e satisfação (comentários)
 // Só LÊ os dados do Observatório; não os altera.
 // ═══════════════════════════════════════════════════════════════════════════
 const LINGUA_PAIS: Record<string, string> = {
@@ -2671,9 +2679,9 @@ export function MercadosView(props: { locations: LocV[] }) {
                 <tr key={z.lg} className="rb-row" onClick={() => setSel(z.lg)} style={lgSel === z.lg ? { background: 'var(--rb-accent-bg)' } : undefined}>
                   <td><strong>{nomeLingua(z.lg)}</strong><div style={{ fontSize: 12, color: 'var(--rb-text2)', marginTop: 2 }}>{z.lg === 'pt' ? t(`Brasil e outros lusófonos (sem residentes em Portugal)${z.porPais.length ? ' · ' + z.porPais.map(([p2, v2]) => `${p2} ${fmt(totDorm ? (v2 / totDorm) * 100 : 0, 1)}%`).join(' · ') : ''}`, 'Brazil and other Portuguese-speaking countries (excl. residents in Portugal)') : z.porPais.length ? z.porPais.sort((a2, b2) => b2[1] - a2[1]).slice(0, 4).map(([p2, v2]) => `${p2} ${fmt(totDorm ? (v2 / totDorm) * 100 : 0, 1)}%`).join(' · ') : t('sem dormidas no top do INE', 'not in INE top markets')}</div></td>
                   <td data-label={t('Dormidas de estrangeiros · jan–jun 2026', 'Foreign stays · Jan–Jun 2026')}>{barra(z.pd, '#8AB0E6')}</td>
-                  <td data-label={t('Comentários em línguas estrangeiras', 'Reviews in foreign languages')}>{z.pr >= 0 ? barra(z.pr, '#7CC79A') : <span style={{ fontSize: 12.5, color: 'var(--rb-text2)' }}>{t('- (junta residentes em Portugal e brasileiros)', '- (mixes Portuguese residents and Brazilians)')}</span>}</td>
+                  <td data-label={t('Comentários em línguas estrangeiras', 'Reviews in foreign languages')}>{z.pr >= 0 ? barra(z.pr, '#7CC79A') : <span style={{ fontSize: 12.5, color: 'var(--rb-text2)' }}>{t('— (junta residentes em Portugal e brasileiros)', '— (mixes Portuguese residents and Brazilians)')}</span>}</td>
                   <td data-label={t('Atendimentos a estrangeiros no Posto', 'Foreign visitors at the Tourist Office')}>{barra(z.pb, '#E9C46A')}</td>
-                  <td className="n" data-label={t('Satisfação', 'Satisfaction')}>{z.avg != null && z.n >= 10 ? <><strong style={{ fontSize: 15 }}>{fmt(z.avg, 2)}</strong> <span style={{ color: 'var(--rb-star)' }}>★</span><div style={{ fontSize: 12, color: z.avg >= mediaGeral ? 'var(--rb-good)' : 'var(--rb-bad)' }}>{z.avg >= mediaGeral ? '+' : ''}{fmt(z.avg - mediaGeral, 2)} {t('vs média', 'vs average')}</div></> : <span style={{ color: 'var(--rb-text2)' }}>-</span>}</td>
+                  <td className="n" data-label={t('Satisfação', 'Satisfaction')}>{z.avg != null && z.n >= 10 ? <><strong style={{ fontSize: 15 }}>{fmt(z.avg, 2)}</strong> <span style={{ color: 'var(--rb-star)' }}>★</span><div style={{ fontSize: 12, color: z.avg >= mediaGeral ? 'var(--rb-good)' : 'var(--rb-bad)' }}>{z.avg >= mediaGeral ? '+' : ''}{fmt(z.avg - mediaGeral, 2)} {t('vs média', 'vs average')}</div></> : <span style={{ color: 'var(--rb-text2)' }}>—</span>}</td>
                 </tr>
               ))}</tbody>
             </table>
@@ -2704,7 +2712,7 @@ export function MercadosView(props: { locations: LocV[] }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PRODUTOS TURÍSTICOS - portefólio da Divisão (mapas, brochuras, roteiros)
+// PRODUTOS TURÍSTICOS — portefólio da Divisão (mapas, brochuras, roteiros)
 // Base fixa aqui; links e capas editáveis na própria página (Firestore: 'produtos', 'produtosCapas').
 // ═══════════════════════════════════════════════════════════════════════════
 type Lingua = 'pt' | 'es' | 'fr' | 'en' | 'pt-en';
