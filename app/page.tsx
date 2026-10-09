@@ -811,7 +811,11 @@ export default function Home() {
     document.head.appendChild(link);
     const style = document.createElement('style');
     style.id = 'rb-premium-style';
+    // Garante o fundo escuro de ponta a ponta mesmo que o CSS da página base não chegue a aplicar-se (evita a moldura branca).
+    try { const de = document.documentElement; de.style.margin = '0'; de.style.padding = '0'; de.style.background = '#0c0e14'; document.body.style.margin = '0'; document.body.style.padding = '0'; document.body.style.background = '#0c0e14'; } catch { /* segue */ }
     style.textContent = `
+      html, body { margin: 0 !important; padding: 0 !important; background: #0c0e14 !important; }
+      html { color-scheme: dark; }
       :root { --rb-display: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; --rb-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; }
       body { font-family: var(--rb-body); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; letter-spacing: -0.005em; }
       h1, .rb-display { font-family: var(--rb-display); font-optical-sizing: auto; }

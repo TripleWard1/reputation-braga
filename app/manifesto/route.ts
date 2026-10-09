@@ -3,7 +3,7 @@ export const dynamic = 'force-static';
 
 const MANIFESTO = {
   name: 'Observatório de Turismo de Braga',
-  short_name: 'Observatório de Turismo',
+  short_name: 'Observatório',
   description: 'Procura, economia, reputação e sustentabilidade do destino. Município de Braga · Visit Braga.',
   id: '/',
   lang: 'pt-PT',
@@ -13,9 +13,9 @@ const MANIFESTO = {
   background_color: '#0c0e14',
   theme_color: '#0c0e14',
   icons: [
-    { src: '/icone/vb-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-    { src: '/icone/vb-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-    { src: '/icone/vb-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    { src: '/vb-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+    { src: '/vb-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+    { src: '/vb-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
   ],
 };
 
