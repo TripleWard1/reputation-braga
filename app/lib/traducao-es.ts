@@ -1927,8 +1927,8 @@ export const PARES_ES: [string, string][] = [
 "Evolución de la media, trimestre a trimestre"
 ],
 [
-"Evolução da reputação — últimos 3 anos (estrelas reais do Google)",
-"Evolución de la reputación — últimos 3 años (estrellas reales de Google)"
+"Evolução da reputação - últimos 3 anos (estrelas reais do Google)",
+"Evolución de la reputación - últimos 3 años (estrellas reales de Google)"
 ],
 [
 "Evolução em Braga, {0}–{1} (pessoas ao serviço)",
@@ -1999,8 +1999,8 @@ export const PARES_ES: [string, string][] = [
 "Febrero"
 ],
 [
-"Ficheiro JSON ou CSV exportado (ex.: Apify — Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.",
-"Archivo JSON o CSV exportado (p. ej.: Apify — Google Maps Reviews Scraper). Solo entran comentarios con menos de 3 años, los repetidos se ignoran y los nombres de los autores no se guardan. Un archivo puede incluir varios lugares. Los comentarios pegados manualmente en esos lugares se sustituyen."
+"Ficheiro JSON ou CSV exportado (ex.: Apify - Google Maps Reviews Scraper). Só entram comentários com menos de 3 anos, os repetidos são ignorados e os nomes dos autores não são guardados. Um ficheiro pode trazer vários locais. Os comentários colados manualmente nesses locais são substituídos.",
+"Archivo JSON o CSV exportado (p. ej.: Apify - Google Maps Reviews Scraper). Solo entran comentarios con menos de 3 años, los repetidos se ignoran y los nombres de los autores no se guardan. Un archivo puede incluir varios lugares. Los comentarios pegados manualmente en esos lugares se sustituyen."
 ],
 [
 "Fonte",
@@ -3787,8 +3787,8 @@ export const PARES_ES: [string, string][] = [
 "Problemas por periodo"
 ],
 [
-"Problemas — período anterior (12–36 meses)",
-"Problemas — periodo anterior (12–36 meses)"
+"Problemas - período anterior (12–36 meses)",
+"Problemas - periodo anterior (12–36 meses)"
 ],
 [
 "Procura",
@@ -4831,7 +4831,7 @@ export const PARES_ES: [string, string][] = [
 "Volver arriba"
 ],
 [
-"Vão ser analisados {0} locais com comentários importados. Cada um demora cerca de 1 a 3 minutos — mantém esta página aberta até ao fim. Continuar?",
+"Vão ser analisados {0} locais com comentários importados. Cada um demora cerca de 1 a 3 minutos - mantém esta página aberta até ao fim. Continuar?",
 "Se analizarán {0} lugares con comentarios importados. Cada uno tarda entre 1 y 3 minutos: mantén esta página abierta hasta el final. ¿Continuar?"
 ],
 [
@@ -6131,8 +6131,8 @@ export const PARES_ES: [string, string][] = [
 "Laborable"
 ],
 [
-"Útil, Sáb e Dom: média de entradas por dia. \"—\": a linha não circula nesse dia.",
-"Laborable, sáb. y dom.: media de entradas por día. \"—\": la línea no circula ese día."
+"Útil, Sáb e Dom: média de entradas por dia. \"-\": a linha não circula nesse dia.",
+"Laborable, sáb. y dom.: media de entradas por día. \"-\": la línea no circula ese día."
 ],
 [
 "índice /10 = média de estrelas × 2",
@@ -6143,8 +6143,8 @@ export const PARES_ES: [string, string][] = [
 "últimos 3 años"
 ],
 [
-"— (junta residentes em Portugal e brasileiros)",
-"— (agrupa a residentes en Portugal y brasileños)"
+"- (junta residentes em Portugal e brasileiros)",
+"- (agrupa a residentes en Portugal y brasileños)"
 ],
 [
 "• Locais analisados:        {0}",
@@ -6179,8 +6179,8 @@ export const PARES_ES: [string, string][] = [
 "⏳ Generando…"
 ],
 [
-"✓ Comentários importados — falta analisar com IA",
-"✓ Comentarios importados — falta analizarlos con IA"
+"✓ Comentários importados - falta analisar com IA",
+"✓ Comentarios importados - falta analizarlos con IA"
 ],
 [
 "✓ Copiado!",

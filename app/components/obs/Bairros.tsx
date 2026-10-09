@@ -137,7 +137,7 @@ export default function Bairros() {
                   <td style={{ padding: '7px 6px', color: C.text }}>{nomeZona(z[0])}</td>
                   <td data-l={t('Contagens', 'Counts')} style={{ padding: '7px 6px', textAlign: 'right', color: C.text, fontWeight: 700 }}>{fmt(z[1])}</td>
                   <td data-l="%" style={{ padding: '7px 6px', textAlign: 'right', color: C.textMuted }}>{dec((z[1] / totZ) * 100)}%</td>
-                  <td data-l={t('Sessão média', 'Avg session')} style={{ padding: '7px 6px', textAlign: 'right', color: C.textMuted }}>{sessao[z[0]] != null ? `${fmt(Math.round(sessao[z[0]]))} min` : '—'}</td>
+                  <td data-l={t('Sessão média', 'Avg session')} style={{ padding: '7px 6px', textAlign: 'right', color: C.textMuted }}>{sessao[z[0]] != null ? `${fmt(Math.round(sessao[z[0]]))} min` : '-'}</td>
                 </tr>
               ))}</tbody>
             </table>

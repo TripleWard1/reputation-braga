@@ -1,4 +1,4 @@
-// Estudo de Perfil do Turista (Braga) — exportação completa do inquérito no SurveyMonkey («Perfil turístico de Braga»),
+// Estudo de Perfil do Turista (Braga) - exportação completa do inquérito no SurveyMonkey («Perfil turístico de Braga»),
 // com 336 respostas, exportada a 7 de maio de 2025 («Inquéritos perfil do turista Braga.pdf»). Base oficial do Observatório.
 // Inquérito feito em Braga, em 2025 (confirmado pelo Município). Percentagens tal como constam da exportação, arredondadas a uma casa decimal. «n» = quem respondeu a cada pergunta.
 // O relatório anterior do estudo usava só as 112 respostas de 1 a 4 de março de 2025.

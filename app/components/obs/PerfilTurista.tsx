@@ -17,7 +17,7 @@ function soma(lista: any[], ini: number, fim: number): number {
   return Math.round(s * 10) / 10;
 }
 
-// ═══ Perfil do turista (estudo por inquérito) — só leitura ═══
+// ═══ Perfil do turista (estudo por inquérito) - só leitura ═══
 export default function PerfilTurista() {
   const P = PERFIL_TURISTA;
   const intl = soma(P.origem, 0, 4);

@@ -6,10 +6,10 @@ import { t, dl } from '@/app/lib/i18n';
 import { SIBS_PAISES, SIBS_MENSAL, SIBS_SETORES, SIBS_CONCELHOS, SIBS_PERIODO } from '@/app/lib/sibs-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
-// ═══ Gastos com cartão (SIBS Analytics) — só leitura dos dados exportados ═══
+// ═══ Gastos com cartão (SIBS Analytics) - só leitura dos dados exportados ═══
 export default function Cartoes() {
   const me = (v: number) => (v >= 1e9 ? `${(v / 1e9).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} ${t('mil M€', 'bn €')}` : `${(v / 1e6).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })} M€`);
-  const pct = (v: number | null | undefined) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })}%`);
+  const pct = (v: number | null | undefined) => (v == null ? '-' : `${v >= 0 ? '+' : ''}${v.toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 0 })}%`);
   const paises = [...SIBS_PAISES].filter((p) => p.valor > 0).sort((a, b) => b.valor - a.valor);
   const totEst = paises.reduce((s2, p) => s2 + p.valor, 0);
   const nEst = paises.reduce((s2, p) => s2 + (p.n || 0), 0);
@@ -52,12 +52,12 @@ export default function Cartoes() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
         <KPI label={t('Valor movimentado com cartões estrangeiros', 'Value moved with foreign cards')} value={me(totEst)} sub={braga ? t(`cerca de ${Math.round((totEst / braga.valor) * 100)}% do valor de todas as operações registadas pela SIBS em Braga`, `about ${Math.round((totEst / braga.valor) * 100)}% of the value of all operations recorded by SIBS in Braga`) : ''} color={C.accent} />
         <KPI label={t('Operações', 'Transactions')} value={fmt(nEst)} sub={t(`valor médio ${(totEst / Math.max(1, nEst)).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} €`, `average ${(totEst / Math.max(1, nEst)).toLocaleString('en-GB', { maximumFractionDigits: 1 })} €`)} color={C.info} />
-        <KPI label={t('Maior país', 'Top country')} value={dl(paises[0]?.pais || '—')} sub={paises[0] ? `${me(paises[0].valor)} · ${pct(paises[0].varValor)} ${t('homólogo', 'YoY')}` : ''} color={C.positive} />
+        <KPI label={t('Maior país', 'Top country')} value={dl(paises[0]?.pais || '-')} sub={paises[0] ? `${me(paises[0].valor)} · ${pct(paises[0].varValor)} ${t('homólogo', 'YoY')}` : ''} color={C.positive} />
         <KPI label={t('Países com forte emigração portuguesa', 'Countries with large Portuguese diaspora')} value={`${Math.round((diaspora / Math.max(1, totEst)) * 100)}%`} sub={t('do gasto estrangeiro (França, Suíça, Luxemburgo, Alemanha, Bélgica, Andorra, Reino Unido)', 'of foreign spending (France, Switzerland, Luxembourg, Germany, Belgium, Andorra, UK)')} color={C.orange} />
         {braga && <KPI label={t('Braga entre os concelhos', 'Braga among municipalities')} value={posTxt} sub={t(`${me(braga.valor)} com todos os cartões${empatados > 1 ? ' · empatado no arredondamento da SIBS' : ''}`, `${me(braga.valor)} with all cards${empatados > 1 ? ' · tied in SIBS rounding' : ''}`)} color={C.purple} />}
       </div>
       <div style={{ fontSize: 13.5, color: C.textMuted, lineHeight: 1.6, margin: '0 0 16px', padding: '12px 16px', background: C.accentBg, borderRadius: 6 }}>
-        {t(`Leitura: os cartões franceses representam ${fr ? fr.gasto.toLocaleString('pt-PT', { maximumFractionDigits: 1 }) : '—'}% do valor dos cartões estrangeiros, mas só ${fr ? fr.dormidas.toLocaleString('pt-PT', { maximumFractionDigits: 1 }) : '—'}% das dormidas de estrangeiros (INE, jan–jun 2026). Uma explicação possível é a visita de emigrantes que não ficam em alojamento turístico, mas os dados não permitem confirmá-lo, e os períodos das duas fontes não coincidem.`, `Reading: French cards account for ${fr ? fr.gasto.toLocaleString('en-GB', { maximumFractionDigits: 1 }) : '—'}% of foreign card value, but only ${fr ? fr.dormidas.toLocaleString('en-GB', { maximumFractionDigits: 1 }) : '—'}% of foreign overnight stays (INE, Jan–Jun 2026). One possible explanation is emigrants visiting without staying in tourist accommodation, but the data cannot confirm it, and the two sources cover different periods.`)}
+        {t(`Leitura: os cartões franceses representam ${fr ? fr.gasto.toLocaleString('pt-PT', { maximumFractionDigits: 1 }) : '-'}% do valor dos cartões estrangeiros, mas só ${fr ? fr.dormidas.toLocaleString('pt-PT', { maximumFractionDigits: 1 }) : '-'}% das dormidas de estrangeiros (INE, jan–jun 2026). Uma explicação possível é a visita de emigrantes que não ficam em alojamento turístico, mas os dados não permitem confirmá-lo, e os períodos das duas fontes não coincidem.`, `Reading: French cards account for ${fr ? fr.gasto.toLocaleString('en-GB', { maximumFractionDigits: 1 }) : '-'}% of foreign card value, but only ${fr ? fr.dormidas.toLocaleString('en-GB', { maximumFractionDigits: 1 }) : '-'}% of foreign overnight stays (INE, Jan–Jun 2026). One possible explanation is emigrants visiting without staying in tourist accommodation, but the data cannot confirm it, and the two sources cover different periods.`)}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <Card title={t('Gasto por país do cartão (M€)', 'Spending by card country (M€)')}>
@@ -122,7 +122,7 @@ export default function Cartoes() {
             <Bar dataKey="numerario" name={t('Levantamentos em numerário', 'Cash withdrawals')} fill={C.textDim} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-        {(semDados.length > 0 || semNum.length > 0) && <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t(`A exportação da SIBS não trouxe dados de pagamentos eletrónicos para ${semDados.join(', ') || '—'} nem de levantamentos para ${semNum.join(', ') || '—'}.`, `The SIBS export has no electronic payment data for ${semDados.join(', ') || '—'} and no cash data for ${semNum.join(', ') || '—'}.`)}</div>}
+        {(semDados.length > 0 || semNum.length > 0) && <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t(`A exportação da SIBS não trouxe dados de pagamentos eletrónicos para ${semDados.join(', ') || '-'} nem de levantamentos para ${semNum.join(', ') || '-'}.`, `The SIBS export has no electronic payment data for ${semDados.join(', ') || '-'} and no cash data for ${semNum.join(', ') || '-'}.`)}</div>}
       </Card>
       <Card title={t('Braga e concelhos vizinhos (todos os cartões)', 'Braga and neighbouring municipalities (all cards)')}>
         <div className="obs-tab-wrap" style={{ overflowX: 'auto' }}>
@@ -130,7 +130,7 @@ export default function Cartoes() {
             <thead><tr style={{ color: C.textMuted, textAlign: 'left' }}><th style={{ padding: '8px 6px' }}>{t('Concelho', 'Municipality')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Gasto', 'Spending')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Operações', 'Transactions')}</th><th style={{ padding: '8px 6px', textAlign: 'right' }}>{t('Valor médio', 'Average')}</th></tr></thead>
             <tbody>{comp.map((c) => (
               <tr key={c.concelho} style={{ borderTop: `1px solid ${C.border}`, fontWeight: c.concelho.trim().toLowerCase() === 'braga' ? 700 : 400, color: c.concelho.trim().toLowerCase() === 'braga' ? C.accentLight : C.text }}>
-                <td style={{ padding: '9px 6px' }}>{c.concelho.trim()}</td><td data-l={t('Gasto', 'Spending')} style={{ padding: '9px 6px', textAlign: 'right' }}>{me(c.valor)}</td><td data-l={t('Operações', 'Transactions')} style={{ padding: '9px 6px', textAlign: 'right' }}>{c.n ? fmt(c.n) : '—'}</td><td data-l={t('Valor médio', 'Average')} style={{ padding: '9px 6px', textAlign: 'right' }}>{c.medio ? `${String(c.medio).replace('.', ',')} €` : '—'}</td>
+                <td style={{ padding: '9px 6px' }}>{c.concelho.trim()}</td><td data-l={t('Gasto', 'Spending')} style={{ padding: '9px 6px', textAlign: 'right' }}>{me(c.valor)}</td><td data-l={t('Operações', 'Transactions')} style={{ padding: '9px 6px', textAlign: 'right' }}>{c.n ? fmt(c.n) : '-'}</td><td data-l={t('Valor médio', 'Average')} style={{ padding: '9px 6px', textAlign: 'right' }}>{c.medio ? `${String(c.medio).replace('.', ',')} €` : '-'}</td>
               </tr>
             ))}</tbody>
           </table>

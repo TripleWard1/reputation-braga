@@ -94,10 +94,10 @@ export default function ImpactoEventos() {
             <tbody>{linhas.map(({ s, r }) => (
               <tr key={s.id} style={{ borderTop: `1px solid ${C.border}` }}>
                 <td style={{ padding: '9px 6px', color: C.text }}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 999, background: s.cor, marginRight: 8 }} />{nomeL(s)}</td>
-                <td data-l={t('Média no evento', 'Event average')} style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{r ? `${fmt(Math.round(r.evento * 10) / 10, s.unidade ? 1 : 0)}${s.unidade}` : '—'}</td>
-                <td data-l={t('Média em dias comparáveis', 'Comparable-day average')} style={{ padding: '9px 6px', textAlign: 'right', color: C.textMuted }}>{r ? `${fmt(Math.round(r.base * 10) / 10, s.unidade ? 1 : 0)}${s.unidade}` : '—'}</td>
+                <td data-l={t('Média no evento', 'Event average')} style={{ padding: '9px 6px', textAlign: 'right', color: C.text }}>{r ? `${fmt(Math.round(r.evento * 10) / 10, s.unidade ? 1 : 0)}${s.unidade}` : '-'}</td>
+                <td data-l={t('Média em dias comparáveis', 'Comparable-day average')} style={{ padding: '9px 6px', textAlign: 'right', color: C.textMuted }}>{r ? `${fmt(Math.round(r.base * 10) / 10, s.unidade ? 1 : 0)}${s.unidade}` : '-'}</td>
                 <td data-l={t('Variação', 'Change')} style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 700, color: r ? (r.variacao >= 0 ? C.positive : C.negative) : C.textDim }}>{r ? pct(r.variacao) : t('sem dados', 'no data')}</td>
-                <td data-l={t('Dias', 'Days')} style={{ padding: '9px 6px', textAlign: 'right', color: C.textMuted }}>{r ? r.dias : '—'}</td>
+                <td data-l={t('Dias', 'Days')} style={{ padding: '9px 6px', textAlign: 'right', color: C.textMuted }}>{r ? r.dias : '-'}</td>
               </tr>
             ))}</tbody>
           </table>
