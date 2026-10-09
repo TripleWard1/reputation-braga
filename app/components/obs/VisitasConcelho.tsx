@@ -1,14 +1,16 @@
 'use client';
 
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { t } from '@/app/lib/i18n';
+import { t, getLang } from '@/app/lib/i18n';
 import { GEO_VISITAS } from '@/app/lib/mobilidade-bairros-dados';
-import { HOSPEDES_BRAGA, ESTADA_MEDIA } from '@/app/lib/observatorio-dados';
+import { HOSPEDES_BRAGA } from '@/app/lib/observatorio-dados';
+import { estadaRecente } from '@/app/lib/estada-media';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
 // Visitas ao concelho medidas por geolocalização agregada e anónima (Geoanalytics, na plataforma Braga Smart Retail):
 // visitas de um dia e com dormida, nacionais e internacionais, outubro a dezembro de 2025.
 const G: any = GEO_VISITAS;
+const ER: any = estadaRecente() || { valor: 0, valorAnterior: 0, valorAnoCompleto: 0, ano: '', anoCompleto: '', mesPt: '', mesEn: '', mesEs: '' };
 const FONTE = 'Braga Smart Retail · Geoanalytics · 9 de outubro a 31 de dezembro de 2025 · exportado a 08/10/2026 · a fonte não tem dados de geolocalização a partir de 1 de janeiro de 2026';
 const dec = (v: number, d = 1) => v.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: d, maximumFractionDigits: d });
 const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -23,7 +25,6 @@ export default function VisitasConcelho() {
   const diario: any[] = G.diario;
   let dia = 0; let dorm = 0;
   for (let i = 0; i < diario.length; i++) { dorm += diario[i][1]; dia += diario[i][2]; }
-  const pctDia = (dia / Math.max(1, dia + dorm)) * 100;
   // Comparação com o INE em novembro e dezembro de 2025 (meses completos nas duas fontes)
   let geoNovDez = 0;
   for (let i = 0; i < diario.length; i++) if (diario[i][0] >= '2025-11-01' && diario[i][0] <= '2025-12-31') geoNovDez += diario[i][1];
@@ -48,11 +49,10 @@ export default function VisitasConcelho() {
     <>
       <SectionTitle sub={FONTE}>{t(`${fmt(dia + dorm)} visitas ao concelho registadas por geolocalização, de 9 de outubro a 31 de dezembro de 2025`, `${fmt(dia + dorm)} visits to the municipality recorded by geolocation, 9 October to 31 December 2025`)}</SectionTitle>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
-        <KPI label={t('Sem noite no concelho', 'No night in the municipality')} value={`${dec(pctDia)}%`} sub={t('inclui deslocações diárias para trabalho, estudo ou compras: não são só excursionistas', 'includes daily trips for work, study or shopping: not only day-trippers')} color={C.accent} />
+        <KPI label={t('Estada média (INE)', 'Average stay (INE)')} value={`${dec(ER.valor, 2)} ${t('noites', 'nights')}`} sub={t(`janeiro a ${getLang() === 'es' ? ER.mesEs : ER.mesPt} de ${ER.ano}, alojamento turístico · ${dec(ER.valorAnterior, 2)} no mesmo período de ${Number(ER.ano) - 1} · ${dec(ER.valorAnoCompleto, 2)} em ${ER.anoCompleto}`, `January to ${ER.mesEn} ${ER.ano}, tourist accommodation · ${dec(ER.valorAnterior, 2)} same period ${Number(ER.ano) - 1} · ${dec(ER.valorAnoCompleto, 2)} in ${ER.anoCompleto}`)} color={C.purple} />
         <KPI label={t('Visitantes nacionais', 'Domestic visitors')} value={fmt(ult[1])} sub={t(`em ${mesRot(ult[0])}${varNac != null ? ` · ${varNac >= 0 ? '+' : ''}${dec(varNac)}% face a ${mesRot(ant[0])}` : ''}`, `in ${mesRot(ult[0])}${varNac != null ? ` · ${varNac >= 0 ? '+' : ''}${dec(varNac)}% vs ${mesRot(ant[0])}` : ''}`)} color={C.positive} />
         <KPI label={t('Turistas internacionais', 'International tourists')} value={fmt(ult[2])} sub={t(`em ${mesRot(ult[0])}${varInt != null ? ` · ${varInt >= 0 ? '+' : ''}${dec(varInt)}% face a ${mesRot(ant[0])}` : ''}`, `in ${mesRot(ult[0])}${varInt != null ? ` · ${varInt >= 0 ? '+' : ''}${dec(varInt)}% vs ${mesRot(ant[0])}` : ''}`)} color={C.orange} />
-        <KPI label={t('Passam a noite no concelho', 'Spend the night in the municipality')} value={`${dec(G.comDormida.nac)}% · ${dec(G.comDormida.int)}%`} sub={t('nacionais · internacionais · qualquer tipo de alojamento', 'domestic · international · any type of lodging')} color={C.purple} />
-        <KPI label={t('Quanto tempo ficam', 'How long they stay')} value={`${dec(G.noites.nac, 2)} · ${dec(G.noites.int, 2)}`} sub={t(`noites (nac. · int.); INE, alojamento turístico: ${dec(ESTADA_MEDIA['2025'], 2)} em 2025 e ${dec(ESTADA_MEDIA['2026'], 2)} no 1.º semestre de 2026; de dia: ${dec(G.horasDiurna.nac, 1)} h · ${dec(G.horasDiurna.int, 1)} h`, `nights (dom. · int.); INE, tourist accommodation: ${dec(ESTADA_MEDIA['2025'], 2)} in 2025 and ${dec(ESTADA_MEDIA['2026'], 2)} in H1 2026; day visits: ${dec(G.horasDiurna.nac, 1)} h · ${dec(G.horasDiurna.int, 1)} h`)} color={C.cyan} />
+        <KPI label={t('Duração das visitas de um dia', 'Length of day visits')} value={`${dec(G.horasDiurna.nac, 1)} h · ${dec(G.horasDiurna.int, 1)} h`} sub={t('nacionais · internacionais (geolocalização)', 'domestic · international (geolocation)')} color={C.cyan} />
       </div>
       <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.55, margin: '0 0 16px', padding: '10px 14px', background: 'rgba(237,160,107,.1)', border: '1px solid rgba(237,160,107,.3)', borderRadius: 6 }}>
         {t(`Atenção: «passar a noite» aqui não é o mesmo que dormida turística. Em novembro e dezembro de 2025, a geolocalização contou ${fmt(geoNovDez)} visitas com noite no concelho; o INE registou ${fmt(ineNovDez)} hóspedes em alojamento turístico, cerca de ${dec(razaoIne, 0)} vezes menos. A diferença inclui quem dorme em casa de familiares ou amigos (sobretudo no Natal), estudantes, trabalhadores deslocados, segundas residências e alojamento que o INE não cobre. Para dormidas turísticas, use o INE (separador Procura).`, `Note: «spending the night» here is not the same as a tourist overnight stay. In November and December 2025, geolocation counted ${fmt(geoNovDez)} visits with a night in the municipality; INE recorded ${fmt(ineNovDez)} guests in tourist accommodation, about ${dec(razaoIne, 0)} times fewer. The difference includes people staying with family or friends (especially at Christmas), students, workers away from home, second homes and lodging not covered by INE. For tourist overnight stays, use INE (Demand tab).`)}

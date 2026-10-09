@@ -80,7 +80,7 @@ function MapaAL({ pontos }: { pontos: number[][] }) {
   return <div ref={caixa} className="obs-mapa-al" style={{ height: 420, borderRadius: 6, overflow: 'hidden', border: `1px solid ${C.border}` }} />;
 }
 
-// ═══ Alojamento Local (base municipal da taxa turística; mapa do RNAL) — só leitura ═══
+// ═══ Alojamento Local (base municipal da taxa turística; mapa do RNAL) - só leitura ═══
 export default function AlojamentoLocal() {
   const A: any = AL_BRAGA;
   const MOD: Record<string, string> = { 'Apartamento': t('Apartamento', 'Apartment'), 'Moradia': t('Moradia', 'House'), 'Estabelecimento de Hospedagem/Hostel': t('Hospedagem / hostel', 'Guesthouse / hostel'), 'Quartos': t('Quartos', 'Rooms') };

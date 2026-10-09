@@ -8,12 +8,13 @@ import { comRecuperacao } from '@/app/lib/carregar';
 import Perguntar from './obs/Perguntar';
 
 import { useState, useEffect, useRef } from 'react';
+import { estadaRecente, dec2 } from '@/app/lib/estada-media';
 import { MESES, DORMIDAS_BRAGA, DORMIDAS_ANUAL, HEADLINE, INFRA, TAXA_TURISTICA, BALCAO, SUSTENTABILIDADE } from '@/app/lib/observatorio-dados';
 import { DIGITAL, DIGITAL_POS, DIGITAL_TOTAL, SEARCH_CONSOLE } from '@/app/lib/audiencia-digital-dados';
 import { ACESSIBILIDADE } from '@/app/lib/acessibilidade-meteo-dados';
 import { CAMINHOS } from '@/app/lib/caminhos-santiago-dados';
 import { openPremiumDoc, Section } from '@/app/lib/premium-doc';
-import { t, dl } from '@/app/lib/i18n';
+import { t, dl, getLang } from '@/app/lib/i18n';
 import { obterFotoBraga } from '@/app/lib/foto-braga';
 import { C, PAL, SUS_PAL, YEAR_COLORS } from './obs/comum';
 
@@ -144,7 +145,7 @@ const OBS_CSS = `
 .obs-copiar:hover { border-color: #8AB0E6; color: #ECEDEF; }
 .obs-toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); z-index: 1300; display: flex; align-items: center; gap: 9px; padding: 12px 20px; border-radius: 999px; background: #1C1F24; border: 1px solid rgba(124,199,154,.45); color: #ECEDEF; font: 600 14px 'Public Sans', system-ui, sans-serif; box-shadow: 0 14px 34px -12px rgba(0,0,0,.75); animation: obsToast .25s ease both; }
 @keyframes obsToast { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
-@media (max-width: 820px) { .obs-toast { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); } }
+@media (max-width: 820px) { .obs-toast { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); } }
 @media (max-width: 820px) { .obs-copiar { width: 54px; height: 54px; padding: 0; justify-content: center; border-radius: 14px; } .obs-copiar span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); } }
 @media print { .obs-copiar { display: none !important; } }
 .obs-sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
@@ -242,7 +243,7 @@ const OBS_CSS = `
 .obs-menu-m { display: none; }
 .obs-folha-fundo { position: fixed; inset: 0; z-index: 1200; background: rgba(8,9,11,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: obsFade .2s ease both; }
 @keyframes obsFade { from { opacity: 0; } to { opacity: 1; } }
-.obs-folha { position: fixed; left: 0; right: 0; bottom: 0; max-height: 84vh; overflow-y: auto; overscroll-behavior: contain; background: #1C1F24; border-top: 1px solid #2D3139; border-radius: 18px 18px 0 0; padding: 8px 18px calc(22px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -20px 60px rgba(0,0,0,.5); animation: obsSobe .28s cubic-bezier(.2,.7,.2,1) both; font-family: 'Public Sans', system-ui, sans-serif; }
+.obs-folha { position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); max-height: 84vh; overflow-y: auto; overscroll-behavior: contain; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03)), rgba(26,29,35,.88); backdrop-filter: blur(28px) saturate(170%); -webkit-backdrop-filter: blur(28px) saturate(170%); border: 1px solid rgba(255,255,255,.14); border-radius: 26px; padding: 8px 18px 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 -20px 60px rgba(0,0,0,.5); animation: obsSobe .28s cubic-bezier(.2,.7,.2,1) both; font-family: 'Public Sans', system-ui, sans-serif; }
 @keyframes obsSobe { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 .obs-folha-pega { width: 40px; height: 4px; border-radius: 999px; background: #3A404B; margin: 4px auto 10px; }
 .obs-folha-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: #ECEDEF; font-size: 16px; }
@@ -251,8 +252,8 @@ const OBS_CSS = `
 .obs-folha-grupo:first-of-type { border-top: 0; }
 .obs-folha-titulo { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8AB0E6; margin-bottom: 10px; }
 .obs-folha-itens { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
-.obs-folha-itens button { min-height: 44px; padding: 8px 12px; border-radius: 10px; border: 1px solid #2D3139; background: #22262D; color: #ECEDEF; font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
-.obs-folha-itens button.on { border-color: #8AB0E6; background: #22324A; font-weight: 600; }
+.obs-folha-itens button { min-height: 44px; padding: 8px 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05); color: #ECEDEF; font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.obs-folha-itens button.on { border-color: rgba(138,176,230,.7); background: rgba(138,176,230,.16); font-weight: 600; box-shadow: inset 0 1px 0 rgba(255,255,255,.15); }
 @media (max-width: 820px) {
   .obs-grupos { display: none; }
   .obs-menu-m { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; padding: 8px 16px; border-radius: 14px; border: 1.5px solid rgba(138,176,230,.6); background: linear-gradient(135deg, #22324A, #1C2433); color: #ECEDEF; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 22px -12px rgba(138,176,230,.55); }
@@ -288,6 +289,9 @@ const OBS_CSS = `
 }
 @media print { .obs-hero, .obs-tabs { display: none !important; } .obs-body { padding: 0; max-width: none; } .obs-card { opacity: 1 !important; transform: none !important; } }
 `;
+
+// Estada média mais recente do INE (ano corrente acumulado e último ano completo).
+const ER = estadaRecente();
 
 type Tab = 'geral' | 'insto' | 'procura' | 'estimativa' | 'mobilidade' | 'urbana' | 'bairros' | 'visitas' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'calendario' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos' | 'eventos' | 'metodologia';
 // Sem tipo estrito: o separador funciona mesmo que o módulo do calendário ainda não tenha a exportação em PDF
@@ -452,7 +456,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         { label: t('Dormidas 2025', 'Overnight stays 2025'), value: nf(H.dormidas2025), sub: pct(H.dormidasVar) + t(' homólogo', ' YoY') },
         { label: t('Hóspedes 2025', 'Guests 2025'), value: nf(H.hospedes2025), sub: pct(H.hospedesVar) + t(' homólogo', ' YoY') },
         { label: t('Ocupação / quarto (2024)', 'Room occupancy (2024)'), value: dec(H.ocupQuarto.Braga) + '%', sub: t('Braga · Norte ', 'Braga · North ') + dec(H.ocupQuarto.Norte) + '%' },
-        { label: t('Estada média (2024)', 'Average stay (2024)'), value: dec(H.estadaMedia.Braga) + t(' noites', ' nights'), sub: dec(H.estadaMedia.naoResidentes) + t(' não residentes', ' non-residents') },
+        ER ? { label: t(`Estada média (jan.–${(getLang() === 'es' ? ER.mesEs : ER.mesPt).slice(0, 3)}. ${ER.ano})`, `Average stay (Jan–${ER.mesEn.slice(0, 3)} ${ER.ano})`), value: t(dec2(ER.valor, true), dec2(ER.valor, false)) + t(' noites', ' nights'), sub: t(`${dec2(ER.valorAnterior, true)} no mesmo período de ${Number(ER.ano) - 1} · ${dec2(ER.valorAnoCompleto, true)} em ${ER.anoCompleto}`, `${dec2(ER.valorAnterior, false)} same period ${Number(ER.ano) - 1} · ${dec2(ER.valorAnoCompleto, false)} in ${ER.anoCompleto}`) } : { label: t('Estada média (2024)', 'Average stay (2024)'), value: dec(H.estadaMedia.Braga) + t(' noites', ' nights'), sub: dec(H.estadaMedia.naoResidentes) + t(' não residentes', ' non-residents') },
       ],
       sections,
       footerR: t('Procura Turística · Fonte INE/TravelBI', 'Tourism Demand · Source INE/TravelBI'),

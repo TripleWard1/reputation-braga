@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// AUDIÊNCIA DIGITAL — visitbraga.travel (Google Analytics 4 + Google Search Console)
+// AUDIÊNCIA DIGITAL - visitbraga.travel (Google Analytics 4 + Google Search Console)
 // Todos os valores reais (exports GA4 e Search Console de 24/09/2026).
 //
 // Contexto: em 2026 o site foi alvo de um ciberataque e esteve fora do ar vários meses.
@@ -8,10 +8,10 @@
 // de agosto de 2026.
 //
 // Três recortes:
-//  • DIGITAL        — período de referência antes do ataque: 28 jul 2025 – 10 mar 2026
+//  • DIGITAL        - período de referência antes do ataque: 28 jul 2025 – 10 mar 2026
 //                     (data da exportação anterior; o site funcionou normalmente até ~maio).
-//  • DIGITAL_POS    — retoma: 1 jul – 23 set 2026 (dados efetivos desde o final de agosto).
-//  • DIGITAL_TOTAL  — desde o lançamento: 28 jul 2025 – 24 set 2026.
+//  • DIGITAL_POS    - retoma: 1 jul – 23 set 2026 (dados efetivos desde o final de agosto).
+//  • DIGITAL_TOTAL  - desde o lançamento: 28 jul 2025 – 24 set 2026.
 // Os três recortes não são somáveis entre si (utilizadores únicos por período).
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -209,12 +209,12 @@ export const DIGITAL_TOTAL = {
   ] as [string, number][],
 };
 
-// ─── Google Search Console (pesquisa web) — 28 jul 2025 – 23 set 2026 ───
+// ─── Google Search Console (pesquisa web) - 28 jul 2025 – 23 set 2026 ───
 export const SEARCH_CONSOLE = {
   periodo: '28 jul 2025 – 23 set 2026',
   cliques: 89668,
   impressoes: 6123497,
-  // [mês, cliques, impressões] — jul/25 começa a 28; set/26 termina a 23
+  // [mês, cliques, impressões] - jul/25 começa a 28; set/26 termina a 23
   mensal: [
     ['jul/25', 807, 61719],
     ['ago/25', 8591, 525845],

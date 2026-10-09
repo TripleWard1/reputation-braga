@@ -842,22 +842,31 @@ export default function Home() {
       .rb-baixo, .rb-mais-fundo { display: none; }
       @media (max-width: 820px) {
         .rb-sidebar { display: none !important; }
-        .rb-baixo { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; background: rgba(21,23,27,.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid #2D3139; padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); }
-        .rb-baixo button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; padding: 4px 2px; border: 0; background: transparent; color: #A3A8B1; font: 600 11px 'Public Sans', system-ui, sans-serif; cursor: pointer; position: relative; border-radius: 10px; }
-        .rb-baixo button.on { color: #ECEDEF; }
-        .rb-baixo button.on svg { color: #8AB0E6; }
-        .rb-baixo button.on::before { content: ''; position: absolute; top: -6px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: #8AB0E6; }
+        .rb-baixo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 1000; padding: 6px; border-radius: 28px; isolation: isolate; overflow: hidden;
+          background: linear-gradient(180deg, rgba(255,255,255,.17) 0%, rgba(255,255,255,.07) 55%, rgba(255,255,255,.05) 100%), rgba(24,27,33,.55);
+          backdrop-filter: blur(26px) saturate(180%); -webkit-backdrop-filter: blur(26px) saturate(180%);
+          border: 1px solid rgba(255,255,255,.18);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 -1px 0 rgba(255,255,255,.05), 0 18px 40px -12px rgba(0,0,0,.75), 0 4px 14px rgba(0,0,0,.35);
+          animation: rbDock .45s cubic-bezier(.2,.8,.2,1) both; }
+        .rb-baixo::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; border-radius: inherit; background: radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,.22), transparent 60%), radial-gradient(60% 120% at 0% 120%, rgba(138,176,230,.18), transparent 60%); }
+        @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .rb-baixo { background: rgba(34,38,45,.97); } }
+        @keyframes rbDock { from { transform: translateY(24px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+        .rb-baixo button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 54px; padding: 6px 2px 5px; border: 1px solid transparent; background: transparent; color: rgba(236,237,239,.72); font: 600 10.5px 'Public Sans', system-ui, sans-serif; letter-spacing: .01em; cursor: pointer; position: relative; border-radius: 22px; -webkit-tap-highlight-color: transparent; transition: background .25s ease, color .25s ease, transform .15s ease, border-color .25s ease, box-shadow .25s ease; }
+        .rb-baixo button:active { transform: scale(.93); }
+        .rb-baixo button svg { transition: transform .3s cubic-bezier(.2,.8,.2,1), color .25s ease, filter .25s ease; }
+        .rb-baixo button.on { color: #FFFFFF; background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.08)); border-color: rgba(255,255,255,.22); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 16px -6px rgba(138,176,230,.55); }
+        .rb-baixo button.on svg { color: #B9D2F5; transform: translateY(-1px) scale(1.08); filter: drop-shadow(0 0 8px rgba(138,176,230,.7)); }
         .rb-baixo span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .rb-mais-fundo { display: block; position: fixed; inset: 0; z-index: 1100; background: rgba(8,9,11,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: rbFadeUp .2s ease both; }
-        .rb-mais { position: fixed; left: 0; right: 0; bottom: 0; max-height: 86vh; overflow-y: auto; background: #1C1F24; border-top: 1px solid #2D3139; border-radius: 18px 18px 0 0; padding: 8px 18px calc(22px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -20px 60px rgba(0,0,0,.5); color: #ECEDEF; }
+        .rb-mais-fundo { display: block; position: fixed; inset: 0; z-index: 1100; background: rgba(8,9,11,.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: rbFadeUp .2s ease both; }
+        .rb-mais { position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); max-height: 84vh; overflow-y: auto; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03)), rgba(26,29,35,.86); backdrop-filter: blur(28px) saturate(170%); -webkit-backdrop-filter: blur(28px) saturate(170%); border: 1px solid rgba(255,255,255,.14); border-radius: 26px; padding: 8px 18px 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 -20px 60px rgba(0,0,0,.5); animation: rbFadeUp .28s cubic-bezier(.2,.8,.2,1) both; color: #ECEDEF; }
         .rb-mais-pega { width: 40px; height: 4px; border-radius: 999px; background: #3A404B; margin: 4px auto 12px; }
         .rb-mais-lista { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 16px; }
-        .rb-mais-lista button { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 10px 12px; border-radius: 12px; border: 1px solid #2D3139; background: #22262D; color: #ECEDEF; font: 600 14px 'Public Sans', system-ui, sans-serif; text-align: left; cursor: pointer; }
-        .rb-mais-lista button.on { border-color: #8AB0E6; background: #22324A; }
+        .rb-mais-lista button { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 10px 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05); color: #ECEDEF; font: 600 14px 'Public Sans', system-ui, sans-serif; text-align: left; cursor: pointer; }
+        .rb-mais-lista button.on { border-color: rgba(138,176,230,.7); background: rgba(138,176,230,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.15); }
         .rb-mais-lista button svg { color: #8AB0E6; flex-shrink: 0; }
-        .rb-main { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
-        .rb-topo { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important; }
-        .rb-toast { bottom: calc(86px + env(safe-area-inset-bottom, 0px)) !important; }
+        .rb-main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+        .rb-topo { bottom: calc(92px + env(safe-area-inset-bottom, 0px)) !important; }
+        .rb-toast { bottom: calc(94px + env(safe-area-inset-bottom, 0px)) !important; }
         .rb-app { flex-direction: column !important; }
         .rb-sidebar { position: static !important; width: 100% !important; bottom: auto !important; border-right: none !important; border-bottom: 1px solid #1a1d28 !important; }
         .rb-sidebar > div:first-child { padding: 14px 16px !important; }

@@ -15,7 +15,7 @@ export const CAMINHOS = {
   // Compostelas a quem partiu da Sé de Braga, por ano
   partidasBraga: [['2022', 1039], ['2023', 1098], ['2024', 1124], ['2025', 1130]] as [string, number][],
 
-  // Partidas de Braga por caminho (evolução) — a história do "sorpasso" da Geira
+  // Partidas de Braga por caminho (evolução) - a história do "sorpasso" da Geira
   evolucao: [
     { ano: '2023', Geira: 403, Central: 674 },
     { ano: '2024', Geira: 509, Central: 608 },
@@ -52,7 +52,7 @@ export const CAMINHOS = {
   // Mesma base do separador Atendimento Balcão: registos de visitantes, exportação de 24/09/2026.
   balcao: { peregrinos2025: 0, peregrinos2026: 124, interesse2025: 6, interesse2026: 141 },
 
-  // Enquadramento económico (estudo USC/IDEGA, Galiza) — indicativo, não Braga
+  // Enquadramento económico (estudo USC/IDEGA, Galiza) - indicativo, não Braga
   // Primeiras conclusões, publicadas a 20/04/2018 (Cluster Turismo Galicia); «até» 11 % e «até» 18 %.
   economia: { fatorTurista: 2.3, maisProduto: 11, maisEmprego: 18 },
 };

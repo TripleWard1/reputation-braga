@@ -2,11 +2,15 @@
 
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import { DORMIDAS_ANUAL, HEADLINE, TAXA_TURISTICA, BALCAO } from '@/app/lib/observatorio-dados';
-import { t } from '@/app/lib/i18n';
+import { t, getLang } from '@/app/lib/i18n';
+import { estadaRecente, dec2 } from '@/app/lib/estada-media';
 import { C, Card, Cruz, KPI, YEAR_COLORS, fmt, fmtE, tipStyle } from './comum';
 
 // ─── VISÃO GERAL ─────────────────────────────────────────────────────────────
 export default function Geral({ rep, repL, repR }: { rep?: number | null; repL?: number; repR?: number }) {
+  const ER = estadaRecente();
+  const PT = getLang() !== 'en';
+  const MES = ER ? (getLang() === 'es' ? ER.mesEs : ER.mesPt) : '';
   const dormDataAnual = Object.entries(DORMIDAS_ANUAL).filter(([, v]) => v != null).map(([y, v]) => ({ ano: y, dormidas: v as number }));
   const taxaAnual = Object.entries(TAXA_TURISTICA).map(([y, m]) => ({ ano: y, total: y === '2026' ? Object.entries(m).filter(([k]) => k !== 'Total').reduce((s, [, v]) => s + v, 0) : (m.Total || 0) }));
 
@@ -17,7 +21,7 @@ export default function Geral({ rep, repL, repR }: { rep?: number | null; repL?:
         <KPI label={t('Hóspedes 2025', 'Guests 2025')} value={fmt(HEADLINE.hospedes2025)} sub={`+${HEADLINE.hospedesVar}% ${t('homólogo', 'YoY')}`} color={C.accentLight} />
         <KPI label={t('Taxa Turística 2025', 'Tourist Tax 2025')} value={fmtE(TAXA_TURISTICA['2025'].Total)} sub={t('faturação (receita municipal)', 'invoiced (municipal revenue)')} color={C.accent} />
         <KPI label={t('Atendimentos Balcão 2025', 'Front Desk Visits 2025')} value={fmt(BALCAO['2025'].atendimentos)} sub={`${fmt(BALCAO['2025'].pax)} pax`} color={C.info} />
-        <KPI label={t('Estada Média', 'Average Stay')} value={`${HEADLINE.estadaMedia.Braga}`} sub={t('noites (INE 2024)', 'nights (INE 2024)')} color={C.purple} />
+        {ER ? <KPI label={t('Estada Média', 'Average Stay')} value={`${dec2(ER.valor, PT)} ${t('noites', 'nights')}`} sub={t(`janeiro a ${MES} de ${ER.ano} (INE, provisório) · ${dec2(ER.valorAnterior, true)} no mesmo período de ${Number(ER.ano) - 1} · ${dec2(ER.valorAnoCompleto, true)} em ${ER.anoCompleto}`, `January to ${ER.mesEn} ${ER.ano} (INE, provisional) · ${dec2(ER.valorAnterior, false)} in the same period of ${Number(ER.ano) - 1} · ${dec2(ER.valorAnoCompleto, false)} in ${ER.anoCompleto}`)} color={C.purple} /> : <KPI label={t('Estada Média', 'Average Stay')} value={`${HEADLINE.estadaMedia.Braga}`} sub={t('noites (INE 2024)', 'nights (INE 2024)')} color={C.purple} />}
         <KPI label={t('Ocupação-quarto', 'Room Occupancy')} value={`${HEADLINE.ocupQuarto.Braga}%`} sub={t('líquida (INE 2024)', 'net (INE 2024)')} color={C.cyan} />
       </div>
 

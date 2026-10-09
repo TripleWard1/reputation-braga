@@ -9129,5 +9129,33 @@ export const PARES_ES: [string, string][] = [
 [
 "noites (nac. · int.); INE, alojamento turístico: {0} em 2025 e {1} no 1.º semestre de 2026; de dia: {2} h · {3} h",
 "noches (nac. · int.); INE, alojamiento turístico: {0} en 2025 y {1} en el 1.er semestre de 2026; de día: {2} h · {3} h"
+],
+[
+"Estada média (INE)",
+"Estancia media (INE)"
+],
+[
+"janeiro a {0} de {1}, alojamento turístico · {2} no mesmo período de {3} · {4} em {5}",
+"enero a {0} de {1}, alojamiento turístico · {2} en el mismo periodo de {3} · {4} en {5}"
+],
+[
+"Duração das visitas de um dia",
+"Duración de las visitas de un día"
+],
+[
+"nacionais · internacionais (geolocalização)",
+"nacionales · internacionales (geolocalización)"
+],
+[
+"janeiro a {0} de {1} (INE, provisório) · {2} no mesmo período de {3} · {4} em {5}",
+"enero a {0} de {1} (INE, provisional) · {2} en el mismo periodo de {3} · {4} en {5}"
+],
+[
+"Estada média (jan.–{0}. {1})",
+"Estancia media (ene.–{0}. {1})"
+],
+[
+"{0} no mesmo período de {1} · {2} em {3}",
+"{0} en el mismo periodo de {1} · {2} en {3}"
 ]
 ];
