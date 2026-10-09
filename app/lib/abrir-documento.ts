@@ -82,6 +82,56 @@ function esperarImagem(im: HTMLImageElement): Promise<void> {
   return new Promise<void>((ok) => { const fim = () => ok(); im.addEventListener('load', fim); im.addEventListener('error', fim); setTimeout(fim, 5000); });
 }
 
+// Depois de descarregar o PDF (em imagem), oferece a versão com texto selecionável:
+// abre o mesmo documento na janela de impressão do navegador, onde se escolhe «Guardar como PDF».
+// Estado ao nível do módulo e funções de topo (o compressor do Next.js parte funções aninhadas que usam parâmetros de fora).
+let ultimoHtml = '';
+let molduraImpressao: HTMLIFrameElement | null = null;
+let caixaOferta: HTMLDivElement | null = null;
+function removerMolduraImpressao() { if (molduraImpressao) { molduraImpressao.remove(); molduraImpressao = null; } }
+function lancarImpressao() {
+  try { const w = molduraImpressao && molduraImpressao.contentWindow; if (w) { w.focus(); w.print(); } } catch { /* sem impressão */ }
+  setTimeout(removerMolduraImpressao, 60000);
+}
+function imprimirUltimo() {
+  fecharOferta();
+  removerMolduraImpressao();
+  const f = document.createElement('iframe');
+  f.setAttribute('aria-hidden', 'true');
+  f.style.cssText = `position:fixed;left:-12000px;top:0;width:${LARGURA_PX}px;height:1200px;border:0;`;
+  document.body.appendChild(f);
+  molduraImpressao = f;
+  const d = f.contentDocument as Document;
+  d.open(); d.write(ultimoHtml); d.close();
+  const css = d.createElement('style');
+  css.textContent = '@page{size:A4;margin:12mm}html,body{background:#fff !important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}';
+  d.head.appendChild(css);
+  setTimeout(lancarImpressao, 800);
+}
+function fecharOferta() { if (caixaOferta) { caixaOferta.remove(); caixaOferta = null; } }
+function ofertaImpressao(html: string) {
+  ultimoHtml = html;
+  fecharOferta();
+  const caixa = document.createElement('div');
+  caixa.setAttribute('role', 'status');
+  caixa.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:2147483000;max-width:360px;background:#1C1F24;color:#ECEDEF;border:1px solid #2D3139;border-radius:10px;padding:12px 30px 12px 14px;font:13px/1.45 system-ui,sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.4)';
+  const p = document.createElement('div');
+  p.textContent = t('PDF descarregado. Precisa de texto selecionável e mais nítido? Use a versão para imprimir e escolha «Guardar como PDF».', 'PDF downloaded. Need selectable, sharper text? Use the print version and choose «Save as PDF».');
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = t('Abrir versão para imprimir', 'Open print version');
+  b.style.cssText = 'margin-top:8px;background:#8AB0E6;color:#15171B;border:0;border-radius:6px;padding:6px 10px;font:600 12.5px system-ui,sans-serif;cursor:pointer';
+  const x = document.createElement('button');
+  x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', t('Fechar', 'Close'));
+  x.style.cssText = 'position:absolute;top:4px;right:8px;background:none;border:0;color:#A3A8B1;font-size:18px;cursor:pointer';
+  caixa.appendChild(x); caixa.appendChild(p); caixa.appendChild(b);
+  document.body.appendChild(caixa);
+  caixaOferta = caixa;
+  b.onclick = imprimirUltimo;
+  x.onclick = fecharOferta;
+  setTimeout(fecharOferta, 20000);
+}
+
 async function gerarPdf(html: string) {
   const av = aviso(t('A gerar o PDF…', 'Generating the PDF…'));
   const moldura = document.createElement('iframe');
@@ -120,7 +170,7 @@ async function gerarPdf(html: string) {
     for (let i = 0; i < partes.length; i++) {
       av.mudar(t(`A gerar o PDF… página ${i + 1} de ${partes.length}`, `Generating the PDF… page ${i + 1} of ${partes.length}`));
       const [a, b] = partes[i];
-      const canvas = await html2canvas(doc.body, { scale: 2, useCORS: true, backgroundColor: '#ffffff', x: 0, y: a, width: LARGURA_PX, height: b - a, windowWidth: LARGURA_PX, windowHeight: total, scrollX: 0, scrollY: 0, logging: false });
+      const canvas = await html2canvas(doc.body, { scale: 3, useCORS: true, backgroundColor: '#ffffff', x: 0, y: a, width: LARGURA_PX, height: b - a, windowWidth: LARGURA_PX, windowHeight: total, scrollX: 0, scrollY: 0, logging: false });
       if (i > 0) pdf.addPage();
       pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', margem, margem, larguraMm, (b - a) / pxPorMm, undefined, 'FAST');
       // Rodapé com numeração (documentos que o pedem com <meta name="pdf-rodape">), na margem inferior
@@ -132,6 +182,7 @@ async function gerarPdf(html: string) {
       }
     }
     pdf.save(nomeFicheiro(html));
+    ofertaImpressao(limpo);
   } catch {
     alert(t('Não foi possível gerar o PDF. Verifique a ligação à internet e tente de novo.', 'Could not generate the PDF. Check your internet connection and try again.'));
   } finally {

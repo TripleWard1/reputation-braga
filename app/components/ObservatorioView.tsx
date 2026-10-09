@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { exportarSeparador } from '@/app/lib/exportar-separador';
 import { abrirJanelaDocumento } from '@/app/lib/abrir-documento';
+import { NotaMetodologica } from './obs/Metodologia';
 import { comRecuperacao } from '@/app/lib/carregar';
 import Perguntar from './obs/Perguntar';
 
@@ -46,6 +47,8 @@ const Mobilidade = dynamic(comRecuperacao(() => import('./obs/Mobilidade')), { s
 const MobilidadeUrbana = dynamic(comRecuperacao(() => import('./obs/MobilidadeUrbana')), { ssr: false, loading: ACarregar });
 const Bairros = dynamic(comRecuperacao(() => import('./obs/Bairros')), { ssr: false, loading: ACarregar });
 const VisitasConcelho = dynamic(comRecuperacao(() => import('./obs/VisitasConcelho')), { ssr: false, loading: ACarregar });
+const ImpactoEventos = dynamic(comRecuperacao(() => import('./obs/ImpactoEventos')), { ssr: false, loading: ACarregar });
+const Metodologia = dynamic(comRecuperacao(() => import('./obs/Metodologia')), { ssr: false, loading: ACarregar });
 const PerfilTurista = dynamic(comRecuperacao(() => import('./obs/PerfilTurista')), { ssr: false, loading: ACarregar });
 const Procura = dynamic(comRecuperacao(() => import('./obs/Procura')), { ssr: false, loading: ACarregar });
 const Sustentabilidade = dynamic(comRecuperacao(() => import('./obs/Sustentabilidade')), { ssr: false, loading: ACarregar });
@@ -286,10 +289,10 @@ const OBS_CSS = `
 @media print { .obs-hero, .obs-tabs { display: none !important; } .obs-body { padding: 0; max-width: none; } .obs-card { opacity: 1 !important; transform: none !important; } }
 `;
 
-type Tab = 'geral' | 'insto' | 'procura' | 'estimativa' | 'mobilidade' | 'urbana' | 'bairros' | 'visitas' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'calendario' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos';
+type Tab = 'geral' | 'insto' | 'procura' | 'estimativa' | 'mobilidade' | 'urbana' | 'bairros' | 'visitas' | 'economia' | 'emprego' | 'cartoes' | 'perfil' | 'animacao' | 'ferramentas' | 'hotelaria' | 'cultura' | 'lojas' | 'alojamento' | 'aeroporto' | 'mercados' | 'calendario' | 'balcao' | 'taxa' | 'sustentabilidade' | 'digital' | 'acessibilidade' | 'meteo' | 'caminhos' | 'cruzamentos' | 'eventos' | 'metodologia';
 // Sem tipo estrito: o separador funciona mesmo que o módulo do calendário ainda não tenha a exportação em PDF
 function abrirCalendarioPdf(m: any) { if (m && typeof m.exportarCalendarioPdf === 'function') m.exportarCalendarioPdf(); }
-const IDS_TAB: string[] = ['insto', 'geral', 'procura', 'estimativa', 'mobilidade', 'urbana', 'bairros', 'visitas', 'economia', 'emprego', 'cartoes', 'perfil', 'animacao', 'ferramentas', 'hotelaria', 'cultura', 'lojas', 'alojamento', 'aeroporto', 'mercados', 'calendario', 'balcao', 'taxa', 'sustentabilidade', 'digital', 'acessibilidade', 'meteo', 'caminhos', 'cruzamentos'];
+const IDS_TAB: string[] = ['insto', 'geral', 'procura', 'estimativa', 'mobilidade', 'urbana', 'bairros', 'visitas', 'economia', 'emprego', 'cartoes', 'perfil', 'animacao', 'ferramentas', 'hotelaria', 'cultura', 'lojas', 'alojamento', 'aeroporto', 'mercados', 'calendario', 'balcao', 'taxa', 'sustentabilidade', 'digital', 'acessibilidade', 'meteo', 'caminhos', 'cruzamentos', 'eventos', 'metodologia'];
 
 interface Props { reputacaoMedia?: number | null; reputacaoLocais?: number; reputacaoReviews?: number; fotoTopo?: string | null; reputacaoResumo?: string; separadorInicial?: string; }
 
@@ -362,6 +365,8 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
     { id: 'caminhos', label: t('Caminhos de Santiago', 'Camino de Santiago') },
     { id: 'insto', label: t('Rede INSTO', 'INSTO network') },
     { id: 'cruzamentos', label: t('Cruzamentos', 'Cross-analysis') },
+    { id: 'eventos', label: t('Impacto de eventos', 'Event impact') },
+    { id: 'metodologia', label: t('Fontes e metodologia', 'Sources and methodology') },
   ];
   const tabLabel = TABS.find((t) => t.id === tab)?.label || '';
   // Abrir um separador a partir das perguntas e das leituras (só aceita separadores existentes)
@@ -369,7 +374,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   const irPara = (id: string) => { const x = TABS.find((y) => y.id === id); if (x) setTab(x.id); };
   // Separadores agrupados por tema (menu mais simples, sobretudo no telemóvel)
   const GRUPOS: { id: string; label: string; icon: string; tabs: Tab[] }[] = [
-    { id: 'resumo', label: t('Resumo', 'Summary'), icon: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z', tabs: ['geral', 'cruzamentos'] },
+    { id: 'resumo', label: t('Resumo', 'Summary'), icon: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 4v4h6V4z', tabs: ['geral', 'cruzamentos', 'eventos', 'metodologia'] },
     { id: 'procura', label: t('Procura', 'Demand'), icon: 'M3 17l6-6 4 4 8-8M15 7h6v6', tabs: ['procura', 'estimativa', 'mercados', 'calendario', 'aeroporto', 'caminhos'] },
     { id: 'visitante', label: t('Visitante', 'Visitor'), icon: 'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21v-1a6 6 0 0112 0v1M16 3.5a4 4 0 010 7.5M22 21v-1a6 6 0 00-4-5.6', tabs: ['perfil', 'visitas', 'balcao'] },
     { id: 'economia', label: t('Economia', 'Economy'), icon: 'M18 7a7 7 0 100 10M5 10h9M5 14h9', tabs: ['economia', 'emprego', 'cartoes', 'taxa'] },
@@ -936,6 +941,9 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab === 'meteo' && <Meteorologia />}
         {tab === 'caminhos' && <Caminhos />}
         {tab === 'cruzamentos' && <Cruzamentos />}
+        {tab === 'eventos' && <ImpactoEventos />}
+        {tab === 'metodologia' && <Metodologia nomeSeparador={nomeSeparador} />}
+        {tab !== 'metodologia' && <NotaMetodologica id={tab} />}
       </div>
       </div>
     </div>

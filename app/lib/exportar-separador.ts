@@ -270,6 +270,8 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
     if (!alvo || !md.defaultView) throw new Error('moldura');
     await esperarImagens(alvo);
     clarearElemento(md.defaultView, alvo);
+    // Evita que a margem do primeiro título «saia» do alvo (o alvo fica no canto superior esquerdo da moldura).
+    alvo.style.display = 'flow-root';
     await esperar(150);
     const total = Math.ceil(alvo.scrollHeight);
     moldura.style.height = `${total + 60}px`;
@@ -278,9 +280,19 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
     const primeira = Math.floor((297 - MARGEM * 2 - CAB_MM) * pxMm);
     const outras = Math.floor((297 - MARGEM * 2) * pxMm);
     const partes = fatias(total, primeira, outras, zonasOcupadas(alvo, outras));
+    // Cada página é capturada à parte, a 3× (cerca de 400 ppp), para o texto sair nítido mesmo em separadores longos.
+    // Se a captura por página falhar, recorre à captura única (método anterior).
+    const ESC_PAG = 3;
+    // A captura por página só é usada quando o alvo está no canto (0,0) da moldura: assim as coordenadas de recorte
+    // são as mesmas, seja qual for a forma como o html2canvas as interpreta.
+    const caixa = alvo.getBoundingClientRect();
+    const vista: any = md.defaultView;
+    const topo = caixa.top + ((vista && vista.scrollY) || 0);
+    const esq = caixa.left + ((vista && vista.scrollX) || 0);
+    const largAlvo = Math.ceil(caixa.width);
+    let porPagina = Math.abs(topo) < 1 && Math.abs(esq) < 1;
+    let tela: HTMLCanvasElement | null = null;
     let escala = 2;
-    if (total * escala > 30000) escala = Math.max(1, 30000 / total);
-    const tela: HTMLCanvasElement = await html2canvas(alvo, { scale: escala, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', logging: false, windowWidth: LARGURA + 40, windowHeight: total + 60, scrollX: 0, scrollY: 0 });
 
     const pdf = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
     const logo = await carregarImagem(`${window.location.origin}/visit-braga-logo-negativo.png`);
@@ -308,11 +320,29 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
         y0 = MARGEM + CAB_MM + (o.subtitulo ? 3 : 0);
       }
       const [a, b] = partes[i];
-      const pag = document.createElement('canvas');
-      pag.width = tela.width; pag.height = Math.max(1, Math.round((b - a) * escala));
-      const cx = pag.getContext('2d');
-      if (cx) { cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, pag.width, pag.height); cx.drawImage(tela, 0, Math.round(a * escala), tela.width, pag.height, 0, 0, pag.width, pag.height); }
-      pdf.addImage(pag.toDataURL('image/jpeg', 0.9), 'JPEG', MARGEM, y0, largMm, (b - a) / pxMm, undefined, 'FAST');
+      let imagem = '';
+      if (porPagina) {
+        try {
+          const c: HTMLCanvasElement = await html2canvas(alvo, { scale: ESC_PAG, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', logging: false, x: 0, y: a, width: largAlvo, height: Math.max(1, b - a), windowWidth: LARGURA + 40, windowHeight: total + 60, scrollX: 0, scrollY: 0 });
+          imagem = c.toDataURL('image/jpeg', 0.92);
+        } catch (erroPag) {
+          console.warn('Captura por página falhou; a usar captura única.', erroPag);
+          porPagina = false;
+        }
+      }
+      if (!porPagina) {
+        if (!tela) {
+          if (total * escala > 30000) escala = Math.max(1, 30000 / total);
+          tela = await html2canvas(alvo, { scale: escala, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', logging: false, windowWidth: LARGURA + 40, windowHeight: total + 60, scrollX: 0, scrollY: 0 });
+        }
+        const tl = tela as HTMLCanvasElement;
+        const pag = document.createElement('canvas');
+        pag.width = tl.width; pag.height = Math.max(1, Math.round((b - a) * escala));
+        const cx = pag.getContext('2d');
+        if (cx) { cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, pag.width, pag.height); cx.drawImage(tl, 0, Math.round(a * escala), tl.width, pag.height, 0, 0, pag.width, pag.height); }
+        imagem = pag.toDataURL('image/jpeg', 0.9);
+      }
+      pdf.addImage(imagem, 'JPEG', MARGEM, y0, largMm, (b - a) / pxMm, undefined, 'FAST');
       // Rodapé
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(111, 116, 125);
       pdf.setDrawColor(225, 230, 238); pdf.setLineWidth(0.2); pdf.line(MARGEM, 297 - MARGEM + 3, 210 - MARGEM, 297 - MARGEM + 3);

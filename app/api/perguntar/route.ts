@@ -114,7 +114,7 @@ const BLOCOS: Bloco[] = [
     dados: () => AEROPORTO_PORTO,
   },
   {
-    id: 'perfil', titulo: 'Perfil do turista (inquérito de março, 112 respostas)', separador: 'perfil', fonte: 'Estudo de Perfil do Turista',
+    id: 'perfil', titulo: 'Perfil do turista (inquérito com 336 respostas, exportação de 7/5/2025; n varia por pergunta)', separador: 'perfil', fonte: 'Estudo de Perfil do Turista',
     palavras: ['perfil', 'idade', 'motiv', 'inquerit', 'gasto diario', 'gastam por dia', 'pernoit', 'primeira vez', 'inteligencia artificial', 'como planeiam', 'transporte usado', 'companhia', 'gostaram', 'queix'],
     dados: () => PERFIL_TURISTA,
   },
