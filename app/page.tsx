@@ -842,14 +842,14 @@ export default function Home() {
       .rb-baixo, .rb-mais-fundo { display: none; }
       @media (max-width: 820px) {
         .rb-sidebar { display: none !important; }
-        .rb-baixo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 1000; padding: 6px; border-radius: 22px;
-          background: rgba(30,33,39,.78); backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
-          border: 1px solid rgba(255,255,255,.08); box-shadow: 0 12px 32px -12px rgba(0,0,0,.7); }
-        @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .rb-baixo { background: rgba(30,33,39,.98); } }
-        .rb-baixo button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; padding: 6px 2px; border: 0; background: transparent; color: #8A909B; font: 600 10.5px 'Public Sans', system-ui, sans-serif; cursor: pointer; position: relative; border-radius: 16px; -webkit-tap-highlight-color: transparent; transition: color .2s ease, background-color .2s ease; }
+        .rb-baixo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+          background: rgba(28,31,36,.94); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%);
+          border-top: 1px solid #2D3139; box-shadow: 0 -10px 24px -14px rgba(0,0,0,.8); }
+        .rb-baixo button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; padding: 6px 2px; border: 0; background: transparent; color: #A3A8B1; font: 500 11px 'Public Sans', system-ui, sans-serif; cursor: pointer; position: relative; border-radius: 6px; -webkit-tap-highlight-color: transparent; transition: background .2s ease, color .2s ease; }
         .rb-baixo button:active { background: rgba(255,255,255,.04); }
-        .rb-baixo button.on { color: #ECEDEF; background: rgba(255,255,255,.07); }
+        .rb-baixo button.on { color: #ECEDEF; background: #22324A; font-weight: 600; }
         .rb-baixo button.on svg { color: #8AB0E6; }
+        .rb-baixo button.on::before { content: ''; position: absolute; top: 0; left: 50%; width: 20px; height: 3px; margin-left: -10px; border-radius: 0 0 3px 3px; background: #8AB0E6; }
         .rb-baixo span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .rb-mais-fundo { display: block; position: fixed; inset: 0; z-index: 1100; background: rgba(8,9,11,.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: rbFadeUp .2s ease both; }
         .rb-mais { position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); max-height: 84vh; overflow-y: auto; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03)), rgba(26,29,35,.86); backdrop-filter: blur(28px) saturate(170%); -webkit-backdrop-filter: blur(28px) saturate(170%); border: 1px solid rgba(255,255,255,.14); border-radius: 26px; padding: 8px 18px 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 -20px 60px rgba(0,0,0,.5); animation: rbFadeUp .28s cubic-bezier(.2,.8,.2,1) both; color: #ECEDEF; }
@@ -858,9 +858,9 @@ export default function Home() {
         .rb-mais-lista button { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 10px 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05); color: #ECEDEF; font: 600 14px 'Public Sans', system-ui, sans-serif; text-align: left; cursor: pointer; }
         .rb-mais-lista button.on { border-color: rgba(138,176,230,.7); background: rgba(138,176,230,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.15); }
         .rb-mais-lista button svg { color: #8AB0E6; flex-shrink: 0; }
-        .rb-main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
-        .rb-topo { bottom: calc(92px + env(safe-area-inset-bottom, 0px)) !important; }
-        .rb-toast { bottom: calc(94px + env(safe-area-inset-bottom, 0px)) !important; }
+        .rb-main { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+        .rb-topo { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important; }
+        .rb-toast { bottom: calc(86px + env(safe-area-inset-bottom, 0px)) !important; }
         .rb-app { flex-direction: column !important; }
         .rb-sidebar { position: static !important; width: 100% !important; bottom: auto !important; border-right: none !important; border-bottom: 1px solid #1a1d28 !important; }
         .rb-sidebar > div:first-child { padding: 14px 16px !important; }
