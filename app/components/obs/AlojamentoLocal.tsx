@@ -2,21 +2,21 @@
 
 import { useEffect, useRef } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { t } from '@/app/lib/i18n';
+import { t, getLang } from '@/app/lib/i18n';
 import { AL_BRAGA } from '@/app/lib/alojamento-aeroporto-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 import { FREGUESIAS, POP_CONCELHO, CENSOS_FONTE, type Freguesia } from '@/app/lib/freguesias-dados';
 
 // Pressão do alojamento local por freguesia: camas de AL por 100 residentes (Censos 2021).
 // Funções de topo, sem funções aninhadas que usem parâmetros de fora (o compressor do Next.js parte esse padrão).
-interface Pressao { nome: string; pop: number; n: number; camas: number; racio: number; estrangeiros: number; centro: boolean }
-function pressaoFreguesias(al: any[]): Pressao[] {
+interface Pressao { nome: string; pop: number; n: number; camas: number; racio: number; pctAL: number; estrangeiros: number; centro: boolean }
+function pressaoFreguesias(al: any[], totalAL: number): Pressao[] {
   const r: Pressao[] = [];
   for (let i = 0; i < al.length; i++) {
     let fr: Freguesia | null = null;
     for (let j = 0; j < FREGUESIAS.length; j++) if (FREGUESIAS[j].nomeAL === al[i].freguesia) fr = FREGUESIAS[j];
     if (!fr || !fr.pop) continue;
-    r.push({ nome: fr.nome, pop: fr.pop, n: al[i].n, camas: al[i].camas, racio: (al[i].camas / fr.pop) * 100, estrangeiros: (fr.estrangeiros / fr.pop) * 100, centro: !!al[i].centro });
+    r.push({ nome: fr.nome, pop: fr.pop, n: al[i].n, camas: al[i].camas, racio: (al[i].camas / fr.pop) * 100, pctAL: totalAL ? (al[i].n / totalAL) * 100 : 0, estrangeiros: (fr.estrangeiros / fr.pop) * 100, centro: !!al[i].centro });
   }
   r.sort(porRacio);
   return r;
@@ -32,7 +32,7 @@ function CartaoPressao({ lista, media }: { lista: Pressao[]; media: number }) {
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
         {lista.slice(0, 10).map((x) => <LinhaPressao key={x.nome} x={x} max={max} media={media} />)}
       </ul>
-      <div style={{ fontSize: 11.5, color: C.textDim, marginTop: 10 }}>{t(`Fontes: base municipal do alojamento local; ${CENSOS_FONTE}. Só inclui o alojamento local; a hotelaria não está disponível por freguesia.`, `Sources: municipal short-term rental database; INE, 2021 Census (final results). Short-term rentals only; hotel data is not available by parish.`)}</div>
+      <div style={{ fontSize: 11.5, color: C.textDim, marginTop: 10 }}>{getLang() === 'es' ? `Fuentes: base municipal de alojamiento local; INE, Censo 2021 (resultados definitivos). El porcentaje de nacionalidad extranjera se refiere a los residentes de la parroquia (Censo 2021), no a los huéspedes del alojamiento local. Solo incluye el alojamiento local; los datos hoteleros no están disponibles por parroquia.` : t(`Fontes: base municipal do alojamento local; ${CENSOS_FONTE}. A percentagem de nacionalidade estrangeira refere-se aos residentes da freguesia (Censos 2021), não aos hóspedes do alojamento local. Só inclui o alojamento local; a hotelaria não está disponível por freguesia.`, `Sources: municipal short-term rental database; INE, 2021 Census (final results). The share of foreign nationals refers to the parish's residents (2021 Census), not to short-term rental guests. Short-term rentals only; hotel data is not available by parish.`)}</div>
     </Card>
   );
 }
@@ -49,7 +49,7 @@ function LinhaPressao({ x, max, media }: { x: Pressao; max: number; media: numbe
         <div style={{ width: `${w}%`, height: '100%', borderRadius: 999, background: cor }} />
         <div aria-hidden="true" style={{ position: 'absolute', top: -3, bottom: -3, left: `${m}%`, borderLeft: `2px dashed ${C.textMuted}` }} />
       </div>
-      <div style={{ fontSize: 11.5, color: C.textDim, marginTop: 3 }}>{t(`${fmt(x.camas)} camas · ${fmt(x.pop)} residentes · ${fmt(x.estrangeiros, 1)}% estrangeiros`, `${fmt(x.camas)} beds · ${fmt(x.pop)} residents · ${fmt(x.estrangeiros, 1)}% foreign nationals`)}</div>
+      <div style={{ fontSize: 11.5, color: C.textDim, marginTop: 3 }}>{getLang() === 'es' ? `${fmt(x.n)} alojamientos (${fmt(x.pctAL, 1)} % del alquiler turístico del municipio) · ${fmt(x.camas)} plazas · ${fmt(x.pop)} residentes, ${fmt(x.estrangeiros, 1)} % de nacionalidad extranjera` : t(`${fmt(x.n)} alojamentos (${fmt(x.pctAL, 1)}% do AL do concelho) · ${fmt(x.camas)} camas · ${fmt(x.pop)} residentes, ${fmt(x.estrangeiros, 1)}% de nacionalidade estrangeira`, `${fmt(x.n)} units (${fmt(x.pctAL, 1)}% of the municipality's rentals) · ${fmt(x.camas)} beds · ${fmt(x.pop)} residents, ${fmt(x.estrangeiros, 1)}% foreign nationals`)}</div>
     </li>
   );
 }
@@ -80,7 +80,7 @@ function MapaAL({ pontos }: { pontos: number[][] }) {
   return <div ref={caixa} className="obs-mapa-al" style={{ height: 420, borderRadius: 6, overflow: 'hidden', border: `1px solid ${C.border}` }} />;
 }
 
-// ═══ Alojamento Local (base municipal da taxa turística; mapa do RNAL) - só leitura ═══
+// ═══ Alojamento Local (base municipal da taxa turística; mapa do RNAL) — só leitura ═══
 export default function AlojamentoLocal() {
   const A: any = AL_BRAGA;
   const MOD: Record<string, string> = { 'Apartamento': t('Apartamento', 'Apartment'), 'Moradia': t('Moradia', 'House'), 'Estabelecimento de Hospedagem/Hostel': t('Hospedagem / hostel', 'Guesthouse / hostel'), 'Quartos': t('Quartos', 'Rooms') };
@@ -94,7 +94,7 @@ export default function AlojamentoLocal() {
   const E = A.estados;
   const pts: number[][] = A.pontos.filter((p: number[]) => p[0] > 41.4 && p[0] < 41.7 && p[1] > -8.6 && p[1] < -8.2);
   const pc = (a: number, b: number) => Math.round((a / Math.max(1, b)) * 100);
-  const pressao = pressaoFreguesias(fr);
+  const pressao = pressaoFreguesias(fr, A.total);
   const mediaPressao = (A.camas / POP_CONCELHO.pop) * 100;
   let popCentro = 0; for (let i = 0; i < pressao.length; i++) if (pressao[i].centro) popCentro += pressao[i].pop;
   const racioCentro = popCentro ? (cCentro / popCentro) * 100 : 0;
