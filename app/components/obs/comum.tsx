@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useId } from 'react';
 import { ResponsiveContainer, Tooltip, Legend, Cell, PieChart, Pie } from 'recharts';
-import { t, dl, animar } from '@/app/lib/i18n';
+import { t, dl } from '@/app/lib/i18n';
 import { descarregarDados, type Linha } from '@/app/lib/exportar-dados';
 export { descarregarDados };
 
@@ -278,7 +278,7 @@ export function MiniPie({ data, height = 210 }: { data: [string, number][]; heig
   return (
     <ResponsiveContainer width="100%" height={height}>
       <PieChart>
-        <Pie isAnimationActive={animar()} data={rows} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={42} outerRadius={70} paddingAngle={2}>
+        <Pie data={rows} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={42} outerRadius={70} paddingAngle={2}>
           {rows.map((r, i) => <Cell key={i} fill={r.fill} />)}
         </Pie>
         <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [`${v}%`, n]} />

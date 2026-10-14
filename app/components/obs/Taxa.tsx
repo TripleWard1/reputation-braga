@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ResponsiveContainer, LineChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts';
 import { MESES, INFRA, TAXA_TURISTICA } from '@/app/lib/observatorio-dados';
-import { t, animar } from '@/app/lib/i18n';
+import { t } from '@/app/lib/i18n';
 import { C, Card, Chips, KPI, YEAR_COLORS, fmt, fmtE, tipStyle } from './comum';
 import SimuladorTaxa from './SimuladorTaxa';
 
@@ -38,7 +38,7 @@ export default function Taxa() {
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [fmtE(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            {anos.map((y) => <Line isAnimationActive={animar()} key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2026' ? 3 : 2} dot={{ r: 2 }} connectNulls />)}
+            {anos.map((y) => <Line key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2026' ? 3 : 2} dot={{ r: 2 }} connectNulls />)}
           </LineChart>
         </ResponsiveContainer>
         <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>
@@ -53,7 +53,7 @@ export default function Taxa() {
             <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmtE(v), t('Receita', 'Revenue')]} />
-            <Bar isAnimationActive={animar()} dataKey="total" radius={[4, 4, 0, 0]}>{totais.map((d) => <Cell key={d.ano} fill={YEAR_COLORS[d.ano] || C.accent} />)}</Bar>
+            <Bar dataKey="total" radius={[4, 4, 0, 0]}>{totais.map((d) => <Cell key={d.ano} fill={YEAR_COLORS[d.ano] || C.accent} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
       </Card>

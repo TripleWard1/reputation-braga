@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceArea } from 'recharts';
-import { t, getLang, animar } from '@/app/lib/i18n';
+import { t, getLang } from '@/app/lib/i18n';
 import { SERIES_DIARIAS } from '@/app/lib/eventos-series-dados';
 import { EVENTOS, FERIADOS_2026, type Evento } from '@/app/lib/eventos-dados';
 import { C, Card, SectionTitle, fmt, tipStyle } from './comum';
@@ -133,7 +133,7 @@ export default function ImpactoEventos() {
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any) => [v == null ? t('sem dados', 'no data') : `${fmt(Number(v), serie.unidade ? 1 : 0)}${serie.unidade}`, nomeL(serie)]} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <ReferenceArea x1={rotDia(ev.ini)} x2={rotDia(ev.fim)} fill={C.accent} fillOpacity={0.12} />
-              <Line isAnimationActive={animar()} type="monotone" dataKey="v" name={nomeL(serie)} stroke={serie.cor} strokeWidth={2.2} dot={false} connectNulls={false} />
+              <Line type="monotone" dataKey="v" name={nomeL(serie)} stroke={serie.cor} strokeWidth={2.2} dot={false} connectNulls={false} />
             </ComposedChart>
           </ResponsiveContainer>
         ) : <div style={{ fontSize: 13, color: C.textMuted, padding: '20px 0' }}>{t('Esta série não cobre as datas deste evento.', 'This series does not cover this event’s dates.')}</div>}

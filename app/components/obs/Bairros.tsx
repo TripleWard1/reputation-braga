@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { t, animar } from '@/app/lib/i18n';
+import { t } from '@/app/lib/i18n';
 import { BAIRROS } from '@/app/lib/mobilidade-bairros-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
@@ -96,7 +96,7 @@ export default function Bairros() {
               <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(Number(v)), t('Dispositivos por dia', 'Devices per day')]} />
-              <Bar isAnimationActive={animar()} dataKey="v" name={t('Dispositivos por dia', 'Devices per day')} fill={C.accent} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="v" name={t('Dispositivos por dia', 'Devices per day')} fill={C.accent} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t('Outubro inclui só os primeiros 7 dias. A descida desde a primavera pode refletir mudanças na rede (pontos ativos), e não apenas menos pessoas: convém confirmar com a equipa da Braga Smart Retail antes de tirar conclusões.', 'October includes only the first 7 days. The drop since spring may reflect network changes (active access points), not just fewer people: worth confirming with the Braga Smart Retail team before drawing conclusions.')}</div>
@@ -109,7 +109,7 @@ export default function Bairros() {
                 <XAxis dataKey="dia" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
                 <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
                 <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(Number(v)), t('Dispositivos por dia', 'Devices per day')]} />
-                <Bar isAnimationActive={animar()} dataKey="v" name={t('Por dia', 'Per day')} fill={C.positive} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="v" name={t('Por dia', 'Per day')} fill={C.positive} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
             <ResponsiveContainer width="100%" height={220}>
@@ -118,7 +118,7 @@ export default function Bairros() {
                 <XAxis dataKey="h" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} tickFormatter={(h: any) => `${h}h`} interval={3} />
                 <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
                 <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} labelFormatter={(h: any) => `${h}h`} formatter={(v: any) => [dec(Number(v)), t('Dispositivos por hora', 'Devices per hour')]} />
-                <Line isAnimationActive={animar()} type="monotone" dataKey="v" name={t('Por hora', 'Per hour')} stroke={C.orange} strokeWidth={2.2} dot={false} />
+                <Line type="monotone" dataKey="v" name={t('Por hora', 'Per hour')} stroke={C.orange} strokeWidth={2.2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -155,7 +155,7 @@ export default function Bairros() {
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [dec(Number(v)), n]} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              {tipos.map((tp) => <Bar isAnimationActive={animar()} key={tp} dataKey={tp} name={NOMES_T[tp] || tp} stackId="a" fill={CORES_T[tp] || C.textDim} />)}
+              {tipos.map((tp) => <Bar key={tp} dataKey={tp} name={NOMES_T[tp] || tp} stackId="a" fill={CORES_T[tp] || C.textDim} />)}
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t('Chegadas de serviços ao Centro Coordenador de Transportes, por tipo de serviço, de outubro de 2025 a outubro de 2026. As ligações internacionais mais do que duplicaram no verão (de 16 por dia em fevereiro para quase 34 em agosto). A categoria «LISTA BRANCA» (nome no ficheiro, significado a confirmar) praticamente só aparece a partir de janeiro de 2026, o que explica parte do aumento do total.', 'Service arrivals at the Transport Coordination Centre, by service type, October 2025 to October 2026. International services more than doubled in summer (from 16 a day in February to almost 34 in August). The «LISTA BRANCA» category (name in the file, meaning to be confirmed) practically only appears from January 2026, which explains part of the rise in the total.')}</div>
@@ -168,8 +168,8 @@ export default function Bairros() {
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${v}%`} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [`${dec(Number(v))}%`, n]} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar isAnimationActive={animar()} dataKey="geo" name={t('Visitas ao concelho (Geoanalytics)', 'Visits to the municipality (Geoanalytics)')} fill={C.purple} radius={[3, 3, 0, 0]} />
-              <Bar isAnimationActive={animar()} dataKey="wifi" name={t('Wi-Fi do bairro', 'District Wi-Fi')} fill={C.accent} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="geo" name={t('Visitas ao concelho (Geoanalytics)', 'Visits to the municipality (Geoanalytics)')} fill={C.purple} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="wifi" name={t('Wi-Fi do bairro', 'District Wi-Fi')} fill={C.accent} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t('As visitas ao concelho crescem ao fim de semana (sábado e domingo valem mais de um terço da semana), mas o Wi-Fi do centro cai ao domingo. Os dados não explicam a diferença: as duas fontes medem coisas distintas e cobrem períodos diferentes (telemóveis: outubro a dezembro de 2025; Wi-Fi: outubro de 2025 a outubro de 2026).', 'Visits to the municipality rise at weekends (Saturday and Sunday make up over a third of the week), but the centre’s Wi-Fi falls on Sunday. The data do not explain the difference: the two sources measure different things and cover different periods (phones: October to December 2025; Wi-Fi: October 2025 to October 2026).')}</div>

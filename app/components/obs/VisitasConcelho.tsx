@@ -1,7 +1,7 @@
 'use client';
 
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { t, getLang, animar } from '@/app/lib/i18n';
+import { t, getLang } from '@/app/lib/i18n';
 import { GEO_VISITAS } from '@/app/lib/mobilidade-bairros-dados';
 import { HOSPEDES_BRAGA } from '@/app/lib/observatorio-dados';
 import { estadaRecente } from '@/app/lib/estada-media';
@@ -66,8 +66,8 @@ export default function VisitasConcelho() {
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${Math.round(Number(v) / 1000)}k`} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(Number(v)), n]} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar isAnimationActive={animar()} dataKey="dia" name={t('De um dia', 'Day visits')} stackId="a" fill={C.accent} />
-            <Bar isAnimationActive={animar()} dataKey="dorm" name={t('Com noite no concelho', 'With a night in the municipality')} stackId="a" fill={C.orange} />
+            <Bar dataKey="dia" name={t('De um dia', 'Day visits')} stackId="a" fill={C.accent} />
+            <Bar dataKey="dorm" name={t('Com noite no concelho', 'With a night in the municipality')} stackId="a" fill={C.orange} />
           </BarChart>
         </ResponsiveContainer>
         <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Cada barra é um dia. Ao fim de semana há, em média, ${dec(razaoFds)} vezes mais visitas do que num dia útil. No fim de dezembro, período de festas, sobem sobretudo as visitas com noite no concelho, o que é coerente com visitas a familiares.`, `Each bar is a day. At weekends there are on average ${dec(razaoFds)} times more visits than on a weekday. In late December, the holiday period, visits with a night in the municipality rise the most, which is consistent with family visits.`)}</div>
@@ -82,8 +82,8 @@ export default function VisitasConcelho() {
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${v}%`} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [`${dec(Number(v))}%`, n]} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar isAnimationActive={animar()} dataKey="nac" name={t('Nacionais', 'Domestic')} fill={C.accent} radius={[3, 3, 0, 0]} />
-              <Bar isAnimationActive={animar()} dataKey="int" name={t('Internacionais', 'International')} fill={C.orange} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="nac" name={t('Nacionais', 'Domestic')} fill={C.accent} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="int" name={t('Internacionais', 'International')} fill={C.orange} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`${dec(G.duracao.Nacional[0] + G.duracao.Nacional[1])}% das visitas nacionais duram até 5 horas. Nos internacionais, as visitas com dormida pesam mais do dobro do que nos nacionais.`, `${dec(G.duracao.Nacional[0] + G.duracao.Nacional[1])}% of domestic visits last up to 5 hours. Among international visitors, overnight visits weigh more than twice as much as among domestic visitors.`)}</div>
@@ -96,7 +96,7 @@ export default function VisitasConcelho() {
               <YAxis type="category" dataKey="mes" width={80} stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [`${dec(Number(v))}%`, n]} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              {tcab.map((c) => <Bar isAnimationActive={animar()} key={c} dataKey={c} name={t(TIPO_PT[c] || c, TIPO_EN[c] || c)} stackId="a" fill={CORES[c] || C.textDim} />)}
+              {tcab.map((c) => <Bar key={c} dataKey={c} name={t(TIPO_PT[c] || c, TIPO_EN[c] || c)} stackId="a" fill={CORES[c] || C.textDim} />)}
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`A categoria «Visitantes», definida pelo fornecedor pelo padrão de presença, é a maior parte das presenças. A parte dos internacionais nas visitas foi de ${nacInt.map((x) => `${dec(x.int)}% em ${x.mes}`).join(', ')}.`, `The «Visitors» category, defined by the provider from presence patterns, is most of the presence. The international share of visits was ${nacInt.map((x) => `${dec(x.int)}% in ${x.mes}`).join(', ')}.`)}</div>

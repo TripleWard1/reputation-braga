@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { t, animar } from '@/app/lib/i18n';
+import { t } from '@/app/lib/i18n';
 import { RNAAT, RNAAT_FONTE } from '@/app/lib/rnaat-dados';
 import { PERFIL_TURISTA } from '@/app/lib/perfil-turista-dados';
 import { SETOR_SUSTENTAVEL } from '@/app/lib/setor-sustentavel-dados';
@@ -40,7 +40,7 @@ export default function AnimacaoTuristica() {
               <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} allowDecimals={false} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [v, t('Empresas', 'Companies')]} />
-              <Bar isAnimationActive={animar()} dataKey="n" name={t('Empresas', 'Companies')} fill={C.accent} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="n" name={t('Empresas', 'Companies')} fill={C.accent} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -51,7 +51,7 @@ export default function AnimacaoTuristica() {
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} allowDecimals={false} />
               <YAxis type="category" dataKey="atividade" width={220} stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [v, t('Empresas', 'Companies')]} />
-              <Bar isAnimationActive={animar()} dataKey="v" name={t('Empresas', 'Companies')} fill={C.positive} radius={[0, 4, 4, 0]} />
+              <Bar dataKey="v" name={t('Empresas', 'Companies')} fill={C.positive} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>

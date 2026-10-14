@@ -8,16 +8,20 @@ type AnyAnalysis = any;
 
 const cache = new Map<string, AnyAnalysis>(); // loc.id -> análise traduzida (EN)
 const inflight = new Set<string>();
+// Falhas recentes (ex.: /api/groq só responde a administradores, ou limite/erro do serviço): não repetir em ciclo.
+// Sem isto, cada falha fazia notify() -> re-render -> nova tentativa -> falha ... (lag e gráficos a reanimar sem parar em EN).
+const failed = new Map<string, number>(); // loc.id -> instante da falha
+const RETRY_MS = 5 * 60 * 1000;
 
 let notify: (() => void) | null = null;
 /** Liga um callback que força re-render quando uma tradução fica pronta. */
 export function setTransNotify(fn: () => void) { notify = fn; }
 
 /** Invalida a tradução de um local (ex.: após nova análise). */
-export function invalidateTrans(locId: string) { cache.delete(locId); inflight.delete(locId); }
+export function invalidateTrans(locId: string) { cache.delete(locId); inflight.delete(locId); failed.delete(locId); }
 
 /** Limpa toda a cache de traduções. */
-export function clearTransCache() { cache.clear(); inflight.clear(); }
+export function clearTransCache() { cache.clear(); inflight.clear(); failed.clear(); }
 
 function pick(a: AnyAnalysis) {
   return {
@@ -41,6 +45,8 @@ function pick(a: AnyAnalysis) {
 
 async function translateAnalysis(locId: string, a: AnyAnalysis): Promise<void> {
   if (cache.has(locId) || inflight.has(locId)) return;
+  const f = failed.get(locId);
+  if (f !== undefined && Date.now() - f < RETRY_MS) return;
   inflight.add(locId);
   try {
     const src = pick(a);
@@ -81,11 +87,13 @@ async function translateAnalysis(locId: string, a: AnyAnalysis): Promise<void> {
       } : a.v2,
     };
     cache.set(locId, translated);
+    failed.delete(locId);
+    if (notify) notify(); // só re-renderiza quando há tradução nova
   } catch {
-    // Em caso de falha, deixa por traduzir (fica em PT); pode tentar de novo mais tarde.
+    // Em caso de falha, deixa por traduzir (fica em PT) e só volta a tentar passado RETRY_MS.
+    failed.set(locId, Date.now());
   } finally {
     inflight.delete(locId);
-    if (notify) notify();
   }
 }
 
