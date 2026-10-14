@@ -62,7 +62,8 @@ export function getLang(): Lang {
 // porque os rótulos mudam, os dados são recriados e o Recharts voltava a animar todos os gráficos (lag + flicker).
 let SEM_ANIM = false;
 let SEM_ANIM_TIMER: ReturnType<typeof setTimeout> | null = null;
-export function animar(): boolean { return !SEM_ANIM; }
+// Devolve o valor para isAnimationActive: 'auto' (o padrão do Recharts) ou false durante a troca de língua.
+export function animar(): boolean | 'auto' { return SEM_ANIM ? false : 'auto'; }
 export function pausarAnimacoes(ms = 1500): void {
   SEM_ANIM = true;
   if (SEM_ANIM_TIMER) clearTimeout(SEM_ANIM_TIMER);
