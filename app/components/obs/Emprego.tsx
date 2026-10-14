@@ -1,7 +1,7 @@
 'use client';
 
 import { ResponsiveContainer, LineChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { t } from '@/app/lib/i18n';
+import { t, animar } from '@/app/lib/i18n';
 import { EMPREGO } from '@/app/lib/emprego-dados';
 import { BarrasPct, C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
@@ -82,7 +82,7 @@ export default function Emprego() {
                 <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="€" domain={['dataMin - 50', 'dataMax + 50']} />
                 <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(val: any, nm: any) => [eu(Number(val)), nm]} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                {Object.keys(GT.territorios).map((k) => <Line isAnimationActive={false} key={k} type="monotone" dataKey={k} stroke={cores[k] || C.textDim} strokeWidth={k === 'Braga' ? 3 : 2} dot={{ r: 3 }} />)}
+                {Object.keys(GT.territorios).map((k) => <Line isAnimationActive={animar()} key={k} type="monotone" dataKey={k} stroke={cores[k] || C.textDim} strokeWidth={k === 'Braga' ? 3 : 2} dot={{ r: 3 }} />)}
               </LineChart>
             </ResponsiveContainer>
             <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{t(`Ganho médio mensal de todas as atividades, em valores nominais (sem descontar a inflação: ${IN ? (IN.taxas as number[]).map((x: number, i: number) => `${IN.anos[i]} ${String(x).replace('.', ',')}%`).join(', ') : ''}, segundo o IPC do INE). Só inclui trabalhadores a tempo completo com remuneração completa: na restauração, onde há muito trabalho a tempo parcial, o rendimento típico pode ser inferior. O INE não publica o setor do turismo ao nível do concelho, por isso o valor do turismo em Braga é uma estimativa da plataforma, não um dado oficial. Fonte: ${GT.fonte}.`, `Average monthly earnings across all activities. INE does not publish the tourism sector at municipal level, so the Braga tourism figure is a platform estimate, not official data. Source: ${GT.fonte}.`)}</div>
@@ -108,8 +108,8 @@ export default function Emprego() {
                 <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="€" />
                 <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} labelFormatter={(l: any) => t(`Empresas com ${l} pessoas`, `Firms with ${l} people`)} formatter={(val: any, nm: any) => [eu(Number(val)), nm]} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar isAnimationActive={false} dataKey="turismo" name={t('Alojamento e restauração', 'Accommodation and food')} fill={C.accent} radius={[4, 4, 0, 0]} />
-                <Bar isAnimationActive={false} dataKey="total" name={t('Todas as atividades', 'All activities')} fill={C.textDim} radius={[4, 4, 0, 0]} />
+                <Bar isAnimationActive={animar()} dataKey="turismo" name={t('Alojamento e restauração', 'Accommodation and food')} fill={C.accent} radius={[4, 4, 0, 0]} />
+                <Bar isAnimationActive={animar()} dataKey="total" name={t('Todas as atividades', 'All activities')} fill={C.textDim} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
             <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{t(`Por dimensão da empresa (n.º de pessoas ao serviço). O INE só publica este indicador ao nível da região ${G.regiao}, sem concelho. Fonte: ${G.fonte}.`, `By company size (persons employed). INE only publishes this indicator at ${G.regiao} region level, not by municipality. Source: ${G.fonte}.`)}</div>
@@ -125,8 +125,8 @@ export default function Emprego() {
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(val: any, n: any) => [fmt(val), n]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar isAnimationActive={false} dataKey="turismo" name={t('Alojamento e restauração', 'Accommodation and food')} fill={C.accent} radius={[4, 4, 0, 0]} />
-              <Bar isAnimationActive={false} dataKey="administrativas" name={t('Serviços administrativos (comparação)', 'Administrative services (comparison)')} fill={C.textDim} radius={[4, 4, 0, 0]} />
+              <Bar isAnimationActive={animar()} dataKey="turismo" name={t('Alojamento e restauração', 'Accommodation and food')} fill={C.accent} radius={[4, 4, 0, 0]} />
+              <Bar isAnimationActive={animar()} dataKey="administrativas" name={t('Serviços administrativos (comparação)', 'Administrative services (comparison)')} fill={C.textDim} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{t(`O emprego no alojamento e na restauração cresceu ${v(cresc)}% em dois anos: ${v(((SB.turismo[1] / SB.turismo[0]) - 1) * 100)}% em ${SB.anos[1]} e ${v(((SB.turismo[2] / SB.turismo[1]) - 1) * 100)}% em ${SB.anos[2]}. Fonte: ${SB.fonte}.`, `Employment in accommodation and food grew ${v(cresc)}% in two years: ${v(((SB.turismo[1] / SB.turismo[0]) - 1) * 100)}% in ${SB.anos[1]} and ${v(((SB.turismo[2] / SB.turismo[1]) - 1) * 100)}% in ${SB.anos[2]}. Source: ${SB.fonte}.`)}</div>

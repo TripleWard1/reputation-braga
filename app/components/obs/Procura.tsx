@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ResponsiveContainer, LineChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts';
 import { MESES, MESES_CURTO, DORMIDAS_BRAGA, HOSPEDES_BRAGA, DORMIDAS_ANUAL, HOSPEDES_ANUAL, SUSTENTABILIDADE, SEMESTRE_2026 } from '@/app/lib/observatorio-dados';
-import { t, dl } from '@/app/lib/i18n';
+import { t, dl, animar } from '@/app/lib/i18n';
 import { C, Card, Chips, YEAR_COLORS, fmt, tipStyle } from './comum';
 
 // ─── PROCURA (INE) ───────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ export default function Procura() {
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [fmt(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            {anos.map((y) => <Line isAnimationActive={false} key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2025' ? 3 : 2} dot={{ r: 2 }} connectNulls />)}
+            {anos.map((y) => <Line isAnimationActive={animar()} key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2025' ? 3 : 2} dot={{ r: 2 }} connectNulls />)}
           </LineChart>
         </ResponsiveContainer>
         <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>{t('Fonte: INE / TravelBI. Os dados de 2025 e 2026 são provisórios; 2026 disponível até junho.', 'Source: INE / TravelBI. 2025 and 2026 data are provisional; 2026 available up to June.')}</p>
@@ -81,7 +81,7 @@ export default function Procura() {
             <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), metric === 'dormidas' ? t('Dormidas', 'Overnight stays') : t('Hóspedes', 'Guests')]} />
-            <Bar isAnimationActive={false} dataKey="v" radius={[4, 4, 0, 0]}>{anualData.map((d) => <Cell key={d.ano} fill={YEAR_COLORS[d.ano] || C.accent} />)}</Bar>
+            <Bar isAnimationActive={animar()} dataKey="v" radius={[4, 4, 0, 0]}>{anualData.map((d) => <Cell key={d.ano} fill={YEAR_COLORS[d.ano] || C.accent} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
         <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>{t('Nota: a quebra de 2020–2021 reflete a pandemia; os níveis de 2019 só foram ultrapassados em 2024.', 'Note: the 2020–2021 drop reflects the pandemic; 2019 levels were only exceeded in 2024.')}</p>
@@ -144,7 +144,7 @@ export default function Procura() {
                 <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
                 <YAxis type="category" dataKey="nome" width={84} stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
                 <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(v), n]} />
-                <Bar isAnimationActive={false} dataKey="d2026" name={t('Dormidas 2026', 'Overnight stays 2026')} radius={[0, 4, 4, 0]}>
+                <Bar isAnimationActive={animar()} dataKey="d2026" name={t('Dormidas 2026', 'Overnight stays 2026')} radius={[0, 4, 4, 0]}>
                   {top.map((d) => <Cell key={d.nome} fill={d.nome === 'Braga' ? C.accent : C.textDim} />)}
                 </Bar>
               </BarChart>

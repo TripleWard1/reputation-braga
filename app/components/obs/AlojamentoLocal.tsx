@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { t, getLang } from '@/app/lib/i18n';
+import { t, getLang, animar } from '@/app/lib/i18n';
 import { AL_BRAGA } from '@/app/lib/alojamento-aeroporto-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 import { FREGUESIAS, POP_CONCELHO, CENSOS_FONTE, type Freguesia } from '@/app/lib/freguesias-dados';
@@ -121,7 +121,7 @@ export default function AlojamentoLocal() {
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <YAxis type="category" dataKey="freguesia" width={180} stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any, it: any) => [`${fmt(v)} · ${fmt(it?.payload?.camas)} ${t('camas', 'beds')}`, t('Alojamentos', 'Rentals')]} />
-              <Bar isAnimationActive={false} dataKey="n" name={t('Alojamentos', 'Rentals')} fill={C.orange} radius={[0, 4, 4, 0]} />
+              <Bar isAnimationActive={animar()} dataKey="n" name={t('Alojamentos', 'Rentals')} fill={C.orange} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -135,7 +135,7 @@ export default function AlojamentoLocal() {
               <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Alojamentos', 'Rentals')]} />
-              <Bar isAnimationActive={false} dataKey="n" name={t('Alojamentos', 'Rentals')} fill={C.accent} radius={[4, 4, 0, 0]} />
+              <Bar isAnimationActive={animar()} dataKey="n" name={t('Alojamentos', 'Rentals')} fill={C.accent} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t('Só conta os alojamentos ainda ativos, pelo ano em que começaram a atividade. O registo do ano em curso está incompleto.', 'Only rentals still active, by the year they began operating. The current year is incomplete.')}</div>
@@ -147,7 +147,7 @@ export default function AlojamentoLocal() {
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <YAxis type="category" dataKey="mod" width={140} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Alojamentos', 'Rentals')]} />
-              <Bar isAnimationActive={false} dataKey="v" name={t('Alojamentos', 'Rentals')} fill={C.purple} radius={[0, 4, 4, 0]} />
+              <Bar isAnimationActive={animar()} dataKey="v" name={t('Alojamentos', 'Rentals')} fill={C.purple} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Base municipal: ${fmt(A.registados)} alojamentos locais registados, dos quais ${fmt(E.ativos)} ativos. ${E.semEstado} registos não têm estado indicado e não entram nas contas.`, `Municipal database: ${fmt(A.registados)} registered rentals, ${fmt(E.ativos)} active. ${E.semEstado} records have no status and are excluded.`)}</div>

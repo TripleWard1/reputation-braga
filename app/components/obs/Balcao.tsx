@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { MESES, MESES_CURTO, BALCAO } from '@/app/lib/observatorio-dados';
-import { t, dl } from '@/app/lib/i18n';
+import { t, dl, animar } from '@/app/lib/i18n';
 import { C, Card, Chips, HBars, KPI, fmt, tipStyle } from './comum';
 
 // ─── ATENDIMENTO BALCÃO ──────────────────────────────────────────────────────
@@ -43,8 +43,8 @@ export default function Balcao() {
             <YAxis yAxisId="r" orientation="right" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [fmt(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar isAnimationActive={false} yAxisId="l" dataKey="atendimentos" name={t('Atendimentos', 'Visits')} fill={C.accent} radius={[4, 4, 0, 0]} />
-            <Line isAnimationActive={false} yAxisId="r" type="monotone" dataKey="pax" name={t('Pessoas (pax)', 'People (pax)')} stroke={C.info} strokeWidth={2} dot={{ r: 2 }} />
+            <Bar isAnimationActive={animar()} yAxisId="l" dataKey="atendimentos" name={t('Atendimentos', 'Visits')} fill={C.accent} radius={[4, 4, 0, 0]} />
+            <Line isAnimationActive={animar()} yAxisId="r" type="monotone" dataKey="pax" name={t('Pessoas (pax)', 'People (pax)')} stroke={C.info} strokeWidth={2} dot={{ r: 2 }} />
           </ComposedChart>
         </ResponsiveContainer>
       </Card>

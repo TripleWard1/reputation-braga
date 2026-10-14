@@ -2,7 +2,7 @@
 
 import { ResponsiveContainer, LineChart, BarChart, AreaChart, Line, Bar, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { MESES, MESES_CURTO, DORMIDAS_BRAGA, REVPAR_MENSAL, ADR_ANUAL, HEADLINE, INFRA, QUARTOS, CAPACIDADE_CAMAS, ALOJAMENTO_FREGUESIA, SEMESTRE_2026, DORMIDAS_PORTUGAL } from '@/app/lib/observatorio-dados';
-import { t, dl } from '@/app/lib/i18n';
+import { t, dl, animar } from '@/app/lib/i18n';
 import { C, Card, KPI, SectionTitle, YEAR_COLORS, fmt, fmtE, tipStyle } from './comum';
 
 function CompareBars({ title, vals, unit = '' }: { title: string; vals: Record<string, number>; unit?: string }) {
@@ -108,8 +108,8 @@ export default function Economia() {
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [`${sinal(v)}%`, n]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar isAnimationActive={false} dataKey="Braga" fill={C.accent} radius={[4, 4, 0, 0]} />
-              <Bar isAnimationActive={false} dataKey="Portugal" fill={C.textDim} radius={[4, 4, 0, 0]} />
+              <Bar isAnimationActive={animar()} dataKey="Braga" fill={C.accent} radius={[4, 4, 0, 0]} />
+              <Bar isAnimationActive={animar()} dataKey="Portugal" fill={C.textDim} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -121,7 +121,7 @@ export default function Economia() {
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} domain={['dataMin - 5', 'dataMax + 5']} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [`${v} €`, n]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              {['2023', '2024', '2025', '2026'].map((y) => <Line isAnimationActive={false} key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2026' ? 3 : 2} dot={{ r: 2 }} />)}
+              {['2023', '2024', '2025', '2026'].map((y) => <Line isAnimationActive={animar()} key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2026' ? 3 : 2} dot={{ r: 2 }} />)}
             </LineChart>
           </ResponsiveContainer>
         </Card>
@@ -135,8 +135,8 @@ export default function Economia() {
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1e6).toFixed(1)}M`} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmtE(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar isAnimationActive={false} dataKey="2025" fill={YEAR_COLORS['2025']} radius={[4, 4, 0, 0]} />
-            <Bar isAnimationActive={false} dataKey="2026" fill={YEAR_COLORS['2026']} radius={[4, 4, 0, 0]} />
+            <Bar isAnimationActive={animar()} dataKey="2025" fill={YEAR_COLORS['2025']} radius={[4, 4, 0, 0]} />
+            <Bar isAnimationActive={animar()} dataKey="2026" fill={YEAR_COLORS['2026']} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
         <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0', lineHeight: 1.5 }}>
@@ -163,7 +163,7 @@ export default function Economia() {
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [`${v} €`, n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            {['2022', '2023', '2024', '2025', '2026'].map((y) => <Line isAnimationActive={false} key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2026' ? 3 : 2} dot={{ r: 2 }} connectNulls />)}
+            {['2022', '2023', '2024', '2025', '2026'].map((y) => <Line isAnimationActive={animar()} key={y} type="monotone" dataKey={y} stroke={YEAR_COLORS[y]} strokeWidth={y === '2026' ? 3 : 2} dot={{ r: 2 }} connectNulls />)}
           </LineChart>
         </ResponsiveContainer>
       </Card>
@@ -177,7 +177,7 @@ export default function Economia() {
               <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any) => [`${v} €`, 'ADR']} />
-              <Area isAnimationActive={false} type="monotone" dataKey="adr" stroke={C.accent} strokeWidth={2.5} fill="url(#adrg)" />
+              <Area isAnimationActive={animar()} type="monotone" dataKey="adr" stroke={C.accent} strokeWidth={2.5} fill="url(#adrg)" />
             </AreaChart>
           </ResponsiveContainer>
           <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>{t('No ficheiro de origem, 2018 a 2022 referem-se aos estabelecimentos hoteleiros e 2023 a 2025 parecem referir-se a todo o alojamento turístico: possível quebra de série, a confirmar.', 'In the source file, 2018–2022 refer to hotel establishments and 2023–2025 appear to refer to all tourist accommodation: possible series break, to be confirmed.')}</p>
@@ -211,9 +211,9 @@ export default function Economia() {
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(v), n]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar isAnimationActive={false} dataKey="hotelaria" stackId="q" name={t('Hotelaria', 'Hotels')} fill={C.accent} />
-              <Bar isAnimationActive={false} dataKey="al" stackId="q" name={t('Alojamento local', 'Local accommodation')} fill={C.info} />
-              <Bar isAnimationActive={false} dataKey="ter" stackId="q" name={t('Turismo espaço rural', 'Rural tourism')} fill={C.purple} radius={[4, 4, 0, 0]} />
+              <Bar isAnimationActive={animar()} dataKey="hotelaria" stackId="q" name={t('Hotelaria', 'Hotels')} fill={C.accent} />
+              <Bar isAnimationActive={animar()} dataKey="al" stackId="q" name={t('Alojamento local', 'Local accommodation')} fill={C.info} />
+              <Bar isAnimationActive={animar()} dataKey="ter" stackId="q" name={t('Turismo espaço rural', 'Rural tourism')} fill={C.purple} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>
@@ -229,9 +229,9 @@ export default function Economia() {
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(v), n]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar isAnimationActive={false} dataKey="hotelaria" stackId="c" name={t('Hotelaria', 'Hotels')} fill={C.accent} />
-              <Bar isAnimationActive={false} dataKey="al" stackId="c" name={t('Alojamento local', 'Local accommodation')} fill={C.info} />
-              <Bar isAnimationActive={false} dataKey="ter" stackId="c" name={t('Turismo espaço rural', 'Rural tourism')} fill={C.purple} radius={[4, 4, 0, 0]} />
+              <Bar isAnimationActive={animar()} dataKey="hotelaria" stackId="c" name={t('Hotelaria', 'Hotels')} fill={C.accent} />
+              <Bar isAnimationActive={animar()} dataKey="al" stackId="c" name={t('Alojamento local', 'Local accommodation')} fill={C.info} />
+              <Bar isAnimationActive={animar()} dataKey="ter" stackId="c" name={t('Turismo espaço rural', 'Rural tourism')} fill={C.purple} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>
@@ -256,8 +256,8 @@ export default function Economia() {
             <YAxis type="category" dataKey="nome" width={170} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar isAnimationActive={false} dataKey="al" stackId="f" name={t('Alojamento Local', 'Local Accommodation')} fill={C.info} />
-            <Bar isAnimationActive={false} dataKey="et" stackId="f" name={t('Empreendimentos', 'Tourist establishments')} fill={C.accent} radius={[0, 4, 4, 0]} />
+            <Bar isAnimationActive={animar()} dataKey="al" stackId="f" name={t('Alojamento Local', 'Local Accommodation')} fill={C.info} />
+            <Bar isAnimationActive={animar()} dataKey="et" stackId="f" name={t('Empreendimentos', 'Tourist establishments')} fill={C.accent} radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
         <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>

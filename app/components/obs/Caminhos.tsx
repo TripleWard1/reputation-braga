@@ -2,7 +2,7 @@
 
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { CAMINHOS } from '@/app/lib/caminhos-santiago-dados';
-import { t } from '@/app/lib/i18n';
+import { t, animar } from '@/app/lib/i18n';
 import { Badge, C, Card, Cruz, HBars, MiniPie, SectionTitle, fmt, tipStyle } from './comum';
 
 export default function Caminhos() {
@@ -37,8 +37,8 @@ export default function Caminhos() {
             <YAxis tick={{ fill: C.textMuted, fontSize: 12 }} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any) => fmt(v)} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Line isAnimationActive={false} type="monotone" dataKey="Geira" name="Geira e Arrieiros" stroke={C.accent} strokeWidth={2.5} dot={{ r: 4 }} />
-            <Line isAnimationActive={false} type="monotone" dataKey="Central" name={t('Central Português', 'Portuguese Central')} stroke={C.info} strokeWidth={2.5} dot={{ r: 4 }} />
+            <Line isAnimationActive={animar()} type="monotone" dataKey="Geira" name="Geira e Arrieiros" stroke={C.accent} strokeWidth={2.5} dot={{ r: 4 }} />
+            <Line isAnimationActive={animar()} type="monotone" dataKey="Central" name={t('Central Português', 'Portuguese Central')} stroke={C.info} strokeWidth={2.5} dot={{ r: 4 }} />
           </LineChart>
         </ResponsiveContainer>
         <p style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.6, marginTop: 8 }}>

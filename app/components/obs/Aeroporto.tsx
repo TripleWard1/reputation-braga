@@ -2,7 +2,7 @@
 
 import { ResponsiveContainer, LineChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { MESES, DORMIDAS_BRAGA } from '@/app/lib/observatorio-dados';
-import { t } from '@/app/lib/i18n';
+import { t, animar } from '@/app/lib/i18n';
 import { AEROPORTO_PORTO } from '@/app/lib/alojamento-aeroporto-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
@@ -34,7 +34,7 @@ export default function Aeroporto() {
             <XAxis dataKey="mes" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} interval={2} />
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [`${fmt(v)} mil`, t('Passageiros', 'Passengers')]} />
-            <Bar isAnimationActive={false} dataKey="passageiros" name={t('Passageiros', 'Passengers')} fill={C.accent} radius={[4, 4, 0, 0]} />
+            <Bar isAnimationActive={animar()} dataKey="passageiros" name={t('Passageiros', 'Passengers')} fill={C.accent} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -46,8 +46,8 @@ export default function Aeroporto() {
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="%" />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any, n: any) => [v == null ? '-' : `${String(v).replace('.', ',')}%`, n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line isAnimationActive={false} type="monotone" dataKey="aeroporto" name={t('Aeroporto do Porto', 'Porto airport')} stroke={C.accent} strokeWidth={2} dot={false} connectNulls />
-            <Line isAnimationActive={false} type="monotone" dataKey="braga" name={t('Dormidas em Braga', 'Braga overnight stays')} stroke={C.orange} strokeWidth={2} dot={false} connectNulls />
+            <Line isAnimationActive={animar()} type="monotone" dataKey="aeroporto" name={t('Aeroporto do Porto', 'Porto airport')} stroke={C.accent} strokeWidth={2} dot={false} connectNulls />
+            <Line isAnimationActive={animar()} type="monotone" dataKey="braga" name={t('Dormidas em Braga', 'Braga overnight stays')} stroke={C.orange} strokeWidth={2} dot={false} connectNulls />
           </LineChart>
         </ResponsiveContainer>
         <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t('As duas séries comparam o mesmo mês; não demonstram que o aeroporto antecipe as dormidas em Braga. Este ficheiro traz só o total de passageiros; o país de origem do voo não está incluído.', 'Both series compare the same month; they do not show that the airport anticipates Braga’s overnight stays. This file only has total passengers; the flight’s country of origin is not included.')}</div>

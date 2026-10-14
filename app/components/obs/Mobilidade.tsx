@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ResponsiveContainer, ComposedChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { t } from '@/app/lib/i18n';
+import { t, animar } from '@/app/lib/i18n';
 import { TUB } from '@/app/lib/tub-dados';
 import { C, Card, KPI, SectionTitle, fmt, tipStyle } from './comum';
 
@@ -110,7 +110,7 @@ export default function Mobilidade() {
               <XAxis dataKey="hora" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} interval={1} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Entradas', 'Boardings')]} />
-              <Bar isAnimationActive={false} dataKey="v" name={t('Entradas', 'Boardings')} fill={C.accent} radius={[3, 3, 0, 0]} />
+              <Bar isAnimationActive={animar()} dataKey="v" name={t('Entradas', 'Boardings')} fill={C.accent} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 6 }}>{t('Paragens com mais entradas: ', 'Busiest stops: ')}{(L.topParagens as any[]).slice(0, 3).map((p) => `${p.paragem} (${fmt(p.n)})`).join(' · ')}</div>
@@ -166,8 +166,8 @@ export default function Mobilidade() {
                     <YAxis yAxisId="v" orientation="right" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit=" km/h" domain={[0, 'dataMax + 4']} />
                     <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [v == null ? '-' : n === t('Velocidade', 'Speed') ? `${v1(v)} km/h` : fmt(v), n]} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar isAnimationActive={false} yAxisId="a" dataKey="atrasos" name={t('Chegadas atrasadas', 'Late arrivals')} fill={C.orange} radius={[3, 3, 0, 0]} />
-                    <Line isAnimationActive={false} yAxisId="v" type="monotone" dataKey="vel" name={t('Velocidade', 'Speed')} stroke={C.accent} strokeWidth={2.5} dot={false} connectNulls />
+                    <Bar isAnimationActive={animar()} yAxisId="a" dataKey="atrasos" name={t('Chegadas atrasadas', 'Late arrivals')} fill={C.orange} radius={[3, 3, 0, 0]} />
+                    <Line isAnimationActive={animar()} yAxisId="v" type="monotone" dataKey="vel" name={t('Velocidade', 'Speed')} stroke={C.accent} strokeWidth={2.5} dot={false} connectNulls />
                   </ComposedChart>
                 </ResponsiveContainer>
                 {lenta && rapida && <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 6 }}>{t(`Mais lenta às ${lenta.hora} (${v1(lenta.vel)} km/h), mais rápida às ${rapida.hora} (${v1(rapida.vel)} km/h).`, `Slowest at ${lenta.hora} (${v1(lenta.vel)} km/h), fastest at ${rapida.hora} (${v1(rapida.vel)} km/h).`)}{op.paragensAtraso?.length ? t(` Paragens com mais atrasos: ${op.paragensAtraso.map((p: any) => p[0]).join(', ').toLowerCase()}.`, ` Stops with most delays: ${op.paragensAtraso.map((p: any) => p[0]).join(', ').toLowerCase()}.`) : ''}</div>}

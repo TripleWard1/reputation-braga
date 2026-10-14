@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { BALCAO, SEMESTRE_2026 } from '@/app/lib/observatorio-dados';
-import { t, dl } from '@/app/lib/i18n';
+import { t, dl, animar } from '@/app/lib/i18n';
 import { C, Card, Chips, HBars, fmt, tipStyle } from './comum';
 
 // ─── MERCADOS ────────────────────────────────────────────────────────────────
@@ -38,8 +38,8 @@ export default function Mercados() {
             <YAxis type="category" dataKey="pais" width={104} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar isAnimationActive={false} dataKey="v2025" name="2025" fill={C.textDim} radius={[0, 3, 3, 0]} />
-            <Bar isAnimationActive={false} dataKey="v2026" name="2026" fill={C.accent} radius={[0, 3, 3, 0]} />
+            <Bar isAnimationActive={animar()} dataKey="v2025" name="2025" fill={C.textDim} radius={[0, 3, 3, 0]} />
+            <Bar isAnimationActive={animar()} dataKey="v2026" name="2026" fill={C.accent} radius={[0, 3, 3, 0]} />
           </BarChart>
         </ResponsiveContainer>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>

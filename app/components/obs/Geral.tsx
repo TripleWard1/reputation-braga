@@ -2,7 +2,7 @@
 
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import { DORMIDAS_ANUAL, HEADLINE, TAXA_TURISTICA, BALCAO } from '@/app/lib/observatorio-dados';
-import { t, getLang } from '@/app/lib/i18n';
+import { t, getLang, animar } from '@/app/lib/i18n';
 import { estadaRecente, dec2 } from '@/app/lib/estada-media';
 import { C, Card, Cruz, KPI, YEAR_COLORS, fmt, fmtE, tipStyle } from './comum';
 
@@ -33,7 +33,7 @@ export default function Geral({ rep, repL, repR }: { rep?: number | null; repL?:
               <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Dormidas', 'Overnight stays')]} />
-              <Bar isAnimationActive={false} dataKey="dormidas" radius={[4, 4, 0, 0]}>
+              <Bar isAnimationActive={animar()} dataKey="dormidas" radius={[4, 4, 0, 0]}>
                 {dormDataAnual.map((d) => <Cell key={d.ano} fill={YEAR_COLORS[d.ano] || C.accent} />)}
               </Bar>
             </BarChart>
@@ -46,7 +46,7 @@ export default function Geral({ rep, repL, repR }: { rep?: number | null; repL?:
               <XAxis dataKey="ano" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1000).toFixed(0)}k`} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmtE(v), t('Receita', 'Revenue')]} />
-              <Bar isAnimationActive={false} dataKey="total" radius={[4, 4, 0, 0]}>
+              <Bar isAnimationActive={animar()} dataKey="total" radius={[4, 4, 0, 0]}>
                 {taxaAnual.map((d) => <Cell key={d.ano} fill={d.ano === '2026' ? C.textDim : C.accent} />)}
               </Bar>
             </BarChart>

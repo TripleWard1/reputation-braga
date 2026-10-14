@@ -58,6 +58,17 @@ export function getLang(): Lang {
   return LANG;
 }
 
+// Animações dos gráficos: ligadas por omissão (entrada ao abrir um separador), mas suspensas durante a troca de língua,
+// porque os rótulos mudam, os dados são recriados e o Recharts voltava a animar todos os gráficos (lag + flicker).
+let SEM_ANIM = false;
+let SEM_ANIM_TIMER: ReturnType<typeof setTimeout> | null = null;
+export function animar(): boolean { return !SEM_ANIM; }
+export function pausarAnimacoes(ms = 1500): void {
+  SEM_ANIM = true;
+  if (SEM_ANIM_TIMER) clearTimeout(SEM_ANIM_TIMER);
+  SEM_ANIM_TIMER = setTimeout(() => { SEM_ANIM = false; SEM_ANIM_TIMER = null; }, ms);
+}
+
 export function setLangGlobal(l: Lang): void {
   LANG = l;
 }

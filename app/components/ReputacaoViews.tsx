@@ -14,7 +14,7 @@
 import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, CartesianGrid, ReferenceLine, Cell } from 'recharts';
-import { t } from '@/app/lib/i18n';
+import { t, animar } from '@/app/lib/i18n';
 import { dispAnalysis } from '@/app/lib/ai-translate';
 import { windowStats, langName, type ReviewStats, type WindowStats } from '@/app/lib/reviews';
 
@@ -462,7 +462,7 @@ export function VisaoGeral({ locations, onOpen, onAdd, onImport, problemsOf, tax
                     </div>
                   );
                 }} />
-                <Scatter isAnimationActive={false} data={pontos} onClick={(d: any) => { const id = d?.payload?.id ?? d?.id; if (id) onOpen(id); }}>
+                <Scatter isAnimationActive={animar()} data={pontos} onClick={(d: any) => { const id = d?.payload?.id ?? d?.id; if (id) onOpen(id); }}>
                   {pontos.map((p) => <Cell key={p.id} fill={p.delta != null && p.delta <= -0.15 ? K.bad : p.delta != null && p.delta >= 0.15 ? K.good : K.gold} />)}
                 </Scatter>
               </ScatterChart>
