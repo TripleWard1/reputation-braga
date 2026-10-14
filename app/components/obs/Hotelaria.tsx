@@ -41,7 +41,7 @@ export default function Hotelaria() {
               <XAxis dataKey="cat" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any, it: any) => [`${fmt(v)} · ${it?.payload?.hoteis} ${t('hotéis', 'hotels')} · ${it?.payload?.adaptados} ${t('adaptados', 'adapted')}`, t('Quartos', 'Rooms')]} />
-              <Bar dataKey="quartos" name={t('Quartos', 'Rooms')} fill={C.accent} radius={[4, 4, 0, 0]} />
+              <Bar isAnimationActive={false} dataKey="quartos" name={t('Quartos', 'Rooms')} fill={C.accent} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>

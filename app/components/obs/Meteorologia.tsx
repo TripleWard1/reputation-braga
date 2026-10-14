@@ -153,8 +153,8 @@ export default function Meteorologia() {
             <YAxis yAxisId="r" orientation="right" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${v}°`} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }}
               formatter={(v: any, name: any) => [name === 'temp' ? `${v}°C` : v, name === 'temp' ? t('Temp. máx. média', 'Avg max temp.') : t('Atend./dia (média)', 'Visits/day (avg)')]} />
-            <Bar yAxisId="l" dataKey="atend" fill={C.accent} radius={[3, 3, 0, 0]} opacity={0.85} />
-            <Line yAxisId="r" dataKey="temp" stroke={C.orange} strokeWidth={2} dot={false} />
+            <Bar isAnimationActive={false} yAxisId="l" dataKey="atend" fill={C.accent} radius={[3, 3, 0, 0]} opacity={0.85} />
+            <Line isAnimationActive={false} yAxisId="r" dataKey="temp" stroke={C.orange} strokeWidth={2} dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </Card>

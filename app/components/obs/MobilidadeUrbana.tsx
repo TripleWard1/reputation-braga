@@ -86,10 +86,10 @@ export default function MobilidadeUrbana() {
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${v}%`} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} labelFormatter={(h: any) => `${h}h`} formatter={(v: any, n: any) => [`${dec(Number(v))}%`, n]} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Line type="monotone" dataKey="tub" name={t('Oferta TUB (partidas)', 'TUB supply (departures)')} stroke={C.negative} strokeWidth={2.2} dot={false} />
-            <Line type="monotone" dataKey="transito" name={t('Trânsito automóvel', 'Motor traffic')} stroke={C.orange} strokeWidth={2.2} dot={false} />
-            <Line type="monotone" dataKey="peoes" name={t('Peões', 'Pedestrians')} stroke={C.accent} strokeWidth={2.2} dot={false} />
-            <Line type="monotone" dataKey="wifi" name={t('Afluência (Wi-Fi)', 'Footfall (Wi-Fi)')} stroke={C.cyan} strokeWidth={2.2} dot={false} />
+            <Line isAnimationActive={false} type="monotone" dataKey="tub" name={t('Oferta TUB (partidas)', 'TUB supply (departures)')} stroke={C.negative} strokeWidth={2.2} dot={false} />
+            <Line isAnimationActive={false} type="monotone" dataKey="transito" name={t('Trânsito automóvel', 'Motor traffic')} stroke={C.orange} strokeWidth={2.2} dot={false} />
+            <Line isAnimationActive={false} type="monotone" dataKey="peoes" name={t('Peões', 'Pedestrians')} stroke={C.accent} strokeWidth={2.2} dot={false} />
+            <Line isAnimationActive={false} type="monotone" dataKey="wifi" name={t('Afluência (Wi-Fi)', 'Footfall (Wi-Fi)')} stroke={C.cyan} strokeWidth={2.2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
         <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{t(`Os peões têm o pico às ${picoDe(ritmo, 'peoes')}h e o trânsito às ${picoDe(ritmo, 'transito')}h. Depois das 19h, os contadores de peões e de trânsito quase não registam passagens, o que pode refletir o horário de funcionamento dos sensores (a confirmar); a oferta de autocarros e o Wi-Fi continuam. ${SEM_PERIODO[0]}`, `Pedestrians peak at ${picoDe(ritmo, 'peoes')}:00 and traffic at ${picoDe(ritmo, 'transito')}:00. After 19:00, pedestrian and traffic counters record almost nothing, which may reflect sensor operating hours (to be confirmed); bus supply and Wi-Fi continue. ${SEM_PERIODO[1]}`)}</div>
@@ -104,8 +104,8 @@ export default function MobilidadeUrbana() {
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${v}%`} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} labelFormatter={(h: any) => `${h}h`} formatter={(v: any, n: any) => [`${dec(Number(v))}%`, n]} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="oferta" name={t('Oferta (partidas)', 'Supply (departures)')} stroke={C.negative} strokeWidth={2.2} dot={false} />
-              <Line type="monotone" dataKey="procura" name={t('Procura (validações)', 'Demand (validations)')} stroke={C.accent} strokeWidth={2.2} dot={false} />
+              <Line isAnimationActive={false} type="monotone" dataKey="oferta" name={t('Oferta (partidas)', 'Supply (departures)')} stroke={C.negative} strokeWidth={2.2} dot={false} />
+              <Line isAnimationActive={false} type="monotone" dataKey="procura" name={t('Procura (validações)', 'Demand (validations)')} stroke={C.accent} strokeWidth={2.2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 8 }}>{desajuste.length ? t(`A procura supera a oferta em mais de 1,5 pontos às ${desajuste.join(', ')}: há proporcionalmente mais validações do que partidas, o que sugere autocarros mais cheios. ${SEM_PERIODO[0]}`, `Demand exceeds supply by more than 1.5 points at ${desajuste.join(', ')}: proportionally more validations than departures, suggesting fuller buses. ${SEM_PERIODO[1]}`) : t(`Oferta e procura acompanham-se ao longo do dia. ${SEM_PERIODO[0]}`, `Supply and demand move together through the day. ${SEM_PERIODO[1]}`)}</div>
@@ -118,7 +118,7 @@ export default function MobilidadeUrbana() {
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${v}%`} />
               <YAxis type="category" dataKey="nome" width={130} stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [`${dec(Number(v), 2)}%`, t('Contagens', 'Counts')]} />
-              <Bar dataKey="pct" name={t('Contagens', 'Counts')} fill={C.orange} radius={[0, 3, 3, 0]} />
+              <Bar isAnimationActive={false} dataKey="pct" name={t('Contagens', 'Counts')} fill={C.orange} radius={[0, 3, 3, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 4 }}>{t(`${fmt(M.totalContagens)} contagens dos sensores de tráfego, por classe de veículo. ${SEM_PERIODO[0]}`, `${fmt(M.totalContagens)} traffic sensor counts, by vehicle class. ${SEM_PERIODO[1]}`)}</div>
@@ -174,7 +174,7 @@ export default function MobilidadeUrbana() {
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${v}%`} />
               <YAxis type="category" dataKey="nome" width={150} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [`${dec(Number(v), 2)}%`, t('Embarques', 'Boardings')]} />
-              <Bar dataKey="pct" name={t('Embarques', 'Boardings')} fill={C.positive} radius={[0, 3, 3, 0]} />
+              <Bar isAnimationActive={false} dataKey="pct" name={t('Embarques', 'Boardings')} fill={C.positive} radius={[0, 3, 3, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 4 }}>{t(`Percentagem dos embarques registados em ${fmt(M.embarques.paragens)} paragens. A paragem Rotunda Estação II lidera. ${SEM_PERIODO[0]}`, `Share of boardings recorded at ${fmt(M.embarques.paragens)} stops. The Rotunda Estação II stop leads. ${SEM_PERIODO[1]}`)}</div>
@@ -189,7 +189,7 @@ export default function MobilidadeUrbana() {
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${v}%`} />
               <YAxis type="category" dataKey="linha" width={70} stroke={C.textDim} tick={{ fontSize: 11, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [`${dec(Number(v))}%`, t('Receita', 'Revenue')]} />
-              <Bar dataKey="pct" name={t('Receita', 'Revenue')} fill={C.cyan} radius={[0, 3, 3, 0]} />
+              <Bar isAnimationActive={false} dataKey="pct" name={t('Receita', 'Revenue')} fill={C.cyan} radius={[0, 3, 3, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 4 }}>{t(`Percentagem da receita das 15 linhas com mais receita. A linha 2 (Bom Jesus) é a segunda. ${SEM_PERIODO[0]}`, `Share of revenue among the 15 highest-revenue lines. Line 2 (Bom Jesus) is second. ${SEM_PERIODO[1]}`)}</div>
@@ -201,7 +201,7 @@ export default function MobilidadeUrbana() {
               <XAxis dataKey="dia" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} interval={13} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${v}%`} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} formatter={(v: any) => [`${dec(Number(v))}%`, t('Ocupação', 'Occupancy')]} />
-              <Line type="monotone" dataKey="v" name={t('Ocupação', 'Occupancy')} stroke={C.purple} strokeWidth={2} dot={false} />
+              <Line isAnimationActive={false} type="monotone" dataKey="v" name={t('Ocupação', 'Occupancy')} stroke={C.purple} strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.55, marginTop: 4 }}>{t(`Média de ${dec(mediaParques)}% entre ${parques[0] ? parques[0][0].split('-').reverse().join('/') : ''} e ${parques.length ? parques[parques.length - 1][0].split('-').reverse().join('/') : ''}; máximo de ${dec(maxParque[1])}% a ${String(maxParque[0]).split('-').reverse().join('/')}. Sensores Invipo.`, `Average of ${dec(mediaParques)}% between ${parques[0] ? parques[0][0] : ''} and ${parques.length ? parques[parques.length - 1][0] : ''}; peak of ${dec(maxParque[1])}% on ${maxParque[0]}. Invipo sensors.`)}</div>

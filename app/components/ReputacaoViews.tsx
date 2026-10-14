@@ -462,7 +462,7 @@ export function VisaoGeral({ locations, onOpen, onAdd, onImport, problemsOf, tax
                     </div>
                   );
                 }} />
-                <Scatter data={pontos} onClick={(d: any) => { const id = d?.payload?.id ?? d?.id; if (id) onOpen(id); }}>
+                <Scatter isAnimationActive={false} data={pontos} onClick={(d: any) => { const id = d?.payload?.id ?? d?.id; if (id) onOpen(id); }}>
                   {pontos.map((p) => <Cell key={p.id} fill={p.delta != null && p.delta <= -0.15 ? K.bad : p.delta != null && p.delta >= 0.15 ? K.good : K.gold} />)}
                 </Scatter>
               </ScatterChart>

@@ -41,7 +41,7 @@ export default function Cultura() {
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            {ents.map((k) => <Bar key={k} dataKey={k} name={BILHETEIRA[k].entidade} stackId="a" fill={CORES_E[k]} />)}
+            {ents.map((k) => <Bar isAnimationActive={false} key={k} dataKey={k} name={BILHETEIRA[k].entidade} stackId="a" fill={CORES_E[k]} />)}
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -54,7 +54,7 @@ export default function Cultura() {
                 <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
                 <YAxis type="category" dataKey="tipo" width={120} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
                 <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [fmt(v), t('Bilhetes', 'Tickets')]} />
-                <Bar dataKey="v" name={t('Bilhetes', 'Tickets')} fill={C.accent} radius={[0, 4, 4, 0]} />
+                <Bar isAnimationActive={false} dataKey="v" name={t('Bilhetes', 'Tickets')} fill={C.accent} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>

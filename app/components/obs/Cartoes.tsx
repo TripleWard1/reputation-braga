@@ -67,7 +67,7 @@ export default function Cartoes() {
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <YAxis type="category" dataKey="pais" width={120} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any, it: any) => [`${String(v).replace('.', ',')} M€ · ${pct(it?.payload?.var)} ${t('homólogo', 'YoY')}`, t('Gasto', 'Spending')]} />
-              <Bar dataKey="valor" name={t('Gasto', 'Spending')} fill={C.accent} radius={[0, 4, 4, 0]} />
+              <Bar isAnimationActive={false} dataKey="valor" name={t('Gasto', 'Spending')} fill={C.accent} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -79,8 +79,8 @@ export default function Cartoes() {
               <YAxis type="category" dataKey="pais" width={110} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [`${String(v).replace('.', ',')}%`, n]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="dormidas" name={t('Dormidas de estrangeiros (INE, jan–jun 2026)', 'Foreign stays (INE, Jan–Jun 2026)')} fill={C.textDim} radius={[0, 3, 3, 0]} />
-              <Bar dataKey="gasto" name={t('Cartões estrangeiros (SIBS, jan 2025–jan 2026)', 'Foreign cards (SIBS, Jan 2025–Jan 2026)')} fill={C.accent} radius={[0, 3, 3, 0]} />
+              <Bar isAnimationActive={false} dataKey="dormidas" name={t('Dormidas de estrangeiros (INE, jan–jun 2026)', 'Foreign stays (INE, Jan–Jun 2026)')} fill={C.textDim} radius={[0, 3, 3, 0]} />
+              <Bar isAnimationActive={false} dataKey="gasto" name={t('Cartões estrangeiros (SIBS, jan 2025–jan 2026)', 'Foreign cards (SIBS, Jan 2025–Jan 2026)')} fill={C.accent} radius={[0, 3, 3, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 11.5, color: C.textDim, marginTop: 6 }}>{t('Períodos diferentes (SIBS: jan 2025–jan 2026; INE: jan–jun 2026): comparação apenas indicativa. Só os 8 mercados com mais dormidas.', 'Different periods (SIBS: Jan 2025–Jan 2026; INE: Jan–Jun 2026): indicative comparison only. Only the 8 markets with most stays.')}</div>
@@ -94,7 +94,7 @@ export default function Cartoes() {
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} unit="€" />
               <YAxis type="category" dataKey="pais" width={120} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [`${String(v).replace('.', ',')} €`, t('Valor médio', 'Average')]} />
-              <Bar dataKey="medio" name={t('Valor médio', 'Average')} fill={C.orange} radius={[0, 4, 4, 0]} />
+              <Bar isAnimationActive={false} dataKey="medio" name={t('Valor médio', 'Average')} fill={C.orange} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -105,7 +105,7 @@ export default function Cartoes() {
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <YAxis type="category" dataKey="setor" width={170} stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any, it: any) => [`${v} M€ · ${pct(it?.payload?.var)} ${t('homólogo', 'YoY')}`, t('Gasto', 'Spending')]} />
-              <Bar dataKey="valor" name={t('Gasto', 'Spending')} fill={C.positive} radius={[0, 4, 4, 0]} />
+              <Bar isAnimationActive={false} dataKey="valor" name={t('Gasto', 'Spending')} fill={C.positive} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -118,8 +118,8 @@ export default function Cartoes() {
             <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [v == null ? t('sem dados', 'no data') : `${v} M€`, n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar dataKey="eletronico" name={t('Pagamentos eletrónicos', 'Electronic payments')} fill={C.accent} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="numerario" name={t('Levantamentos em numerário', 'Cash withdrawals')} fill={C.textDim} radius={[4, 4, 0, 0]} />
+            <Bar isAnimationActive={false} dataKey="eletronico" name={t('Pagamentos eletrónicos', 'Electronic payments')} fill={C.accent} radius={[4, 4, 0, 0]} />
+            <Bar isAnimationActive={false} dataKey="numerario" name={t('Levantamentos em numerário', 'Cash withdrawals')} fill={C.textDim} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
         {(semDados.length > 0 || semNum.length > 0) && <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t(`A exportação da SIBS não trouxe dados de pagamentos eletrónicos para ${semDados.join(', ') || '-'} nem de levantamentos para ${semNum.join(', ') || '-'}.`, `The SIBS export has no electronic payment data for ${semDados.join(', ') || '-'} and no cash data for ${semNum.join(', ') || '-'}.`)}</div>}

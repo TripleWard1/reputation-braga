@@ -85,10 +85,10 @@ export default function Digital() {
             <YAxis yAxisId="r" orientation="right" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} tickFormatter={(v: any) => `${(v / 1e6).toFixed(1)}M`} />
             <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [fmt(v), n]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar yAxisId="l" dataKey="cliques" name={t('Cliques', 'Clicks')} radius={[4, 4, 0, 0]}>
+            <Bar isAnimationActive={false} yAxisId="l" dataKey="cliques" name={t('Cliques', 'Clicks')} radius={[4, 4, 0, 0]}>
               {gsc.map((d) => <Cell key={d.key} fill={INCIDENTE.includes(d.key) ? C.negative : C.accent} />)}
             </Bar>
-            <Line yAxisId="r" type="monotone" dataKey="impressoes" name={t('Aparições', 'Impressions')} stroke={C.info} strokeWidth={2} dot={{ r: 2 }} />
+            <Line isAnimationActive={false} yAxisId="r" type="monotone" dataKey="impressoes" name={t('Aparições', 'Impressions')} stroke={C.info} strokeWidth={2} dot={{ r: 2 }} />
           </ComposedChart>
         </ResponsiveContainer>
         <p style={{ fontSize: 11, color: C.textDim, margin: '8px 0 0' }}>
@@ -131,8 +131,8 @@ export default function Digital() {
               <YAxis type="category" dataKey="canal" width={118} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [`${v}%`, n]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="antes" name={t('Antes', 'Before')} fill={C.textDim} radius={[0, 3, 3, 0]} />
-              <Bar dataKey="retoma" name={t('Retoma', 'Recovery')} fill={C.accent} radius={[0, 3, 3, 0]} />
+              <Bar isAnimationActive={false} dataKey="antes" name={t('Antes', 'Before')} fill={C.textDim} radius={[0, 3, 3, 0]} />
+              <Bar isAnimationActive={false} dataKey="retoma" name={t('Retoma', 'Recovery')} fill={C.accent} radius={[0, 3, 3, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -144,8 +144,8 @@ export default function Digital() {
               <YAxis type="category" dataKey="pais" width={96} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any, n: any) => [`${v}%`, n]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="antes" name={t('Antes', 'Before')} fill={C.textDim} radius={[0, 3, 3, 0]} />
-              <Bar dataKey="retoma" name={t('Retoma', 'Recovery')} fill={C.info} radius={[0, 3, 3, 0]} />
+              <Bar isAnimationActive={false} dataKey="antes" name={t('Antes', 'Before')} fill={C.textDim} radius={[0, 3, 3, 0]} />
+              <Bar isAnimationActive={false} dataKey="retoma" name={t('Retoma', 'Recovery')} fill={C.info} radius={[0, 3, 3, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <p style={{ fontSize: 11, color: C.textDim, margin: '6px 0 0' }}>{t('A China fica de fora: é sobretudo tráfego automático, com envolvimento próximo de 0%.', 'China is excluded: it is mostly automated traffic, with engagement close to 0%.')}</p>

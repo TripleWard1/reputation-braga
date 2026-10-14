@@ -107,7 +107,7 @@ export default function LojasHistoria() {
               <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} allowDecimals={false} />
               <YAxis type="category" dataKey="setor" width={170} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [v, t('Lojas', 'Shops')]} />
-              <Bar dataKey="n" name={t('Lojas', 'Shops')} fill={C.orange} radius={[0, 4, 4, 0]} />
+              <Bar isAnimationActive={false} dataKey="n" name={t('Lojas', 'Shops')} fill={C.orange} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -118,7 +118,7 @@ export default function LojasHistoria() {
               <XAxis dataKey="periodo" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textMuted }} allowDecimals={false} />
               <Tooltip contentStyle={tipStyle} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} cursor={{ fill: 'rgba(255,255,255,0.03)' }} formatter={(v: any) => [v, t('Lojas', 'Shops')]} />
-              <Bar dataKey="n" name={t('Lojas', 'Shops')} fill={C.accent} radius={[4, 4, 0, 0]} />
+              <Bar isAnimationActive={false} dataKey="n" name={t('Lojas', 'Shops')} fill={C.accent} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 12, color: C.textDim, marginTop: 6 }}>{t(`Ano de fundação indicado na brochura (${comAno.length} das ${L.length} lojas).`, `Founding year stated in the brochure (${comAno.length} of ${L.length} shops).`)}</div>

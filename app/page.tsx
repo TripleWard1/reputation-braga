@@ -600,8 +600,8 @@ function ReviewEvolution({ loc, a }: { loc: Location; a: Analysis | null }) {
               <YAxis yAxisId="l" domain={[1, 5]} stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <YAxis yAxisId="r" orientation="right" unit="%" stroke={C.textDim} tick={{ fontSize: 10.5, fill: C.textMuted }} />
               <Tooltip contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12 }} labelStyle={{ color: C.text }} itemStyle={{ color: C.text }} />
-              <Line yAxisId="l" type="monotone" dataKey="avg" name={t('Média ★', 'Average ★')} stroke={C.accent} strokeWidth={2.5} dot={{ r: 3 }} />
-              <Line yAxisId="r" type="monotone" dataKey="neg" name={t('% negativos', '% negative')} stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 2 }} />
+              <Line isAnimationActive={false} yAxisId="l" type="monotone" dataKey="avg" name={t('Média ★', 'Average ★')} stroke={C.accent} strokeWidth={2.5} dot={{ r: 3 }} />
+              <Line isAnimationActive={false} yAxisId="r" type="monotone" dataKey="neg" name={t('% negativos', '% negative')} stroke={C.negative} strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 2 }} />
             </LineChart>
           </ResponsiveContainer>
           <div style={{ fontSize: 11, color: C.textDim, margin: '4px 0 12px' }}>
