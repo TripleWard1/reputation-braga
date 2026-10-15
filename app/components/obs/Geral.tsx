@@ -5,6 +5,7 @@ import { DORMIDAS_ANUAL, HEADLINE, TAXA_TURISTICA, BALCAO } from '@/app/lib/obse
 import { t, getLang } from '@/app/lib/i18n';
 import { estadaRecente, dec2 } from '@/app/lib/estada-media';
 import { C, Card, Cruz, KPI, YEAR_COLORS, fmt, fmtE, tipStyle } from './comum';
+import BragaEmNumeros from './BragaEmNumeros';
 
 // ─── VISÃO GERAL ─────────────────────────────────────────────────────────────
 export default function Geral({ rep, repL, repR }: { rep?: number | null; repL?: number; repR?: number }) {
@@ -16,6 +17,8 @@ export default function Geral({ rep, repL, repR }: { rep?: number | null; repL?:
 
   return (
     <>
+      <BragaEmNumeros />
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 16 }}>
         <KPI label={t('Dormidas 2025', 'Overnight stays 2025')} value={fmt(HEADLINE.dormidas2025)} sub={`+${HEADLINE.dormidasVar}% ${t('homólogo · provisório', 'YoY · provisional')}`} color={HEADLINE.dormidasVar >= 0 ? C.positive : C.negative} />
         <KPI label={t('Hóspedes 2025', 'Guests 2025')} value={fmt(HEADLINE.hospedes2025)} sub={`+${HEADLINE.hospedesVar}% ${t('homólogo', 'YoY')}`} color={C.accentLight} />

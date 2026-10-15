@@ -85,7 +85,7 @@ export function BarrasPct({ dados, cor, max }: { dados: [string, number][]; cor:
     <div>
       {dados.map(([nome, v], i) => (
         <div key={nome} style={{ margin: '9px 0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5 }}><span style={{ color: C.text }}>{nome}</span><strong style={{ color: C.text }}>{String(v).replace('.', ',')}%</strong></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5 }}><span style={{ color: C.text }}>{nome}</span><strong style={{ color: C.text }}>{String(v).replace('.', t(',', '.'))}%</strong></div>
           <div style={{ height: 7, background: '#262A30', borderRadius: 999, marginTop: 4, overflow: 'hidden' }}>
             <div className="obs-grow" style={{ width: `${(v / m) * 100}%`, height: '100%', background: cor, borderRadius: 999, animationDelay: `${i * 60}ms` }} />
           </div>
