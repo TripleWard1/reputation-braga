@@ -343,6 +343,8 @@ const ESTILO = `
 const ESTILO_CAPA = `
 .rb-hero-cheio { height: max(640px, 100svh) !important; }
 .rb-hero-cheio .rb-hero-in { padding-bottom: 76px; }
+.rb-hero-cheio .rb-hero-shade { background: linear-gradient(180deg, rgba(21,23,27,.5) 0%, rgba(21,23,27,0) 22%), linear-gradient(0deg, var(--rb-bg) 0%, rgba(21,23,27,.74) 34%, rgba(21,23,27,.14) 68%, rgba(21,23,27,0) 100%); }
+.rb-hero-cheio .rb-vg-logo img { filter: drop-shadow(0 3px 16px rgba(0,0,0,.55)); }
 .rb-capa-h1 { font-size: clamp(38px, 5.2vw, 72px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; margin: 14px 0 18px; text-shadow: 0 2px 28px rgba(0,0,0,.4); }
 .rb-capa-h1 span { color: #B7CDF0; }
 .rb-capa-kpis > div { min-width: 0; }
@@ -1820,7 +1822,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
       {/* Topo imersivo: vídeo, uma frase e os números de reputação em vidro */}
       <HeroFoto src={fundo} mini={FOTO_VISAO_MINI} altura={fundo ? 760 : 520} video cheio>
         {topoFoto}
-        <div className="rb-vg-logo"><img className="rb-enter" src="/visit-braga-logo.png" alt="Visit Braga" /></div>
+        <div className="rb-vg-logo"><img className="rb-enter" src="/visit-braga-logo-negativo.png" alt="Visit Braga" /></div>
         <div className="rb-enter" style={{ maxWidth: 1080 }}>
           <div className="rb-kicker" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>Braga</div>
           <h1 className="rb-capa-h1">{t('Há cidades que se visitam.', 'Some cities are visited.')}<br /><span>{t('Braga sente-se.', 'Braga is felt.')}</span></h1>
