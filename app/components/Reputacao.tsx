@@ -15,7 +15,7 @@ import { descarregarDados, type Linha } from '@/app/lib/exportar-dados';
 import { t, getLang } from '@/app/lib/i18n';
 import { dispAnalysis } from '@/app/lib/ai-translate';
 import VideoTopo from '@/app/components/obs/VideoTopo';
-import { POP_BRAGA, POP_PORTUGAL, AREA_KM2, AREA_PORTUGAL_KM2, ETARIA_2025, crescimento, densidade } from '@/app/lib/demografia-braga';
+import CapaCapitulos from '@/app/components/obs/Capa';
 import { limparFotoBraga } from '@/app/lib/foto-braga';
 import { windowStats, langName, cutoffDate, loadWindowReviews, parseReviewFile, groupByPlace, buildStats, type StoredReview, type ReviewStats } from '@/app/lib/reviews';
 import { SEMESTRE_2026, BALCAO, DORMIDAS_BRAGA, DORMIDAS_PORTUGAL, MESES, HEADLINE } from '@/app/lib/observatorio-dados';
@@ -113,7 +113,7 @@ function useRevelar(_dep?: unknown) {
 }
 
 /** Fotografia grande com zoom de entrada e parallax ao descer a página. */
-function HeroFoto({ src, altura, children, mini, video, cheio }: { src: string | null; altura: number; children: ReactNode; mini?: string; video?: boolean; cheio?: boolean }) {
+function HeroFoto({ src, altura, children, mini, video, cheio, id }: { src: string | null; altura: number; children: ReactNode; mini?: string; video?: boolean; cheio?: boolean; id?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!src || semMovimento()) return;
@@ -132,7 +132,7 @@ function HeroFoto({ src, altura, children, mini, video, cheio }: { src: string |
     return () => { window.removeEventListener('scroll', mexe); cancelAnimationFrame(raf); };
   }, [src]);
   return (
-    <div className={`rb-hero-foto${cheio ? ' rb-hero-cheio' : ''}`} style={{ height: altura }}>
+    <div id={id} className={`rb-hero-foto${cheio ? ' rb-hero-cheio' : ''}`} style={{ height: altura }}>
       {src && <div ref={ref} className="rb-hero-img"><div className="rb-kb" style={{ backgroundImage: mini ? `url(${src}), url(${mini})` : `url(${src})` }} /></div>}
       {video && <VideoTopo />}
       <div className="rb-hero-shade" />
@@ -342,52 +342,25 @@ const ESTILO = `
 // Capa (Visão Geral): topo a ecrã inteiro, faixas com fotografia e portas de entrada
 const ESTILO_CAPA = `
 .rb-hero-cheio { height: max(640px, 100svh) !important; }
-.rb-hero-cheio .rb-hero-in { padding-bottom: 76px; }
-.rb-hero-cheio .rb-hero-shade { background: linear-gradient(180deg, rgba(21,23,27,.5) 0%, rgba(21,23,27,0) 22%), linear-gradient(0deg, var(--rb-bg) 0%, rgba(21,23,27,.74) 34%, rgba(21,23,27,.14) 68%, rgba(21,23,27,0) 100%); }
+.rb-hero-cheio .rb-hero-in { padding-bottom: 108px; }
+/* O topo fica fixo e as folhas seguintes deslizam por cima dele */
+@media (min-width: 901px) { .rb-hero-cheio { position: sticky; top: 0; z-index: 0; } }
+.rb-hero-cheio .rb-hero-shade { background: linear-gradient(180deg, rgba(10,12,15,.4) 0%, rgba(10,12,15,0) 20%), linear-gradient(0deg, rgba(10,12,15,.66) 0%, rgba(10,12,15,.3) 34%, rgba(10,12,15,0) 62%); }
 .rb-hero-cheio .rb-vg-logo img { filter: drop-shadow(0 3px 16px rgba(0,0,0,.55)); }
 .rb-capa-h1 { font-size: clamp(38px, 5.2vw, 72px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; margin: 14px 0 18px; text-shadow: 0 2px 28px rgba(0,0,0,.4); }
 .rb-capa-h1 span { color: #B7CDF0; }
 .rb-capa-kpis > div { min-width: 0; }
-.rb-cue { position: absolute; left: 50%; bottom: 14px; z-index: 4; width: 44px; height: 44px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(21,23,27,.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #ECEDEF; display: flex; align-items: center; justify-content: center; cursor: pointer; animation: rbCue 2.4s ease-in-out infinite; }
+.rb-cue { position: absolute; left: 50%; bottom: 50px; z-index: 4; width: 44px; height: 44px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(21,23,27,.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #ECEDEF; display: flex; align-items: center; justify-content: center; cursor: pointer; animation: rbCue 2.4s ease-in-out infinite; }
 .rb-cue:hover { background: rgba(21,23,27,.75); }
 @keyframes rbCue { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 7px); } }
-.rb-banda { position: relative; overflow: hidden; isolation: isolate; background-color: #15171B; background-size: cover; background-position: center; }
-.rb-banda::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--rb-bg) 0%, rgba(21,23,27,.5) 22%, rgba(21,23,27,.58) 78%, var(--rb-bg) 100%); }
-@media (min-width: 901px) and (hover: hover) { .rb-banda { background-attachment: fixed; } }
-.rb-banda-in, .rb-capa-in { max-width: 1120px; margin: 0 auto; }
-.rb-banda .rb-kicker { color: #B7CDF0 !important; text-shadow: 0 1px 12px rgba(0,0,0,.7); }
-.rb-banda .rb-lab, .rb-banda .rb-sub { color: #D5D8DE; }
-.rb-banda-in { padding: clamp(64px, 8vw, 112px) 48px; }
-.rb-capa-in { padding: 0 48px 24px; }
-.rb-banda-h2 { font-size: clamp(30px, 4.6vw, 60px); font-weight: 700; letter-spacing: -0.028em; line-height: 1.05; max-width: 13em; margin: 12px 0 0; text-shadow: 0 2px 24px rgba(0,0,0,.35); }
-.rb-banda-sub { font-size: 17px; color: #E4E6EA; text-shadow: 0 1px 14px rgba(0,0,0,.6); margin: 16px 0 0; max-width: 40em; line-height: 1.5; }
-.rb-banda-fonte { font-size: 12.5px; color: #C9CDD4; margin: 36px 0 0; line-height: 1.5; text-shadow: 0 1px 10px rgba(0,0,0,.7); }
-.rb-nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 28px; margin-top: 44px; }
-.rb-num { border-top: 1px solid rgba(255,255,255,.3); padding-top: 20px; }
-.rb-num-v { text-shadow: 0 2px 18px rgba(0,0,0,.45); font-size: clamp(32px, 3.7vw, 54px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; white-space: nowrap; }
-.rb-num-v small { font-size: .32em; font-weight: 500; color: #D5D8DE; margin-left: 8px; letter-spacing: 0; }
-.rb-num-l { font-size: 16px; color: #F4F5F7; margin-top: 10px; line-height: 1.35; text-shadow: 0 1px 12px rgba(0,0,0,.7); }
-.rb-num-s { font-size: 13.5px; color: #C9CDD4; margin-top: 4px; text-shadow: 0 1px 10px rgba(0,0,0,.7); }
-.rb-turismo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 40px; }
-.rb-portas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 36px; }
-.rb-porta { position: relative; aspect-ratio: 4 / 3.3; border-radius: 8px; overflow: hidden; border: 0; padding: 0; cursor: pointer; text-align: left; color: #fff; background: #22262D; isolation: isolate; display: block; }
-.rb-porta-img { position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center; transition: transform .9s cubic-bezier(.2,.7,.2,1); }
-.rb-porta::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg, rgba(10,12,15,.9) 0%, rgba(10,12,15,.4) 50%, rgba(10,12,15,.05) 100%); }
-.rb-porta:hover .rb-porta-img, .rb-porta:focus-visible .rb-porta-img { transform: scale(1.07); }
-.rb-porta-txt { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 24px; display: block; }
-.rb-porta-t { display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 700; letter-spacing: -0.015em; }
-.rb-porta-p { display: block; margin-top: 6px; font-size: 14.5px; line-height: 1.45; color: rgba(236,237,239,.88); }
-.rb-porta:hover .rb-seta { transform: translateX(5px); }
-@media (max-width: 1000px) { .rb-turismo { grid-template-columns: repeat(2, minmax(0, 1fr)); } .rb-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 36px; } .rb-portas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.rb-cap-resto { position: relative; z-index: 2; background: var(--rb-bg); }
 @media (max-width: 900px) {
   .rb-hero-cheio { height: auto !important; min-height: 92svh; }
-  .rb-hero-cheio .rb-hero-in { padding-bottom: 72px; }
-  .rb-banda-in { padding: 64px 20px; }
-  .rb-capa-in { padding: 0 20px 16px; }
+  .rb-hero-cheio .rb-hero-in { padding-bottom: 76px; }
+  .rb-cue { bottom: 18px; }
 }
-@media (max-width: 560px) { .rb-portas { grid-template-columns: 1fr; } .rb-porta { aspect-ratio: 16 / 10; } .rb-turismo { grid-template-columns: 1fr; } }
-@media (prefers-reduced-motion: reduce) { .rb-cue { animation: none; } .rb-porta-img { transition: none; } }
-@media print { .rb-banda { background-image: none !important; } .rb-banda::before { display: none; } .rb-portas, .rb-cue { display: none; } }
+@media (prefers-reduced-motion: reduce) { .rb-cue { animation: none; } }
+@media print { .rb-cue { display: none; } .rb-hero-cheio { position: relative; } }
 `;
 
 const PATH_ESTRELA = 'M12 2.6l2.85 6.03 6.6.78-4.88 4.53 1.3 6.53L12 17.2l-5.87 3.27 1.3-6.53-4.88-4.53 6.6-.78L12 2.6z';
@@ -1802,25 +1775,13 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
   const alertas = dados.filter((d) => d.al && d.x && d.x.robustez !== 'insuficiente');
   const dVar = HEADLINE.dormidasVar;
 
-  const irPara = (id: string) => { if (id === 'observatorio' && props.onObservatorio) props.onObservatorio(); else props.onIr?.(id); };
-  const popPt = POP_BRAGA[2025], crescB = crescimento(2011, 2025, POP_BRAGA), crescP = crescimento(2011, 2025, POP_PORTUGAL);
-  const fdec = (v: number, d = 1) => fmt(v, d);
-  const portas: { id: string; foto: string; titulo: string; texto: string }[] = [
-    { id: 'observatorio', foto: '/fotos/parque-ponte-p.jpg', titulo: t('Observatório', 'Observatory'), texto: t('Dormidas, mercados, emprego e muito mais, com dados oficiais.', 'Overnight stays, markets, jobs and much more, from official data.') },
-    { id: 'insto', foto: '/fotos/avenida-liberdade-p.jpg', titulo: t('Rede INSTO', 'INSTO network'), texto: t('Indicadores do turismo sustentável nas 11 áreas da rede.', 'Sustainable tourism indicators across the network’s 11 areas.') },
-    { id: 'locais', foto: '/fotos/bom-jesus-p.jpg', titulo: t('Locais', 'Places'), texto: t(`${locations.length} locais monitorizados, com avaliações e análise.`, `${locations.length} monitored places, with reviews and analysis.`) },
-    { id: 'mapa', foto: '/fotos/jardim-santa-barbara-p.jpg', titulo: t('Mapa', 'Map'), texto: t('Os locais no mapa, pelo índice de reputação.', 'Places on the map, by reputation index.') },
-    { id: 'produtos', foto: '/login-avenida.jpg', titulo: t('Produtos turísticos', 'Tourism products'), texto: t('Experiências e produtos para descobrir Braga.', 'Experiences and products to discover Braga.') },
-    { id: 'mundo', foto: '/visao-geral.jpg', titulo: t('Internacionalização', 'Internationalisation'), texto: t('Braga no mundo: feiras, mercados e distinções.', 'Braga in the world: fairs, markets and awards.') },
-  ];
-
   return (
     <div className="rbx">
       <style>{ESTILO}</style>
       <style>{ESTILO_CAPA}</style>
 
       {/* Topo imersivo: vídeo, uma frase e os números de reputação em vidro */}
-      <HeroFoto src={fundo} mini={FOTO_VISAO_MINI} altura={fundo ? 760 : 520} video cheio>
+      <HeroFoto src={fundo} mini={FOTO_VISAO_MINI} altura={fundo ? 760 : 520} video cheio id="rb-cap-topo">
         {topoFoto}
         <div className="rb-vg-logo"><img className="rb-enter" src="/visit-braga-logo-negativo.png" alt="Visit Braga" /></div>
         <div className="rb-enter" style={{ maxWidth: 1080 }}>
@@ -1847,98 +1808,9 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
         </button>
       </HeroFoto>
 
-      {/* Braga em números: demografia do concelho (INE) */}
-      <section id="rb-capa-numeros" className="rb-banda" style={{ backgroundImage: 'url(/fotos/bom-jesus-g.jpg)' }}>
-        <div className="rb-banda-in">
-          <div className="rb-rise">
-            <div className="rb-kicker" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>{t('Braga em números', 'Braga in numbers')}</div>
-            <h2 className="rb-banda-h2">{t('Uma cidade que cresce e se renova.', 'A city that keeps growing and renewing itself.')}</h2>
-          </div>
-          <div className="rb-nums">
-            {[
-              { v: <Conta v={popPt} />, l: t('habitantes', 'inhabitants'), s: t('população residente em 2025', 'resident population in 2025') },
-              { v: <><Conta v={Math.round(densidade(2025))} /><small>{t('hab./km²', 'inh./km²')}</small></>, l: t('de densidade populacional', 'population density'), s: t(`Portugal: ${fmt(POP_PORTUGAL[2025] / AREA_PORTUGAL_KM2)} hab./km²`, `Portugal: ${fmt(POP_PORTUGAL[2025] / AREA_PORTUGAL_KM2)} inh./km²`) },
-              { v: <>+<Conta v={Math.round(crescB * 10) / 10} d={1} /><small>%</small></>, l: t('desde 2011', 'since 2011'), s: t(`Portugal: +${fdec(crescP)}%`, `Portugal: +${fdec(crescP)}%`) },
-              { v: <Conta v={ETARIA_2025.Braga.idososPor100Jovens} />, l: t('idosos por cada 100 jovens', 'seniors per 100 young people'), s: t(`Portugal: ${ETARIA_2025.Portugal.idososPor100Jovens}`, `Portugal: ${ETARIA_2025.Portugal.idososPor100Jovens}`) },
-            ].map((k, i) => (
-              <div key={i} className="rb-num rb-rise" style={{ transitionDelay: `${i * 90}ms` }}>
-                <div className="rb-num-v">{k.v}</div>
-                <div className="rb-num-l">{k.l}</div>
-                <div className="rb-num-s">{k.s}</div>
-              </div>
-            ))}
-          </div>
-          <p className="rb-banda-fonte">{t(`Fonte: INE, O seu município em números (2025). Densidade calculada com a superfície arredondada (${AREA_KM2} km²).`, `Source: INE (Statistics Portugal), Your municipality in numbers (2025). Density calculated with the rounded area (${AREA_KM2} km²).`)}</p>
-        </div>
-      </section>
+      <CapaCapitulos nLocais={locations.length} onIr={props.onIr} onObservatorio={props.onObservatorio} />
 
-      {/* Turismo em Braga: o essencial do Observatório (mesmas contas; os dados não são alterados) */}
-      {(() => {
-        const S: any = SEMESTRE_2026 as any;
-        const H1 = (MESES as any[]).slice(0, 6);
-        const somaH1 = (serie: any, y: string) => H1.reduce((acc: number, m: any) => acc + (serie?.[m]?.[y] ?? 0), 0);
-        const soma = (v: number[]) => v.reduce((a2, b2) => a2 + b2, 0);
-        const media = (v: number[]) => soma(v) / v.length;
-        const varP = (a2: number, b2: number) => Math.round((b2 / a2 - 1) * 1000) / 10;
-        const dorm = somaH1(DORMIDAS_BRAGA, '2026'), dormV = varP(somaH1(DORMIDAS_BRAGA, '2025'), dorm), dormPT = varP(somaH1(DORMIDAS_PORTUGAL, '2025'), somaH1(DORMIDAS_PORTUGAL, '2026'));
-        const prov = soma(S.proveitos.Braga['2026']), provV = varP(soma(S.proveitos.Braga['2025']), prov);
-        const revpar = media(S.revpar.Braga['2026']), revparV = varP(media(S.revpar.Braga['2025']), revpar);
-        const est = S.residencia.dormidas.Estrangeiro, res = S.residencia.dormidas.Portugal;
-        const topM = [...S.mercadosDormidas].sort((x: any[], y: any[]) => y[2] - x[2])[0];
-        if (!dorm) return null;
-        const sinal = (v: number) => `${v >= 0 ? '+' : ''}${fmt(v, 1)}%`;
-        const cartoes = [
-          { l: t('Dormidas · jan–jun 2026', 'Overnight stays · Jan–Jun 2026'), v: <Conta v={dorm} />, s: t(`${sinal(dormV)} face a 2025 · Portugal ${sinal(dormPT)}`, `${sinal(dormV)} vs 2025 · Portugal ${sinal(dormPT)}`), c: dormV >= dormPT ? 'var(--rb-good)' : 'var(--rb-text2)' },
-          { l: t('Proveitos do alojamento', 'Accommodation revenue'), v: <><Conta v={Math.round(prov / 10000) / 100} d={2} /><small>M€</small></>, s: t(`${sinal(provV)} face a 2025`, `${sinal(provV)} vs 2025`), c: provV >= 0 ? 'var(--rb-good)' : 'var(--rb-bad)' },
-          { l: 'RevPAR', v: <><Conta v={Math.round(revpar * 10) / 10} d={1} /><small>€</small></>, s: t(`${sinal(revparV)} face a 2025 · média dos 6 meses`, `${sinal(revparV)} vs 2025 · 6-month average`), c: revparV >= 0 ? 'var(--rb-good)' : 'var(--rb-bad)' },
-          { l: t('Dormidas de estrangeiros', 'Foreign overnight stays'), v: <><Conta v={Math.round((est / (est + res)) * 1000) / 10} d={1} /><small>%</small></>, s: topM ? t(`Maior mercado: ${topM[0]} (${fmt((topM[2] / est) * 100, 1)}%)`, `Largest market: ${topM[0]} (${fmt((topM[2] / est) * 100, 1)}%)`) : '', c: 'var(--rb-text2)' },
-        ];
-        const factual = dormV >= dormPT ? t(`As dormidas em Braga crescem ${sinal(dormV)}, acima do país (${sinal(dormPT)})`, `Overnight stays in Braga grow ${sinal(dormV)}, above the country (${sinal(dormPT)})`) : t(`As dormidas em Braga variam ${sinal(dormV)} (país: ${sinal(dormPT)})`, `Overnight stays in Braga change ${sinal(dormV)} (country: ${sinal(dormPT)})`);
-        return (
-          <section className="rb-banda" style={{ backgroundImage: 'url(/fotos/jardim-santa-barbara-g.jpg)' }}>
-            <div className="rb-banda-in">
-              <div className="rb-rise">
-                <div className="rb-kicker" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>{t('Turismo', 'Tourism')}</div>
-                <h2 className="rb-banda-h2">{dormV >= dormPT ? t('Cada vez mais gente escolhe Braga.', 'More and more people choose Braga.') : t('O turismo em Braga, a meio de 2026.', 'Tourism in Braga, mid-2026.')}</h2>
-                <p className="rb-banda-sub">{factual}</p>
-              </div>
-              <div className="rb-turismo">
-                {cartoes.map((k, i) => (
-                  <div key={i} className="rb-glass rb-rise" style={{ padding: '22px 24px', transitionDelay: `${i * 90}ms` }}>
-                    <div className="rb-lab">{k.l}</div>
-                    <div className="rb-big" style={{ fontSize: 38 }}>{k.v}</div>
-                    <div className="rb-sub" style={{ color: k.c }}>{k.s}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="rb-rise" style={{ marginTop: 26, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                {props.onObservatorio && <button className="rb-chip" onClick={props.onObservatorio}>{t('Abrir Observatório', 'Open Observatory')} <Seta /></button>}
-                <span className="rb-banda-fonte" style={{ margin: 0 }}>{t('Fonte: INE/TravelBI, 1.º semestre de 2026 (provisório)', 'Source: INE/TravelBI, 1st half 2026 (provisional)')}</span>
-              </div>
-            </div>
-          </section>
-        );
-      })()}
-
-      {/* Portas de entrada */}
-      <div className="rb-capa-in">
-        <div className="rb-rise" style={{ paddingTop: 72 }}>
-          <div className="rb-kicker" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>{t('Explorar', 'Explore')}</div>
-          <h2 className="rb-banda-h2" style={{ maxWidth: '16em' }}>{t('Escolhe por onde começar.', 'Choose where to begin.')}</h2>
-        </div>
-        <div className="rb-portas">
-          {portas.map((d, i) => (
-            <button key={d.id} type="button" className="rb-porta rb-rise" style={{ transitionDelay: `${(i % 3) * 90}ms` }} onClick={() => irPara(d.id)}>
-              <span className="rb-porta-img" style={{ backgroundImage: `url(${d.foto})` }} />
-              <span className="rb-porta-txt">
-                <span className="rb-porta-t">{d.titulo} <Seta /></span>
-                <span className="rb-porta-p">{d.texto}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
+      <div className="rb-cap-resto">
       <div className="rb-wrap" style={{ paddingTop: 8 }}>
         {/* Quando há mais gente (afluência habitual dos locais com dados) */}
         {(() => {
@@ -1987,6 +1859,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
           <span>{t('Fonte: Google Maps, últimos 3 anos · índice /10 = média de estrelas × 2', 'Source: Google Maps, last 3 years · index /10 = average stars × 2')}</span>
           <span>{t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}</span>
         </div>
+      </div>
       </div>
     </div>
   );
