@@ -359,7 +359,7 @@ const ESTILO_CAPA = `
 @media (min-width: 901px) {
   .rb-hero-cheio .rb-hero-in { padding-top: 84px; }
   .rb-hero-cheio .rb-vg-logo { position: relative; margin: auto 0; padding: 14px 0; z-index: 3; }
-  .rb-hero-cheio .rb-vg-logo img { width: clamp(300px, 38vw, 620px); }
+  .rb-hero-cheio .rb-vg-logo img { width: clamp(300px, min(48vw, 75svh), 860px); }
 }
 .rb-capa-h1 { font-size: clamp(38px, 5.2vw, 72px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; margin: 14px 0 18px; text-shadow: 0 2px 28px rgba(0,0,0,.4); }
 .rb-capa-h1 span { color: #B7CDF0; }
