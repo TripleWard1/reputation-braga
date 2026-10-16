@@ -345,6 +345,14 @@ const ESTILO_CAPA = `
 .rb-hero-cheio .rb-hero-in { padding-bottom: 108px; }
 /* O topo fica fixo e as folhas seguintes deslizam por cima dele */
 @media (min-width: 901px) { .rb-hero-cheio { position: sticky; top: 0; z-index: 0; } }
+@supports (animation-timeline: scroll()) {
+  @media (min-width: 901px) {
+    .rb-hero-cheio { animation: rbHeroRecua linear both; animation-timeline: scroll(root); animation-range: 0 100svh; }
+    .rb-hero-cheio::after { content: ''; position: absolute; inset: 0; z-index: 5; background: #0A0C0F; opacity: 0; pointer-events: none; animation: rbHeroEscuro linear both; animation-timeline: scroll(root); animation-range: 0 100svh; }
+  }
+  @keyframes rbHeroRecua { from { transform: scale(1); border-radius: 0; } to { transform: scale(.94); border-radius: 30px; } }
+  @keyframes rbHeroEscuro { from { opacity: 0; } to { opacity: .6; } }
+}
 .rb-hero-cheio .rb-hero-shade { background: linear-gradient(180deg, rgba(10,12,15,.4) 0%, rgba(10,12,15,0) 20%), linear-gradient(0deg, rgba(10,12,15,.66) 0%, rgba(10,12,15,.3) 34%, rgba(10,12,15,0) 62%); }
 .rb-hero-cheio .rb-vg-logo img { filter: drop-shadow(0 3px 16px rgba(0,0,0,.55)); }
 .rb-capa-h1 { font-size: clamp(38px, 5.2vw, 72px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; margin: 14px 0 18px; text-shadow: 0 2px 28px rgba(0,0,0,.4); }
@@ -359,7 +367,7 @@ const ESTILO_CAPA = `
   .rb-hero-cheio .rb-hero-in { padding-bottom: 76px; }
   .rb-cue { bottom: 18px; }
 }
-@media (prefers-reduced-motion: reduce) { .rb-cue { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .rb-cue { animation: none; } .rb-hero-cheio, .rb-hero-cheio::after { animation: none !important; } }
 @media print { .rb-cue { display: none; } .rb-hero-cheio { position: relative; } }
 `;
 
@@ -1723,7 +1731,6 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
   const [fundo, setFundo] = useState<string | null>(FOTO_VISAO);
   const [aCarregarF, setACarregarF] = useState(false);
   const fundoRef = useRef<HTMLInputElement>(null);
-  const alertasRef = useRef<HTMLDivElement>(null);
   useRevelar(locations.length);
   const nMini = Object.keys(mini).length;
 
@@ -1772,7 +1779,6 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
   const w = (fn: (x: Numeros) => number) => robustos.reduce((s, d) => s + fn(d.x!) * d.x!.n, 0) / N;
   const avg = w((x) => x.avg), pos = w((x) => x.pos), neg = w((x) => x.neg);
   const totalN = dados.reduce((s, d) => s + (d.x?.n ?? 0), 0);
-  const alertas = dados.filter((d) => d.al && d.x && d.x.robustez !== 'insuficiente');
   const dVar = HEADLINE.dormidasVar;
 
   return (
@@ -1835,25 +1841,6 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
           );
         })()}
 
-        {/* O que mudou */}
-        {admin && alertas.length > 0 && (
-          <section className="rb-sec" style={{ paddingTop: 28 }}>
-            <Titulo h={t(`O que mudou no último trimestre · ${alertas.length} ${alertas.length === 1 ? 'local' : 'locais'}`, `What changed last quarter · ${alertas.length} ${alertas.length === 1 ? 'place' : 'places'}`)} cap={t('Mudanças relevantes face ao trimestre anterior, detetadas automaticamente · desliza para ver todas', 'Relevant changes versus the previous quarter, detected automatically · scroll to see them all')}
-              right={alertas.length > 3 ? <div className="rb-noprint" style={{ display: 'flex', gap: 8 }}>
-                <button className="rb-chip ghost" aria-label={t('Anteriores', 'Previous')} onClick={() => alertasRef.current?.scrollBy({ left: -620, behavior: 'smooth' })} style={{ width: 38, padding: 0, justifyContent: 'center' }}><span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}><Seta /></span></button>
-                <button className="rb-chip ghost" aria-label={t('Seguintes', 'Next')} onClick={() => alertasRef.current?.scrollBy({ left: 620, behavior: 'smooth' })} style={{ width: 38, padding: 0, justifyContent: 'center' }}><Seta /></button>
-              </div> : undefined} />
-            <div ref={alertasRef} className="rb-carrossel">
-              {alertas.map((d, i) => (
-                <div key={d.l.id} className="rb-rise" style={{ flex: '0 0 300px', scrollSnapAlign: 'start', background: 'var(--rb-warn-bg)', borderRadius: 6, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12, transitionDelay: `${Math.min(i, 5) * 80}ms` }}>
-                  <div style={{ fontSize: 16.5, fontWeight: 700, lineHeight: 1.3 }}>{d.l.name}</div>
-                  <div style={{ fontSize: 14.5, lineHeight: 1.5, flex: 1 }}>{d.al}</div>
-                  <div><button className="rb-chip warn" onClick={() => props.onOpen(d.l.id)}>{t('Abrir ficha', 'Open profile')} <Seta /></button></div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
 
         <div style={{ marginTop: 48, paddingTop: 16, borderTop: '1px solid var(--rb-line)', display: 'flex', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', fontSize: 13, color: 'var(--rb-text2)' }}>
           <span>{t('Fonte: Google Maps, últimos 3 anos · índice /10 = média de estrelas × 2', 'Source: Google Maps, last 3 years · index /10 = average stars × 2')}</span>

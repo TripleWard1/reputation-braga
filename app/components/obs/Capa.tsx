@@ -5,6 +5,7 @@ import { t, dl } from '@/app/lib/i18n';
 import { MESES, MESES_CURTO, DORMIDAS_BRAGA, DORMIDAS_PORTUGAL, SEMESTRE_2026 } from '@/app/lib/observatorio-dados';
 import { POP_BRAGA, POP_PORTUGAL, AREA_KM2, AREA_PORTUGAL_KM2, ETARIA_2025, NATURAL_2025, crescimento, densidade } from '@/app/lib/demografia-braga';
 import { ContaTexto, fmt } from './comum';
+import RodaAno from './RodaAno';
 
 // ─── CAPÍTULOS DA CAPA (Visão Geral) ─────────────────────────────────────────
 // Cada capítulo é uma "folha" que desliza por cima da anterior (cantos arredondados, sem sombras a desvanecer).
@@ -26,6 +27,12 @@ const CSS = `
 .rb-cap-tint { position: absolute; inset: 0; z-index: -1; background: rgba(14,16,20,.5); }
 .rb-cap-in { max-width: 1120px; margin: 0 auto; padding: clamp(64px, 8vw, 112px) 48px clamp(72px, 9vw, 120px); }
 .rb-cap-sol { background: #15171B; }
+.rb-cap-alca { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 46px; height: 4px; border-radius: 999px; background: rgba(255,255,255,.4); z-index: 3; }
+@supports (animation-timeline: view()) {
+  .rb-cap-folha { animation: rbFolha linear both; animation-timeline: view(); animation-range: entry 0% entry 42%; }
+  @keyframes rbFolha { from { transform: scale(.925); border-radius: 46px 46px 0 0; } to { transform: scale(1); border-radius: 28px 28px 0 0; } }
+}
+
 .rb-cap-kick { font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #B7CDF0; text-shadow: 0 1px 12px rgba(0,0,0,.6); }
 .rb-cap-h2 { font-size: clamp(30px, 4.6vw, 60px); font-weight: 700; letter-spacing: -0.028em; line-height: 1.05; max-width: 13em; margin: 12px 0 0; text-shadow: 0 2px 24px rgba(0,0,0,.4); }
 .rb-cap-sub { font-size: 17px; color: #E4E6EA; margin: 14px 0 0; max-width: 40em; line-height: 1.5; text-shadow: 0 1px 14px rgba(0,0,0,.6); }
@@ -105,7 +112,7 @@ const CSS = `
   .rb-pan-i .rb-pan-t, .rb-pan-i.on .rb-pan-t { font-size: 21px; }
 }
 @media (hover: none) { .rb-pan { flex-direction: column; height: auto; } .rb-pan-i, .rb-pan-i.on { flex: none; height: 210px; } .rb-pan-i .rb-pan-p { max-height: 90px; opacity: 1; margin-top: 6px; } }
-@media (prefers-reduced-motion: reduce) { .rb-cap-img { animation: none !important; } .rb-cap-barra, .rb-cap-par-b > div, .rb-cap-emp > div { animation: none; } .rb-pan-i, .rb-pan-img, .rb-pan-p { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .rb-cap-img, .rb-cap-folha { animation: none !important; } .rb-cap-barra, .rb-cap-par-b > div, .rb-cap-emp > div { animation: none; } .rb-pan-i, .rb-pan-img, .rb-pan-p { transition: none; } }
 @media print { .rb-cap-nav, .rb-pan { display: none; } .rb-cap-img, .rb-cap-tint { display: none; } .rb-cap-folha { margin-top: 0; border-radius: 0; } }
 `;
 
@@ -127,9 +134,10 @@ function Numeros() {
     <section id="rb-cap-numeros" className="rb-cap rb-cap-folha" aria-label={t('Braga em números', 'Braga in numbers')}>
       <div className="rb-cap-img" style={{ backgroundImage: `url(${FOTO.bomJesus})` }} />
       <div className="rb-cap-tint" />
+      <span className="rb-cap-alca" aria-hidden="true" />
       <div className="rb-cap-in">
         <div className="rb-rise">
-          <div className="rb-cap-kick">{t('Braga em números', 'Braga in numbers')}</div>
+          <div className="rb-cap-kick">01 · {t('Braga em números', 'Braga in numbers')}</div>
           <h2 className="rb-cap-h2">{t('Uma cidade que cresce e se renova.', 'A city that keeps growing and renewing itself.')}</h2>
         </div>
         <div className="rb-cap-nums">
@@ -234,9 +242,10 @@ function Turismo({ onObservatorio }: { onObservatorio?: () => void }) {
     <section id="rb-cap-turismo" className="rb-cap rb-cap-folha" aria-label={t('Turismo', 'Tourism')}>
       <div className="rb-cap-img" style={{ backgroundImage: `url(${FOTO.santaBarbara})` }} />
       <div className="rb-cap-tint" />
+      <span className="rb-cap-alca" aria-hidden="true" />
       <div className="rb-cap-in">
         <div className="rb-rise">
-          <div className="rb-cap-kick">{t('Turismo', 'Tourism')}</div>
+          <div className="rb-cap-kick">02 · {t('Turismo', 'Tourism')}</div>
           <h2 className="rb-cap-h2">{dormV >= dormPT ? t('Cada vez mais gente escolhe Braga.', 'More and more people choose Braga.') : t('O turismo em Braga, a meio de 2026.', 'Tourism in Braga, mid-2026.')}</h2>
           <p className="rb-cap-sub">{dormV >= dormPT ? t(`As dormidas em Braga crescem ${sinal(dormV)}%, acima do país (${sinal(dormPT)}%).`, `Overnight stays in Braga grow ${sinal(dormV)}%, above the country (${sinal(dormPT)}%).`) : t(`As dormidas em Braga variam ${sinal(dormV)}% (país: ${sinal(dormPT)}%).`, `Overnight stays in Braga change ${sinal(dormV)}% (country: ${sinal(dormPT)}%).`)}</p>
         </div>
@@ -296,9 +305,10 @@ function Portas({ n, irPara }: { n: number; irPara: (id: string) => void }) {
   ];
   return (
     <section id="rb-cap-explorar" className="rb-cap rb-cap-folha rb-cap-sol" aria-label={t('Explorar', 'Explore')}>
+      <span className="rb-cap-alca" aria-hidden="true" />
       <div className="rb-cap-in">
         <div className="rb-rise">
-          <div className="rb-cap-kick">{t('Explorar', 'Explore')}</div>
+          <div className="rb-cap-kick">03 · {t('Explorar', 'Explore')}</div>
           <h2 className="rb-cap-h2" style={{ maxWidth: '16em' }}>{t('Escolhe por onde começar.', 'Choose where to begin.')}</h2>
         </div>
         <div className="rb-pan rb-rise" onMouseLeave={() => setAtivo(ativo)}>
@@ -317,8 +327,27 @@ function Portas({ n, irPara }: { n: number; irPara: (id: string) => void }) {
   );
 }
 
+function Roda() {
+  return (
+    <section id="rb-cap-roda" className="rb-cap rb-cap-folha" aria-label={t('Quando visitar Braga', 'When to visit Braga')}>
+      <div className="rb-cap-img" style={{ backgroundImage: 'url(/fotos/parque-ponte-g.jpg)' }} />
+      <div className="rb-cap-tint" style={{ background: 'rgba(14,16,20,.66)' }} />
+      <span className="rb-cap-alca" aria-hidden="true" />
+      <div className="rb-cap-in">
+        <div className="rb-rise">
+          <div className="rb-cap-kick">04 · {t('Roda do ano', 'Year wheel')}</div>
+          <h2 className="rb-cap-h2" style={{ maxWidth: '15em' }}>{t('Quando visitar Braga?', 'When to visit Braga?')}</h2>
+          <p className="rb-cap-sub">{t('Passa o rato (ou toca) em cada mês: vê a procura, os mercados em férias e os eventos que fazem a diferença.', 'Hover (or tap) a month: see demand, the source markets on holiday and the events that make a difference.')}</p>
+        </div>
+        <RodaAno />
+        <p className="rb-cap-fonte" style={{ marginTop: 18 }}>{t('Procura: dormidas mensais em Braga (INE/TravelBI, 2023–2025). Mercados: feriados e férias escolares dos mercados emissores. Eventos: agenda de Braga. O índice compara cada mês com a média mensal (100).', 'Demand: monthly overnight stays in Braga (INE/TravelBI, 2023–2025). Markets: public and school holidays in source markets. Events: Braga agenda. The index compares each month with the monthly average (100).')}</p>
+      </div>
+    </section>
+  );
+}
+
 function Navegacao() {
-  const caps: [string, string][] = [['rb-cap-topo', t('Início', 'Start')], ['rb-cap-numeros', t('Braga em números', 'Braga in numbers')], ['rb-cap-turismo', t('Turismo', 'Tourism')], ['rb-cap-explorar', t('Explorar', 'Explore')]];
+  const caps: [string, string][] = [['rb-cap-topo', t('Início', 'Start')], ['rb-cap-numeros', t('Braga em números', 'Braga in numbers')], ['rb-cap-turismo', t('Turismo', 'Tourism')], ['rb-cap-explorar', t('Explorar', 'Explore')], ['rb-cap-roda', t('Quando visitar', 'When to visit')]];
   const [ativo, setAtivo] = useState('rb-cap-topo');
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') return;
@@ -353,6 +382,7 @@ export default function CapaCapitulos({ nLocais, onIr, onObservatorio }: { nLoca
       <Numeros />
       <Turismo onObservatorio={onObservatorio} />
       <Portas n={nLocais} irPara={irPara} />
+      <Roda />
     </>
   );
 }
