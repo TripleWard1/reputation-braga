@@ -2199,7 +2199,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
 
         {/* ── OVERVIEW ── */}
         {view === 'overview' && (
-          <VisaoGeral locations={locations} onOpen={(id) => { setDetailId(id); setView('detalhe'); }} onOpenList={() => setView('locais')} onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} onObservatorio={() => setView('observatorio')} />
+          <VisaoGeral locations={locations} onOpen={(id) => { setDetailId(id); setView('detalhe'); }} onOpenList={() => setView('locais')} onImport={() => { setImpGroups([]); setImpMsg(null); setShowImport(true); }} onObservatorio={() => setView('observatorio')} onIr={(v) => setView(v as any)} />
         )}
 
         {/* ── LOCAIS ── */}

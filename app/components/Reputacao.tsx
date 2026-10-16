@@ -15,6 +15,7 @@ import { descarregarDados, type Linha } from '@/app/lib/exportar-dados';
 import { t, getLang } from '@/app/lib/i18n';
 import { dispAnalysis } from '@/app/lib/ai-translate';
 import VideoTopo from '@/app/components/obs/VideoTopo';
+import { POP_BRAGA, POP_PORTUGAL, AREA_KM2, AREA_PORTUGAL_KM2, ETARIA_2025, crescimento, densidade } from '@/app/lib/demografia-braga';
 import { limparFotoBraga } from '@/app/lib/foto-braga';
 import { windowStats, langName, cutoffDate, loadWindowReviews, parseReviewFile, groupByPlace, buildStats, type StoredReview, type ReviewStats } from '@/app/lib/reviews';
 import { SEMESTRE_2026, BALCAO, DORMIDAS_BRAGA, DORMIDAS_PORTUGAL, MESES, HEADLINE } from '@/app/lib/observatorio-dados';
@@ -112,7 +113,7 @@ function useRevelar(_dep?: unknown) {
 }
 
 /** Fotografia grande com zoom de entrada e parallax ao descer a página. */
-function HeroFoto({ src, altura, children, mini, video }: { src: string | null; altura: number; children: ReactNode; mini?: string; video?: boolean }) {
+function HeroFoto({ src, altura, children, mini, video, cheio }: { src: string | null; altura: number; children: ReactNode; mini?: string; video?: boolean; cheio?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!src || semMovimento()) return;
@@ -131,7 +132,7 @@ function HeroFoto({ src, altura, children, mini, video }: { src: string | null; 
     return () => { window.removeEventListener('scroll', mexe); cancelAnimationFrame(raf); };
   }, [src]);
   return (
-    <div className="rb-hero-foto" style={{ height: altura }}>
+    <div className={`rb-hero-foto${cheio ? ' rb-hero-cheio' : ''}`} style={{ height: altura }}>
       {src && <div ref={ref} className="rb-hero-img"><div className="rb-kb" style={{ backgroundImage: mini ? `url(${src}), url(${mini})` : `url(${src})` }} /></div>}
       {video && <VideoTopo />}
       <div className="rb-hero-shade" />
@@ -336,6 +337,55 @@ const ESTILO = `
   .rb-hero-in { padding: 0 0 20px; } .rb-hero-h1 { text-shadow: none; }
   .rb-unesco-ecra { display: none !important; } .rb-unesco-print { display: block !important; }
 }
+`;
+
+// Capa (Visão Geral): topo a ecrã inteiro, faixas com fotografia e portas de entrada
+const ESTILO_CAPA = `
+.rb-hero-cheio { height: max(640px, 100svh) !important; }
+.rb-hero-cheio .rb-hero-in { padding-bottom: 76px; }
+.rb-capa-h1 { font-size: clamp(38px, 5.2vw, 72px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; margin: 14px 0 18px; text-shadow: 0 2px 28px rgba(0,0,0,.4); }
+.rb-capa-h1 span { color: #B7CDF0; }
+.rb-capa-kpis > div { min-width: 0; }
+.rb-cue { position: absolute; left: 50%; bottom: 14px; z-index: 4; width: 44px; height: 44px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(21,23,27,.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #ECEDEF; display: flex; align-items: center; justify-content: center; cursor: pointer; animation: rbCue 2.4s ease-in-out infinite; }
+.rb-cue:hover { background: rgba(21,23,27,.75); }
+@keyframes rbCue { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 7px); } }
+.rb-banda { position: relative; overflow: hidden; isolation: isolate; background-color: #15171B; background-size: cover; background-position: center; }
+.rb-banda::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--rb-bg) 0%, rgba(21,23,27,.5) 22%, rgba(21,23,27,.58) 78%, var(--rb-bg) 100%); }
+@media (min-width: 901px) and (hover: hover) { .rb-banda { background-attachment: fixed; } }
+.rb-banda-in, .rb-capa-in { max-width: 1120px; margin: 0 auto; }
+.rb-banda .rb-kicker { color: #B7CDF0 !important; text-shadow: 0 1px 12px rgba(0,0,0,.7); }
+.rb-banda .rb-lab, .rb-banda .rb-sub { color: #D5D8DE; }
+.rb-banda-in { padding: clamp(64px, 8vw, 112px) 48px; }
+.rb-capa-in { padding: 0 48px 24px; }
+.rb-banda-h2 { font-size: clamp(30px, 4.6vw, 60px); font-weight: 700; letter-spacing: -0.028em; line-height: 1.05; max-width: 13em; margin: 12px 0 0; text-shadow: 0 2px 24px rgba(0,0,0,.35); }
+.rb-banda-sub { font-size: 17px; color: #E4E6EA; text-shadow: 0 1px 14px rgba(0,0,0,.6); margin: 16px 0 0; max-width: 40em; line-height: 1.5; }
+.rb-banda-fonte { font-size: 12.5px; color: #C9CDD4; margin: 36px 0 0; line-height: 1.5; text-shadow: 0 1px 10px rgba(0,0,0,.7); }
+.rb-nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 28px; margin-top: 44px; }
+.rb-num { border-top: 1px solid rgba(255,255,255,.3); padding-top: 20px; }
+.rb-num-v { text-shadow: 0 2px 18px rgba(0,0,0,.45); font-size: clamp(32px, 3.7vw, 54px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; white-space: nowrap; }
+.rb-num-v small { font-size: .32em; font-weight: 500; color: #D5D8DE; margin-left: 8px; letter-spacing: 0; }
+.rb-num-l { font-size: 16px; color: #F4F5F7; margin-top: 10px; line-height: 1.35; text-shadow: 0 1px 12px rgba(0,0,0,.7); }
+.rb-num-s { font-size: 13.5px; color: #C9CDD4; margin-top: 4px; text-shadow: 0 1px 10px rgba(0,0,0,.7); }
+.rb-turismo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 40px; }
+.rb-portas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 36px; }
+.rb-porta { position: relative; aspect-ratio: 4 / 3.3; border-radius: 8px; overflow: hidden; border: 0; padding: 0; cursor: pointer; text-align: left; color: #fff; background: #22262D; isolation: isolate; display: block; }
+.rb-porta-img { position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center; transition: transform .9s cubic-bezier(.2,.7,.2,1); }
+.rb-porta::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg, rgba(10,12,15,.9) 0%, rgba(10,12,15,.4) 50%, rgba(10,12,15,.05) 100%); }
+.rb-porta:hover .rb-porta-img, .rb-porta:focus-visible .rb-porta-img { transform: scale(1.07); }
+.rb-porta-txt { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 24px; display: block; }
+.rb-porta-t { display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 700; letter-spacing: -0.015em; }
+.rb-porta-p { display: block; margin-top: 6px; font-size: 14.5px; line-height: 1.45; color: rgba(236,237,239,.88); }
+.rb-porta:hover .rb-seta { transform: translateX(5px); }
+@media (max-width: 1000px) { .rb-turismo { grid-template-columns: repeat(2, minmax(0, 1fr)); } .rb-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 36px; } .rb-portas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) {
+  .rb-hero-cheio { height: auto !important; min-height: 92svh; }
+  .rb-hero-cheio .rb-hero-in { padding-bottom: 72px; }
+  .rb-banda-in { padding: 64px 20px; }
+  .rb-capa-in { padding: 0 20px 16px; }
+}
+@media (max-width: 560px) { .rb-portas { grid-template-columns: 1fr; } .rb-porta { aspect-ratio: 16 / 10; } .rb-turismo { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .rb-cue { animation: none; } .rb-porta-img { transition: none; } }
+@media print { .rb-banda { background-image: none !important; } .rb-banda::before { display: none; } .rb-portas, .rb-cue { display: none; } }
 `;
 
 const PATH_ESTRELA = 'M12 2.6l2.85 6.03 6.6.78-4.88 4.53 1.3 6.53L12 17.2l-5.87 3.27 1.3-6.53-4.88-4.53 6.6-.78L12 2.6z';
@@ -1691,14 +1741,13 @@ const MES_LONGO_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'J
 const FOTO_VISAO = '/visao-geral.jpg';
 const FOTO_VISAO_MINI = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA4KCw0LCQ4NDA0QDw4RFiQXFhQUFiwgIRokNC43NjMuMjI6QVNGOj1OPjIySGJJTlZYXV5dOEVmbWVabFNbXVn/2wBDAQ8QEBYTFioXFypZOzI7WVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVn/wAARCAARACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCZJVlMbpGY1Y8DOc1sGWC7tWijRiqnnADHP1rkbIagpj+UBVx94D15rThtryJi6XioTknC5qlWaepLpJrQTUoreDCQMXlZcndxtOeuPzrFe2mkVpPtO3H8AJBP0q9Jb3LtMftG+QMc7h9446/SqUltc4wJSvIwBnp/n+dROrKT3KhTjFbGzF0px70UVkaFQ/8AH4f+uY/nT3oooA//2Q==';
 
-export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => void; onOpenList: () => void; onImport: () => void; onObservatorio?: () => void }) {
+export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => void; onOpenList: () => void; onImport: () => void; onObservatorio?: () => void; onIr?: (view: string) => void }) {
   const admin = useAdmin();
   const { locations } = props;
   const mini = useMiniaturas();
   const [fundo, setFundo] = useState<string | null>(FOTO_VISAO);
   const [aCarregarF, setACarregarF] = useState(false);
   const fundoRef = useRef<HTMLInputElement>(null);
-  const carrosselRef = useRef<HTMLDivElement>(null);
   const alertasRef = useRef<HTMLDivElement>(null);
   useRevelar(locations.length);
   const nMini = Object.keys(mini).length;
@@ -1749,169 +1798,146 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
   const avg = w((x) => x.avg), pos = w((x) => x.pos), neg = w((x) => x.neg);
   const totalN = dados.reduce((s, d) => s + (d.x?.n ?? 0), 0);
   const alertas = dados.filter((d) => d.al && d.x && d.x.robustez !== 'insuficiente');
-  // Título do destino: junta Observatório (INE), Rede INSTO e reputação, para refletir a plataforma inteira.
-  const ER = estadaRecente();
   const dVar = HEADLINE.dormidasVar;
-  const titulo = t(`Braga teve ${fmt(HEADLINE.dormidas2025)} dormidas em 2025 (${dVar >= 0 ? '+' : ''}${fmt(dVar, 1)}%) e os locais monitorizados têm média de ${fmt(avg, 2)} estrelas`,
-    `Braga had ${fmt(HEADLINE.dormidas2025)} overnight stays in 2025 (${dVar >= 0 ? '+' : ''}${fmt(dVar, 1)}%) and its monitored places average ${fmt(avg, 2)} stars`);
-  const MES_ER = ER ? (getLang() === 'es' ? ER.mesEs : ER.mesPt) : '';
-  const partEstada = ER ? t(`Estada média de ${fmt(ER.valor, 2)} noites (janeiro a ${MES_ER} de ${ER.ano}) · `, `Average stay of ${fmt(ER.valor, 2)} nights (January to ${ER.mesEn} ${ER.ano}) · `) : '';
-  const partAlertas = alertas.length === 1 ? t(' · 1 local mudou no último trimestre', ' · 1 place changed last quarter') : alertas.length > 1 ? t(` · ${alertas.length} locais mudaram no último trimestre`, ` · ${alertas.length} places changed last quarter`) : '';
-  const subtitulo = partEstada + t('indicadores nas 11 áreas da Rede INSTO', 'indicators in all 11 INSTO network areas') + partAlertas + t('. Fontes: INE (provisório) e avaliações do Google Maps dos últimos 3 anos.', '. Sources: INE (provisional) and Google Maps reviews from the last 3 years.');
 
-  // ── Evolução do destino (trimestral, ponderada) ──
-  const qa: Record<string, { n: number; s: number }> = {};
-  const qneg: Record<string, number> = {};
-  dados.forEach((d) => windowStats(d.l.reviewStats)?.quarters.forEach((q) => { if (!qa[q.q]) qa[q.q] = { n: 0, s: 0 }; qa[q.q].n += q.n; qa[q.q].s += q.avg * q.n; qneg[q.q] = (qneg[q.q] || 0) + (q.negPct / 100) * q.n; }));
-  const serie = Object.keys(qa).sort().map((q) => ({ q, avg: qa[q].s / qa[q].n, n: qa[q].n, negPct: (qneg[q] / qa[q].n) * 100 })).filter((z) => z.n >= 5);
-
-  // ── Sazonalidade: avaliações por mês do ano (aproxima a afluência) ──
-  const corte = cutoffDate().toISOString().slice(0, 7);
-  const porMes = Array(12).fill(0) as number[];
-  dados.forEach((d) => Object.entries(d.l.reviewStats?.byMonth || {}).forEach(([m, st]) => { if (m >= corte) porMes[+m.slice(5, 7) - 1] += st.n; }));
-  const maxMes = Math.max(1, ...porMes);
-  const pico = porMes.indexOf(Math.max(...porMes));
-  const vale = porMes.indexOf(Math.min(...porMes));
-  const temMeses = porMes.some((v) => v > 0);
-
-  // ── O que elogiam / criticam (temas agregados; recurso: listas antigas) ──
-  const agreg = (estados: string[], antigos: 'topThemesPositive' | 'topThemesNegative') => {
-    const porTema = TEMAS.map((tm) => {
-      const ls = dados.filter((d) => d.a?.v2?.temas?.some((z: any) => z.id === tm.id && estados.includes(z.estado)));
-      const nota = ls.map((d) => d.a.v2.temas.find((z: any) => z.id === tm.id)?.nota).find((z: any) => !!z) as string | undefined;
-      return { chave: tm.id, nome: temaNome(tm.id), n: ls.length, nomes: ls.map((d) => d.l.name), nota };
-    }).filter((z) => z.n > 0);
-    if (porTema.length) return porTema.sort((p, q) => q.n - p.n).slice(0, 4);
-    const cont: Record<string, { nome: string; nomes: string[] }> = {};
-    dados.forEach((d) => ((d.a?.[antigos] as string[]) || []).forEach((s) => { const k = s.toLowerCase().trim(); if (!cont[k]) cont[k] = { nome: s, nomes: [] }; cont[k].nomes.push(d.l.name); }));
-    return Object.entries(cont).map(([k, v]) => ({ chave: k, nome: v.nome, n: v.nomes.length, nomes: v.nomes, nota: undefined as string | undefined })).sort((p, q) => q.n - p.n).slice(0, 4);
-  };
-  const elogios = agreg(['forte'], 'topThemesPositive');
-  const criticas = agreg(['persistente', 'novo'], 'topThemesNegative');
-
-  // ── Idiomas (uma barra) ──
-  const lg: Record<string, { n: number; sum: number }> = {};
-  dados.forEach((d) => windowStats(d.l.reviewStats)?.langs.forEach((l) => { if (!lg[l.code]) lg[l.code] = { n: 0, sum: 0 }; lg[l.code].n += l.n; lg[l.code].sum += l.avg * l.n; }));
-  const comTexto = Object.entries(lg).filter(([c]) => c !== 'none' && c !== 'und').map(([code, v]) => ({ code, n: v.n, avg: v.sum / v.n })).sort((p, q) => q.n - p.n);
-  const nTexto = comTexto.reduce((s, l) => s + l.n, 0);
-  const principais = comTexto.slice(0, 5);
-  const outros = comTexto.slice(5).reduce((s, l) => s + l.n, 0);
-  const semTextoN = lg.none?.n ?? 0, nTodos = Object.values(lg).reduce((s, v) => s + v.n, 0);
-  const tons = [1, 0.78, 0.58, 0.42, 0.3, 0.2];
-
-  const ordenados = [...dados].sort((p, q) => p.l.name.localeCompare(q.l.name, 'pt'));
-  const desliza = (dir: number) => carrosselRef.current?.scrollBy({ left: dir * 560, behavior: 'smooth' });
-
-  const coluna = ({ titulo: tt, itens, cor, fundoCor, sinal, vazio }: { titulo: string; itens: typeof elogios; cor: string; fundoCor: string; sinal: string; vazio: string }) => (
-    <div className="rb-rise" style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '24px 26px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <span style={{ width: 28, height: 28, borderRadius: 999, background: fundoCor, color: cor, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 17 }}>{sinal}</span>
-        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: cor }}>{tt}</span>
-      </div>
-      {itens.length ? itens.map((z, i) => (
-        <div key={z.chave} style={{ padding: '14px 0', borderTop: i ? '1px solid var(--rb-line)' : 'none' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-            <span style={{ fontSize: 16, fontWeight: 700 }}><span style={{ color: cor, marginRight: 8 }}>{sinal}</span>{z.nome}</span>
-            <span style={{ fontSize: 13, color: 'var(--rb-text2)', whiteSpace: 'nowrap' }}>{t(`em ${z.n} ${z.n === 1 ? 'local' : 'locais'}`, `at ${z.n} ${z.n === 1 ? 'place' : 'places'}`)}</span>
-          </div>
-          {z.nota && <div style={{ fontSize: 14.5, color: 'var(--rb-text2)', lineHeight: 1.55, marginTop: 6 }}>{z.nota}</div>}
-          <div style={{ fontSize: 12.5, color: 'var(--rb-text2)', marginTop: 6, opacity: 0.8 }}>{z.nomes.slice(0, 4).join(' · ')}{z.nomes.length > 4 ? ` · +${z.nomes.length - 4}` : ''}</div>
-        </div>
-      )) : <p className="rb-sub">{vazio}</p>}
-    </div>
-  );
+  const irPara = (id: string) => { if (id === 'observatorio' && props.onObservatorio) props.onObservatorio(); else props.onIr?.(id); };
+  const popPt = POP_BRAGA[2025], crescB = crescimento(2011, 2025, POP_BRAGA), crescP = crescimento(2011, 2025, POP_PORTUGAL);
+  const fdec = (v: number, d = 1) => fmt(v, d);
+  const portas: { id: string; foto: string; titulo: string; texto: string }[] = [
+    { id: 'observatorio', foto: '/fotos/parque-ponte-p.jpg', titulo: t('Observatório', 'Observatory'), texto: t('Dormidas, mercados, emprego e muito mais, com dados oficiais.', 'Overnight stays, markets, jobs and much more, from official data.') },
+    { id: 'insto', foto: '/fotos/avenida-liberdade-p.jpg', titulo: t('Rede INSTO', 'INSTO network'), texto: t('Indicadores do turismo sustentável nas 11 áreas da rede.', 'Sustainable tourism indicators across the network’s 11 areas.') },
+    { id: 'locais', foto: '/fotos/bom-jesus-p.jpg', titulo: t('Locais', 'Places'), texto: t(`${locations.length} locais monitorizados, com avaliações e análise.`, `${locations.length} monitored places, with reviews and analysis.`) },
+    { id: 'mapa', foto: '/fotos/jardim-santa-barbara-p.jpg', titulo: t('Mapa', 'Map'), texto: t('Os locais no mapa, pelo índice de reputação.', 'Places on the map, by reputation index.') },
+    { id: 'produtos', foto: '/login-avenida.jpg', titulo: t('Produtos turísticos', 'Tourism products'), texto: t('Experiências e produtos para descobrir Braga.', 'Experiences and products to discover Braga.') },
+    { id: 'mundo', foto: '/visao-geral.jpg', titulo: t('Internacionalização', 'Internationalisation'), texto: t('Braga no mundo: feiras, mercados e distinções.', 'Braga in the world: fairs, markets and awards.') },
+  ];
 
   return (
     <div className="rbx">
       <style>{ESTILO}</style>
+      <style>{ESTILO_CAPA}</style>
 
-      {/* Fotografia de Braga + números do destino em vidro */}
-      <HeroFoto src={fundo} mini={FOTO_VISAO_MINI} altura={fundo ? 660 : 460} video>
+      {/* Topo imersivo: vídeo, uma frase e os números de reputação em vidro */}
+      <HeroFoto src={fundo} mini={FOTO_VISAO_MINI} altura={fundo ? 760 : 520} video cheio>
         {topoFoto}
         <div className="rb-vg-logo"><img className="rb-enter" src="/visit-braga-logo.png" alt="Visit Braga" /></div>
-        <div className="rb-enter" style={{ maxWidth: 880 }}>
+        <div className="rb-enter" style={{ maxWidth: 1080 }}>
           <div className="rb-kicker" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>Braga</div>
-          <h1 className="rb-hero-h1">{titulo}</h1>
-          <p style={{ fontSize: 15, color: 'var(--rb-text2)', lineHeight: 1.55, margin: 0, maxWidth: 680 }}>{subtitulo}</p>
+          <h1 className="rb-capa-h1">{t('Há cidades que se visitam.', 'Some cities are visited.')}<br /><span>{t('Braga sente-se.', 'Braga is felt.')}</span></h1>
+          <p style={{ fontSize: 16, color: 'var(--rb-text2)', lineHeight: 1.55, margin: 0, maxWidth: 640 }}>{t(`${fmt(HEADLINE.dormidas2025)} dormidas em 2025 (${dVar >= 0 ? '+' : ''}${fmt(dVar, 1)}%) e ${fmt(avg, 2)} estrelas de média nos locais monitorizados.`, `${fmt(HEADLINE.dormidas2025)} overnight stays in 2025 (${dVar >= 0 ? '+' : ''}${fmt(dVar, 1)}%) and an average of ${fmt(avg, 2)} stars across monitored places.`)}</p>
         </div>
-        <div className="rb-glass rb-kpis rb-enter" style={{ marginTop: 28, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', animationDelay: '220ms' }}>
+        <div className="rb-glass rb-kpis rb-capa-kpis rb-enter" style={{ marginTop: 26, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', animationDelay: '220ms' }}>
           {[
-            { l: t('Índice dos locais monitorizados', 'Monitored places index'), v: <><Conta v={Math.round(avg * 20) / 10} d={1} /><small>/10</small></>, s: t(`${robustos.length} locais com dados suficientes`, `${robustos.length} places with enough data`) },
-            { l: t('Média das avaliações', 'Average rating'), v: <><Conta v={Math.round(avg * 100) / 100} d={2} /><Estrela /></>, s: t('em 5 estrelas · locais com dados suficientes', 'out of 5 stars · places with enough data') },
+            { l: t('Índice dos locais', 'Places index'), v: <><Conta v={Math.round(avg * 20) / 10} d={1} /><small>/10</small></>, s: t(`${robustos.length} locais com dados suficientes`, `${robustos.length} places with enough data`) },
+            { l: t('Média das avaliações', 'Average rating'), v: <><Conta v={Math.round(avg * 100) / 100} d={2} /><Estrela s={24} /></>, s: t('em 5 estrelas', 'out of 5 stars') },
             { l: t('Avaliações analisadas', 'Reviews analysed'), v: <Conta v={totalN} />, s: t(`${locations.length} locais monitorizados`, `${locations.length} places monitored`) },
-            { l: t('Positivos e negativos', 'Positive and negative'), v: <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 12 }}><span style={{ color: 'var(--rb-good)' }}><Conta v={Math.round(pos * 10) / 10} d={1} />%</span><span className="rb-sec2" style={{ color: 'var(--rb-bad)', fontSize: 24 }}><Conta v={Math.round(neg * 10) / 10} d={1} />%</span></span>, s: t('positivos 4–5★ · negativos 1–2★', 'positive 4–5★ · negative 1–2★') },
+            { l: t('Positivos', 'Positive'), v: <span style={{ color: 'var(--rb-good)' }}><Conta v={Math.round(pos * 10) / 10} d={1} />%</span>, s: t(`negativos: ${fmt(neg, 1)}%`, `negative: ${fmt(neg, 1)}%`) },
           ].map((k, i) => (
-            <div key={i} style={{ padding: '20px 24px', borderLeft: i ? '1px solid rgba(255,255,255,.08)' : 'none' }}>
+            <div key={i} style={{ padding: '14px 20px', borderLeft: i ? '1px solid rgba(255,255,255,.08)' : 'none' }}>
               <div className="rb-lab">{k.l}</div>
-              <div className="rb-big">{k.v}</div>
-              <div className="rb-sub">{k.s}</div>
+              <div className="rb-big" style={{ fontSize: 30 }}>{k.v}</div>
+              <div className="rb-sub" style={{ marginTop: 2 }}>{k.s}</div>
             </div>
           ))}
         </div>
+        <button type="button" className="rb-cue rb-noprint" aria-label={t('Descer', 'Scroll down')} onClick={() => document.getElementById('rb-capa-numeros')?.scrollIntoView({ behavior: semMovimento() ? 'auto' : 'smooth', block: 'start' })}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
       </HeroFoto>
 
-      <div className="rb-wrap" style={{ paddingTop: 20 }}>
-        {/* Turismo em Braga - o essencial do Observatório (mesmas contas; os dados não são alterados) */}
-        {(() => {
-          const S: any = SEMESTRE_2026 as any;
-          const H1 = (MESES as any[]).slice(0, 6);
-          const somaH1 = (serie: any, y: string) => H1.reduce((acc: number, m: any) => acc + (serie?.[m]?.[y] ?? 0), 0);
-          const soma = (v: number[]) => v.reduce((a2, b2) => a2 + b2, 0);
-          const media = (v: number[]) => soma(v) / v.length;
-          const varP = (a2: number, b2: number) => Math.round((b2 / a2 - 1) * 1000) / 10;
-          const dorm = somaH1(DORMIDAS_BRAGA, '2026'), dormV = varP(somaH1(DORMIDAS_BRAGA, '2025'), dorm), dormPT = varP(somaH1(DORMIDAS_PORTUGAL, '2025'), somaH1(DORMIDAS_PORTUGAL, '2026'));
-          const prov = soma(S.proveitos.Braga['2026']), provV = varP(soma(S.proveitos.Braga['2025']), prov);
-          const revpar = media(S.revpar.Braga['2026']), revparV = varP(media(S.revpar.Braga['2025']), revpar);
-          const est = S.residencia.dormidas.Estrangeiro, res = S.residencia.dormidas.Portugal;
-          const topM = [...S.mercadosDormidas].sort((x: any[], y: any[]) => y[2] - x[2])[0];
-          const anosB = Object.keys(BALCAO as any).sort(); const anoB = anosB[anosB.length - 1]; const balc = (BALCAO as any)[anoB];
-          if (!dorm) return null;
-          const sinal = (v: number) => `${v >= 0 ? '+' : ''}${fmt(v, 1)}%`;
-          const cartoes = [
-            { l: t('Dormidas · jan–jun 2026', 'Overnight stays · Jan–Jun 2026'), v: <Conta v={dorm} />, s: t(`${sinal(dormV)} face a 2025 · Portugal ${sinal(dormPT)}`, `${sinal(dormV)} vs 2025 · Portugal ${sinal(dormPT)}`), c: dormV >= dormPT ? 'var(--rb-good)' : 'var(--rb-text2)' },
-            { l: t('Proveitos do alojamento', 'Accommodation revenue'), v: <><Conta v={Math.round(prov / 10000) / 100} d={2} /><small>M€</small></>, s: t(`${sinal(provV)} face a 2025`, `${sinal(provV)} vs 2025`), c: provV >= 0 ? 'var(--rb-good)' : 'var(--rb-bad)' },
-            { l: 'RevPAR', v: <><Conta v={Math.round(revpar * 10) / 10} d={1} /><small>€</small></>, s: t(`${sinal(revparV)} face a 2025 · média dos 6 meses`, `${sinal(revparV)} vs 2025 · 6-month average`), c: revparV >= 0 ? 'var(--rb-good)' : 'var(--rb-bad)' },
-            { l: t('Dormidas de estrangeiros', 'Foreign overnight stays'), v: <><Conta v={Math.round((est / (est + res)) * 1000) / 10} d={1} /><small>%</small></>, s: topM ? t(`Maior mercado: ${topM[0]} (${fmt((topM[2] / est) * 100, 1)}%)`, `Largest market: ${topM[0]} (${fmt((topM[2] / est) * 100, 1)}%)`) : '', c: 'var(--rb-text2)' },
-            ...(balc ? [{ l: t(`Atendimentos no Posto · ${anoB}`, `Tourist Office visits · ${anoB}`), v: <Conta v={balc.atendimentos} />, s: t(`${fmt(balc.pax)} pessoas atendidas`, `${fmt(balc.pax)} people served`), c: 'var(--rb-text2)' }] : []),
-          ];
-          return (
-            <section className="rb-sec" style={{ paddingTop: 28 }}>
-              <Titulo h={dormV >= dormPT ? t(`As dormidas em Braga crescem ${sinal(dormV)}, acima do país (${sinal(dormPT)})`, `Overnight stays in Braga grow ${sinal(dormV)}, above the country (${sinal(dormPT)})`) : t(`As dormidas em Braga variam ${sinal(dormV)} (país: ${sinal(dormPT)})`, `Overnight stays in Braga change ${sinal(dormV)} (country: ${sinal(dormPT)})`)}
-                cap={t('O essencial do Observatório de Turismo · INE/TravelBI, 1.º semestre de 2026 · Posto de Turismo', 'The essentials from the Tourism Observatory · INE/TravelBI, 1st half 2026 · Tourist Office')}
-                right={props.onObservatorio ? <button className="rb-chip" onClick={props.onObservatorio}>{t('Abrir Observatório', 'Open Observatory')} <Seta /></button> : undefined} />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+      {/* Braga em números: demografia do concelho (INE) */}
+      <section id="rb-capa-numeros" className="rb-banda" style={{ backgroundImage: 'url(/fotos/bom-jesus-g.jpg)' }}>
+        <div className="rb-banda-in">
+          <div className="rb-rise">
+            <div className="rb-kicker" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>{t('Braga em números', 'Braga in numbers')}</div>
+            <h2 className="rb-banda-h2">{t('Uma cidade que cresce e se renova.', 'A city that keeps growing and renewing itself.')}</h2>
+          </div>
+          <div className="rb-nums">
+            {[
+              { v: <Conta v={popPt} />, l: t('habitantes', 'inhabitants'), s: t('população residente em 2025', 'resident population in 2025') },
+              { v: <><Conta v={Math.round(densidade(2025))} /><small>{t('hab./km²', 'inh./km²')}</small></>, l: t('de densidade populacional', 'population density'), s: t(`Portugal: ${fmt(POP_PORTUGAL[2025] / AREA_PORTUGAL_KM2)} hab./km²`, `Portugal: ${fmt(POP_PORTUGAL[2025] / AREA_PORTUGAL_KM2)} inh./km²`) },
+              { v: <>+<Conta v={Math.round(crescB * 10) / 10} d={1} /><small>%</small></>, l: t('desde 2011', 'since 2011'), s: t(`Portugal: +${fdec(crescP)}%`, `Portugal: +${fdec(crescP)}%`) },
+              { v: <Conta v={ETARIA_2025.Braga.idososPor100Jovens} />, l: t('idosos por cada 100 jovens', 'seniors per 100 young people'), s: t(`Portugal: ${ETARIA_2025.Portugal.idososPor100Jovens}`, `Portugal: ${ETARIA_2025.Portugal.idososPor100Jovens}`) },
+            ].map((k, i) => (
+              <div key={i} className="rb-num rb-rise" style={{ transitionDelay: `${i * 90}ms` }}>
+                <div className="rb-num-v">{k.v}</div>
+                <div className="rb-num-l">{k.l}</div>
+                <div className="rb-num-s">{k.s}</div>
+              </div>
+            ))}
+          </div>
+          <p className="rb-banda-fonte">{t(`Fonte: INE, O seu município em números (2025). Densidade calculada com a superfície arredondada (${AREA_KM2} km²).`, `Source: INE (Statistics Portugal), Your municipality in numbers (2025). Density calculated with the rounded area (${AREA_KM2} km²).`)}</p>
+        </div>
+      </section>
+
+      {/* Turismo em Braga: o essencial do Observatório (mesmas contas; os dados não são alterados) */}
+      {(() => {
+        const S: any = SEMESTRE_2026 as any;
+        const H1 = (MESES as any[]).slice(0, 6);
+        const somaH1 = (serie: any, y: string) => H1.reduce((acc: number, m: any) => acc + (serie?.[m]?.[y] ?? 0), 0);
+        const soma = (v: number[]) => v.reduce((a2, b2) => a2 + b2, 0);
+        const media = (v: number[]) => soma(v) / v.length;
+        const varP = (a2: number, b2: number) => Math.round((b2 / a2 - 1) * 1000) / 10;
+        const dorm = somaH1(DORMIDAS_BRAGA, '2026'), dormV = varP(somaH1(DORMIDAS_BRAGA, '2025'), dorm), dormPT = varP(somaH1(DORMIDAS_PORTUGAL, '2025'), somaH1(DORMIDAS_PORTUGAL, '2026'));
+        const prov = soma(S.proveitos.Braga['2026']), provV = varP(soma(S.proveitos.Braga['2025']), prov);
+        const revpar = media(S.revpar.Braga['2026']), revparV = varP(media(S.revpar.Braga['2025']), revpar);
+        const est = S.residencia.dormidas.Estrangeiro, res = S.residencia.dormidas.Portugal;
+        const topM = [...S.mercadosDormidas].sort((x: any[], y: any[]) => y[2] - x[2])[0];
+        if (!dorm) return null;
+        const sinal = (v: number) => `${v >= 0 ? '+' : ''}${fmt(v, 1)}%`;
+        const cartoes = [
+          { l: t('Dormidas · jan–jun 2026', 'Overnight stays · Jan–Jun 2026'), v: <Conta v={dorm} />, s: t(`${sinal(dormV)} face a 2025 · Portugal ${sinal(dormPT)}`, `${sinal(dormV)} vs 2025 · Portugal ${sinal(dormPT)}`), c: dormV >= dormPT ? 'var(--rb-good)' : 'var(--rb-text2)' },
+          { l: t('Proveitos do alojamento', 'Accommodation revenue'), v: <><Conta v={Math.round(prov / 10000) / 100} d={2} /><small>M€</small></>, s: t(`${sinal(provV)} face a 2025`, `${sinal(provV)} vs 2025`), c: provV >= 0 ? 'var(--rb-good)' : 'var(--rb-bad)' },
+          { l: 'RevPAR', v: <><Conta v={Math.round(revpar * 10) / 10} d={1} /><small>€</small></>, s: t(`${sinal(revparV)} face a 2025 · média dos 6 meses`, `${sinal(revparV)} vs 2025 · 6-month average`), c: revparV >= 0 ? 'var(--rb-good)' : 'var(--rb-bad)' },
+          { l: t('Dormidas de estrangeiros', 'Foreign overnight stays'), v: <><Conta v={Math.round((est / (est + res)) * 1000) / 10} d={1} /><small>%</small></>, s: topM ? t(`Maior mercado: ${topM[0]} (${fmt((topM[2] / est) * 100, 1)}%)`, `Largest market: ${topM[0]} (${fmt((topM[2] / est) * 100, 1)}%)`) : '', c: 'var(--rb-text2)' },
+        ];
+        const factual = dormV >= dormPT ? t(`As dormidas em Braga crescem ${sinal(dormV)}, acima do país (${sinal(dormPT)})`, `Overnight stays in Braga grow ${sinal(dormV)}, above the country (${sinal(dormPT)})`) : t(`As dormidas em Braga variam ${sinal(dormV)} (país: ${sinal(dormPT)})`, `Overnight stays in Braga change ${sinal(dormV)} (country: ${sinal(dormPT)})`);
+        return (
+          <section className="rb-banda" style={{ backgroundImage: 'url(/fotos/jardim-santa-barbara-g.jpg)' }}>
+            <div className="rb-banda-in">
+              <div className="rb-rise">
+                <div className="rb-kicker" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>{t('Turismo', 'Tourism')}</div>
+                <h2 className="rb-banda-h2">{dormV >= dormPT ? t('Cada vez mais gente escolhe Braga.', 'More and more people choose Braga.') : t('O turismo em Braga, a meio de 2026.', 'Tourism in Braga, mid-2026.')}</h2>
+                <p className="rb-banda-sub">{factual}</p>
+              </div>
+              <div className="rb-turismo">
                 {cartoes.map((k, i) => (
-                  <div key={i} className="rb-rise" style={{ background: 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '18px 20px', transitionDelay: `${i * 70}ms` }}>
+                  <div key={i} className="rb-glass rb-rise" style={{ padding: '22px 24px', transitionDelay: `${i * 90}ms` }}>
                     <div className="rb-lab">{k.l}</div>
-                    <div className="rb-big" style={{ fontSize: 32 }}>{k.v}</div>
+                    <div className="rb-big" style={{ fontSize: 38 }}>{k.v}</div>
                     <div className="rb-sub" style={{ color: k.c }}>{k.s}</div>
                   </div>
                 ))}
               </div>
-            </section>
-          );
-        })()}
-
-        {/* O que mudou */}
-        {alertas.length > 0 && (
-          <section className="rb-sec" style={{ paddingTop: 28 }}>
-            <Titulo h={t(`O que mudou no último trimestre · ${alertas.length} ${alertas.length === 1 ? 'local' : 'locais'}`, `What changed last quarter · ${alertas.length} ${alertas.length === 1 ? 'place' : 'places'}`)} cap={t('Mudanças relevantes face ao trimestre anterior, detetadas automaticamente · desliza para ver todas', 'Relevant changes versus the previous quarter, detected automatically · scroll to see them all')}
-              right={alertas.length > 3 ? <div className="rb-noprint" style={{ display: 'flex', gap: 8 }}>
-                <button className="rb-chip ghost" aria-label={t('Anteriores', 'Previous')} onClick={() => alertasRef.current?.scrollBy({ left: -620, behavior: 'smooth' })} style={{ width: 38, padding: 0, justifyContent: 'center' }}><span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}><Seta /></span></button>
-                <button className="rb-chip ghost" aria-label={t('Seguintes', 'Next')} onClick={() => alertasRef.current?.scrollBy({ left: 620, behavior: 'smooth' })} style={{ width: 38, padding: 0, justifyContent: 'center' }}><Seta /></button>
-              </div> : undefined} />
-            <div ref={alertasRef} className="rb-carrossel">
-              {alertas.map((d, i) => (
-                <div key={d.l.id} className="rb-rise" style={{ flex: '0 0 300px', scrollSnapAlign: 'start', background: 'var(--rb-warn-bg)', borderRadius: 6, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12, transitionDelay: `${Math.min(i, 5) * 80}ms` }}>
-                  <div style={{ fontSize: 16.5, fontWeight: 700, lineHeight: 1.3 }}>{d.l.name}</div>
-                  <div style={{ fontSize: 14.5, lineHeight: 1.5, flex: 1 }}>{d.al}</div>
-                  <div><button className="rb-chip warn" onClick={() => props.onOpen(d.l.id)}>{t('Abrir ficha', 'Open profile')} <Seta /></button></div>
-                </div>
-              ))}
+              <div className="rb-rise" style={{ marginTop: 26, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                {props.onObservatorio && <button className="rb-chip" onClick={props.onObservatorio}>{t('Abrir Observatório', 'Open Observatory')} <Seta /></button>}
+                <span className="rb-banda-fonte" style={{ margin: 0 }}>{t('Fonte: INE/TravelBI, 1.º semestre de 2026 (provisório)', 'Source: INE/TravelBI, 1st half 2026 (provisional)')}</span>
+              </div>
             </div>
           </section>
-        )}
+        );
+      })()}
 
+      {/* Portas de entrada */}
+      <div className="rb-capa-in">
+        <div className="rb-rise" style={{ paddingTop: 72 }}>
+          <div className="rb-kicker" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>{t('Explorar', 'Explore')}</div>
+          <h2 className="rb-banda-h2" style={{ maxWidth: '16em' }}>{t('Escolhe por onde começar.', 'Choose where to begin.')}</h2>
+        </div>
+        <div className="rb-portas">
+          {portas.map((d, i) => (
+            <button key={d.id} type="button" className="rb-porta rb-rise" style={{ transitionDelay: `${(i % 3) * 90}ms` }} onClick={() => irPara(d.id)}>
+              <span className="rb-porta-img" style={{ backgroundImage: `url(${d.foto})` }} />
+              <span className="rb-porta-txt">
+                <span className="rb-porta-t">{d.titulo} <Seta /></span>
+                <span className="rb-porta-p">{d.texto}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rb-wrap" style={{ paddingTop: 8 }}>
         {/* Quando há mais gente (afluência habitual dos locais com dados) */}
         {(() => {
           const comA = dados.filter((d) => d.l.afluencia?.dias?.length);
@@ -1934,6 +1960,26 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
             </section>
           );
         })()}
+
+        {/* O que mudou */}
+        {admin && alertas.length > 0 && (
+          <section className="rb-sec" style={{ paddingTop: 28 }}>
+            <Titulo h={t(`O que mudou no último trimestre · ${alertas.length} ${alertas.length === 1 ? 'local' : 'locais'}`, `What changed last quarter · ${alertas.length} ${alertas.length === 1 ? 'place' : 'places'}`)} cap={t('Mudanças relevantes face ao trimestre anterior, detetadas automaticamente · desliza para ver todas', 'Relevant changes versus the previous quarter, detected automatically · scroll to see them all')}
+              right={alertas.length > 3 ? <div className="rb-noprint" style={{ display: 'flex', gap: 8 }}>
+                <button className="rb-chip ghost" aria-label={t('Anteriores', 'Previous')} onClick={() => alertasRef.current?.scrollBy({ left: -620, behavior: 'smooth' })} style={{ width: 38, padding: 0, justifyContent: 'center' }}><span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}><Seta /></span></button>
+                <button className="rb-chip ghost" aria-label={t('Seguintes', 'Next')} onClick={() => alertasRef.current?.scrollBy({ left: 620, behavior: 'smooth' })} style={{ width: 38, padding: 0, justifyContent: 'center' }}><Seta /></button>
+              </div> : undefined} />
+            <div ref={alertasRef} className="rb-carrossel">
+              {alertas.map((d, i) => (
+                <div key={d.l.id} className="rb-rise" style={{ flex: '0 0 300px', scrollSnapAlign: 'start', background: 'var(--rb-warn-bg)', borderRadius: 6, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12, transitionDelay: `${Math.min(i, 5) * 80}ms` }}>
+                  <div style={{ fontSize: 16.5, fontWeight: 700, lineHeight: 1.3 }}>{d.l.name}</div>
+                  <div style={{ fontSize: 14.5, lineHeight: 1.5, flex: 1 }}>{d.al}</div>
+                  <div><button className="rb-chip warn" onClick={() => props.onOpen(d.l.id)}>{t('Abrir ficha', 'Open profile')} <Seta /></button></div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <div style={{ marginTop: 48, paddingTop: 16, borderTop: '1px solid var(--rb-line)', display: 'flex', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', fontSize: 13, color: 'var(--rb-text2)' }}>
           <span>{t('Fonte: Google Maps, últimos 3 anos · índice /10 = média de estrelas × 2', 'Source: Google Maps, last 3 years · index /10 = average stars × 2')}</span>
