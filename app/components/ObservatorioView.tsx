@@ -8,7 +8,6 @@ import { comRecuperacao } from '@/app/lib/carregar';
 import Perguntar from './obs/Perguntar';
 
 import { useState, useEffect, useRef } from 'react';
-import VideoTopo from './obs/VideoTopo';
 import { estadaRecente, dec2 } from '@/app/lib/estada-media';
 import { MESES, DORMIDAS_BRAGA, DORMIDAS_ANUAL, HEADLINE, INFRA, TAXA_TURISTICA, BALCAO, SUSTENTABILIDADE } from '@/app/lib/observatorio-dados';
 import { DIGITAL, DIGITAL_POS, DIGITAL_TOTAL, SEARCH_CONSOLE } from '@/app/lib/audiencia-digital-dados';
@@ -161,8 +160,6 @@ const OBS_CSS = `
 .obs-hero { position: relative; overflow: hidden; min-height: 340px; display: flex; align-items: flex-end; background: linear-gradient(160deg, #262A30 0%, #15171B 100%); }
 .obs-hero-img { position: absolute; inset: -40px; background-size: cover; background-position: center; animation: obsKb 22s ease-in-out infinite alternate; }
 @keyframes obsKb { from { transform: scale(1.04); } to { transform: scale(1.14) translate(-14px, 8px); } }
-.obs-hero-video { position: absolute; inset: 0; overflow: hidden; container-type: size; pointer-events: none; transition: opacity 1.1s ease; }
-.obs-hero-video iframe { position: absolute; top: 50%; left: 50%; width: max(100cqw, 177.78cqh); height: max(100cqh, 56.25cqw); transform: translate(-50%, -50%); border: 0; pointer-events: none; }
 .obs-hero-shade { position: absolute; inset: 0; background: linear-gradient(0deg, #15171B 0%, rgba(21,23,27,.66) 45%, rgba(21,23,27,.25) 100%); }
 .obs-hero-in { position: relative; width: 100%; max-width: 1760px; margin: 0 auto; padding: 72px 40px 32px; animation: obsIn .8s cubic-bezier(.2,.7,.2,1) both; }
 .obs-h1 { font-size: clamp(32px, 4.4vw, 52px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.05; margin: 10px 0 14px; text-shadow: 0 2px 24px rgba(0,0,0,.35); }
@@ -278,7 +275,7 @@ const OBS_CSS = `
   .obs-tab-resp td[data-l]::before { content: attr(data-l); display: block; font-size: 11px; font-weight: 500; color: #8A909B; margin-bottom: 2px; }
   .obs input[placeholder] { min-width: 0 !important; width: 100%; }
 }
-@media (prefers-reduced-motion: reduce) { .obs-hero-video { display: none; } .obs-hero-img, .obs-hero-in, .obs-body, .obs-grow { animation: none !important; } .obs-card { opacity: 1 !important; transform: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .obs-hero-img, .obs-hero-in, .obs-body, .obs-grow { animation: none !important; } .obs-card { opacity: 1 !important; transform: none !important; transition: none !important; } }
 @media (max-width: 820px) {
   .obs-hero { min-height: 260px; }
   .obs-hero-in { padding: 40px 18px 22px; }
@@ -844,7 +841,6 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       </svg>
       <div className="obs-hero">
         {(fotoTopo || foto) && <div className="obs-hero-img" style={{ backgroundImage: `url(${fotoTopo || foto})` }} />}
-        <VideoTopo />
         <div className="obs-hero-shade" />
         <div className="obs-hero-in">
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: C.accent }}>Braga</div>

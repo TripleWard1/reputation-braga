@@ -14,6 +14,7 @@ import { useAdmin } from './modo';
 import { descarregarDados, type Linha } from '@/app/lib/exportar-dados';
 import { t, getLang } from '@/app/lib/i18n';
 import { dispAnalysis } from '@/app/lib/ai-translate';
+import VideoTopo from '@/app/components/obs/VideoTopo';
 import { limparFotoBraga } from '@/app/lib/foto-braga';
 import { windowStats, langName, cutoffDate, loadWindowReviews, parseReviewFile, groupByPlace, buildStats, type StoredReview, type ReviewStats } from '@/app/lib/reviews';
 import { SEMESTRE_2026, BALCAO, DORMIDAS_BRAGA, DORMIDAS_PORTUGAL, MESES, HEADLINE } from '@/app/lib/observatorio-dados';
@@ -111,7 +112,7 @@ function useRevelar(_dep?: unknown) {
 }
 
 /** Fotografia grande com zoom de entrada e parallax ao descer a página. */
-function HeroFoto({ src, altura, children, mini }: { src: string | null; altura: number; children: ReactNode; mini?: string }) {
+function HeroFoto({ src, altura, children, mini, video }: { src: string | null; altura: number; children: ReactNode; mini?: string; video?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!src || semMovimento()) return;
@@ -132,6 +133,7 @@ function HeroFoto({ src, altura, children, mini }: { src: string | null; altura:
   return (
     <div className="rb-hero-foto" style={{ height: altura }}>
       {src && <div ref={ref} className="rb-hero-img"><div className="rb-kb" style={{ backgroundImage: mini ? `url(${src}), url(${mini})` : `url(${src})` }} /></div>}
+      {video && <VideoTopo />}
       <div className="rb-hero-shade" />
       <div className="rb-hero-in">{children}</div>
     </div>
@@ -1824,7 +1826,7 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
       <style>{ESTILO}</style>
 
       {/* Fotografia de Braga + números do destino em vidro */}
-      <HeroFoto src={fundo} mini={FOTO_VISAO_MINI} altura={fundo ? 660 : 460}>
+      <HeroFoto src={fundo} mini={FOTO_VISAO_MINI} altura={fundo ? 660 : 460} video>
         {topoFoto}
         <div className="rb-vg-logo"><img className="rb-enter" src="/visit-braga-logo.png" alt="Visit Braga" /></div>
         <div className="rb-enter" style={{ maxWidth: 880 }}>

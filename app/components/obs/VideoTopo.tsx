@@ -2,12 +2,18 @@
 
 import { useEffect, useState } from 'react';
 
-// Vídeo de fundo do topo do Observatório (Bunny Stream). A foto do topo continua por baixo e serve de
+// Vídeo de fundo do topo da Visão Geral (Bunny Stream). A foto do topo continua por baixo e serve de
 // poster: o vídeo só é carregado depois da página, aparece com um fade quando está pronto e não é
 // carregado com "reduzir movimento", poupança de dados ou ecrãs pequenos.
 const BIBLIOTECA = '780807';
 const VIDEO = '8b88a2e9-bd23-4b0f-9c68-1b975ef5aa50';
 const SRC = `https://iframe.mediadelivery.net/embed/${BIBLIOTECA}/${VIDEO}?autoplay=true&loop=true&muted=true&preload=true&playsinline=true`;
+
+const CSS = `
+.vb-hero-video { position: absolute; inset: 0; overflow: hidden; container-type: size; pointer-events: none; transition: opacity 1.1s ease; }
+.vb-hero-video iframe { position: absolute; top: 50%; left: 50%; width: max(100cqw, 177.78cqh); height: max(100cqh, 56.25cqw); transform: translate(-50%, -50%); border: 0; pointer-events: none; }
+@media print { .vb-hero-video { display: none; } }
+`;
 
 function podeCarregar(): boolean {
   if (typeof window === 'undefined') return false;
@@ -36,7 +42,8 @@ export default function VideoTopo() {
 
   if (!ativo) return null;
   return (
-    <div className="obs-hero-video" aria-hidden="true" style={{ opacity: pronto ? 1 : 0 }}>
+    <div className="vb-hero-video" aria-hidden="true" style={{ opacity: pronto ? 1 : 0 }}>
+      <style>{CSS}</style>
       <iframe
         src={SRC}
         title=""
