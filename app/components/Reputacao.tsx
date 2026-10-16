@@ -355,6 +355,11 @@ const ESTILO_CAPA = `
 }
 .rb-hero-cheio .rb-hero-shade { background: linear-gradient(180deg, rgba(10,12,15,.4) 0%, rgba(10,12,15,0) 20%), linear-gradient(0deg, rgba(10,12,15,.66) 0%, rgba(10,12,15,.3) 34%, rgba(10,12,15,0) 62%); }
 .rb-hero-cheio .rb-vg-logo img { filter: drop-shadow(0 3px 16px rgba(0,0,0,.55)); }
+/* Logótipo maior e mais alto, centrado no topo (no ecrã grande; no telemóvel mantém-se a placa pequena) */
+@media (min-width: 901px) {
+  .rb-hero-cheio .rb-vg-logo { position: absolute; top: clamp(60px, 10svh, 116px); left: 0; right: 0; margin: 0; z-index: 3; }
+  .rb-hero-cheio .rb-vg-logo img { width: clamp(300px, 38vw, 620px); }
+}
 .rb-capa-h1 { font-size: clamp(38px, 5.2vw, 72px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; margin: 14px 0 18px; text-shadow: 0 2px 28px rgba(0,0,0,.4); }
 .rb-capa-h1 span { color: #B7CDF0; }
 .rb-capa-kpis > div { min-width: 0; }
