@@ -1912,58 +1912,6 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
           </section>
         )}
 
-        {/* Galeria de locais */}
-        <section className="rb-sec">
-          <Titulo h={t(`${locations.length} locais monitorizados`, `${locations.length} places monitored`)} cap={t('Desliza para ver todos · por ordem alfabética', 'Scroll to see them all · alphabetical order')}
-            right={<div className="rb-noprint" style={{ display: 'flex', gap: 8 }}>
-              <button className="rb-chip ghost rb-hide-m" aria-label={t('Anteriores', 'Previous')} onClick={() => desliza(-1)} style={{ width: 38, padding: 0, justifyContent: 'center' }}><span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}><Seta /></span></button>
-              <button className="rb-chip ghost rb-hide-m" aria-label={t('Seguintes', 'Next')} onClick={() => desliza(1)} style={{ width: 38, padding: 0, justifyContent: 'center' }}><Seta /></button>
-              <button className="rb-chip" onClick={props.onOpenList}>{t('Ver lista', 'See list')} <Seta /></button>
-            </div>} />
-          <div ref={carrosselRef} className="rb-carrossel">
-            {ordenados.map((d, i) => {
-              const insuf = !d.x || d.x.robustez === 'insuficiente';
-              return (
-                <button key={d.l.id} className="rb-card rb-rise" style={{ transitionDelay: `${Math.min(i, 6) * 70}ms` }} onClick={() => props.onOpen(d.l.id)}>
-                  {mini[d.l.id] && <img src={mini[d.l.id]} alt="" />}
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--rb-accent)' }}>{d.l.category}</div>
-                    <div style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.2, margin: '6px 0 10px' }}>{d.l.name}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 14 }}>
-                      {d.x ? <span style={{ fontWeight: 700 }}>{fmt(d.x.avg, 2)} <span style={{ color: 'var(--rb-text2)', fontWeight: 400 }}>{t('estrelas', 'stars')}</span></span> : <span style={{ color: 'var(--rb-text2)' }}>{t('Sem avaliações', 'No reviews')}</span>}
-                      {insuf && d.x && <span className="rb-tag" style={{ background: 'var(--rb-muted)', color: 'var(--rb-text2)' }}>{t('Dados insuficientes', 'Insufficient data')}</span>}
-                      {d.al && !insuf && <span className="rb-tag" style={{ background: 'var(--rb-warn)', color: 'var(--rb-on)' }}>{t('Alerta', 'Alert')}</span>}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Evolução + sazonalidade */}
-        <div className="rb-2">
-          <section className="rb-sec">
-            <Titulo h={tituloEvolucao(serie)} cap={t('Média de estrelas do destino, por trimestre', 'Destination average stars, by quarter')} />
-            <Evolucao q={serie} intervencoes={[]} alertaUltimo={false} />
-          </section>
-          <section className="rb-sec">
-            <Titulo h={temMeses ? t(`${MES_LONGO_PT[pico]} é o mês com mais avaliações`, `${MES_LONGO_EN[pico]} is the month with the most reviews`) : t('Sazonalidade', 'Seasonality')}
-              cap={temMeses ? t(`Avaliações por mês do ano, nos últimos 3 anos · ${MES_LONGO_PT[vale].toLowerCase()} é o mais calmo · indicador aproximado da afluência`, `Reviews by month of the year, last 3 years · ${MES_LONGO_EN[vale]} is the quietest · approximate indicator of visitor flow`) : undefined} />
-            {temMeses && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0,1fr))', gap: 6, alignItems: 'end', height: 200 }}>
-                {porMes.map((v, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
-                    <span className={i === pico ? undefined : 'rb-hide-m'} style={{ fontSize: 11, color: i === pico ? 'var(--rb-text)' : 'var(--rb-text2)', fontWeight: i === pico ? 700 : 400 }}>{fmt(v)}</span>
-                    <div className="rb-vbar" style={{ width: '100%', height: `${Math.max(3, (v / maxMes) * 150)}px`, background: 'var(--rb-accent)', opacity: i === pico ? 1 : 0.45, borderRadius: '3px 3px 0 0', transitionDelay: `${i * 60}ms` }} />
-                    <span style={{ fontSize: 11.5, color: 'var(--rb-text2)' }}>{t(MESES_PT[i], MESES_EN[i])}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-
         {/* Quando há mais gente (afluência habitual dos locais com dados) */}
         {(() => {
           const comA = dados.filter((d) => d.l.afluencia?.dias?.length);
@@ -1986,53 +1934,6 @@ export function VisaoGeral(props: { locations: LocV[]; onOpen: (id: string) => v
             </section>
           );
         })()}
-
-        {/* O que elogiam / o que criticam */}
-        <section className="rb-sec">
-          <Titulo h={t('O que os visitantes dizem do destino', 'What visitors say about the destination')} cap={t('Temas mais referidos nos comentários de todos os locais', 'Themes most mentioned in reviews across all places')} />
-          <div className="rb-2" style={{ gap: 16 }}>
-            {coluna({ titulo: t('O que mais elogiam', 'Most praised'), itens: elogios, cor: 'var(--rb-good)', fundoCor: 'var(--rb-good-bg)', sinal: '+', vazio: t('Aparece depois de analisar os locais.', 'Appears after analysing the places.') })}
-            {coluna({ titulo: t('O que mais criticam', 'Most criticised'), itens: criticas, cor: 'var(--rb-bad)', fundoCor: 'var(--rb-bad-bg)', sinal: '−', vazio: t('Sem críticas recorrentes nos locais analisados.', 'No recurring criticism in the analysed places.') })}
-          </div>
-        </section>
-
-        {/* Distribuição das estrelas no destino */}
-        {(() => {
-          const dist = [0, 0, 0, 0, 0];
-          dados.forEach((d) => windowStats(d.l.reviewStats)?.dist.forEach((v, i) => { dist[i] += v; }));
-          if (!dist.some((v) => v > 0)) return null;
-          return (
-            <section className="rb-sec" style={{ maxWidth: 760 }}>
-              <Titulo h={tituloDist(dist)} cap={t('Percentagem de avaliações com cada número de estrelas, em todos os locais', 'Share of reviews by number of stars, across all places')} />
-              <DistEstrelas dist={dist} />
-            </section>
-          );
-        })()}
-
-        {/* De onde vêm as vozes */}
-        {nTexto > 0 && (
-          <section className="rb-sec">
-            <Titulo h={t(`${langName(principais[0].code)} é a língua mais ouvida nos comentários`, `${langName(principais[0].code)} is the most common review language`)}
-              cap={t('Comentários com texto, por idioma · a média de cada idioma entre parênteses', 'Reviews with text, by language · each language’s average in brackets')} />
-            <div style={{ display: 'flex', height: 18, borderRadius: 3, overflow: 'hidden', background: 'var(--rb-muted)' }}>
-              <div className="rb-bar" style={{ display: 'flex', width: '100%', height: '100%' }}>
-                {principais.map((l, i) => <div key={l.code} title={langName(l.code)} style={{ width: `${(l.n / nTexto) * 100}%`, background: 'var(--rb-accent)', opacity: tons[i], borderRight: '2px solid var(--rb-bg)' }} />)}
-                {outros > 0 && <div style={{ width: `${(outros / nTexto) * 100}%`, background: 'var(--rb-text2)', opacity: 0.35 }} />}
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 28px', marginTop: 16 }}>
-              {principais.map((l, i) => (
-                <div key={l.code} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5 }}>
-                  <span style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--rb-accent)', opacity: tons[i] }} />
-                  <span style={{ fontWeight: 600 }}>{langName(l.code)}</span>
-                  <span style={{ color: 'var(--rb-text2)' }}>{fmt((l.n / nTexto) * 100, 0)}% ({fmt(l.avg, 2)})</span>
-                </div>
-              ))}
-              {outros > 0 && <div style={{ fontSize: 14.5, color: 'var(--rb-text2)' }}>{t('Outros', 'Others')} {fmt((outros / nTexto) * 100, 0)}%</div>}
-            </div>
-            {semTextoN > 0 && <p className="rb-sub" style={{ marginTop: 14 }}>{t(`Além destes, ${fmt((semTextoN / nTodos) * 100, 0)}% das avaliações são só estrelas, sem texto.`, `In addition, ${fmt((semTextoN / nTodos) * 100, 0)}% of reviews are stars only, without text.`)}</p>}
-          </section>
-        )}
 
         <div style={{ marginTop: 48, paddingTop: 16, borderTop: '1px solid var(--rb-line)', display: 'flex', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', fontSize: 13, color: 'var(--rb-text2)' }}>
           <span>{t('Fonte: Google Maps, últimos 3 anos · índice /10 = média de estrelas × 2', 'Source: Google Maps, last 3 years · index /10 = average stars × 2')}</span>
