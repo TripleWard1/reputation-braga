@@ -2516,7 +2516,7 @@ export function MercadosView(props: { locations: LocV[] }) {
         {insights.length > 0 && (
           <section className="rb-sec" style={{ paddingTop: 26 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
-              {insights.map((x, i) => <div key={i} className="rb-rise" style={{ background: i === 0 ? 'linear-gradient(135deg, rgba(34,50,74,.6), var(--rb-surface))' : 'var(--rb-surface)', border: '1px solid var(--rb-line)', borderRadius: 6, padding: '18px 20px', fontSize: 15, lineHeight: 1.6, transitionDelay: `${i * 90}ms` }}>{x}</div>)}
+              {insights.map((x, i) => <div key={i} className="rb-rise" style={{ background: i === 0 ? 'linear-gradient(135deg, rgba(34,50,74,.7), #1A1D22)' : 'linear-gradient(180deg, #1E2228 0%, #1A1D22 100%)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 18px 40px -30px rgba(0,0,0,.85)', borderRadius: 18, padding: '18px 20px', fontSize: 15, lineHeight: 1.6, transitionDelay: `${i * 90}ms` }}>{x}</div>)}
             </div>
           </section>
         )}

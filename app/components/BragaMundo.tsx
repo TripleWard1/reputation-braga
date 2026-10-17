@@ -962,6 +962,7 @@ const CSS = `
 @media (max-width: 900px) { .bm-sa-painel { grid-template-columns: 1fr; } .bm-sa-capa { min-height: 180px; } .bm-sa-listas { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .bm-sa-dist li { grid-template-columns: 10px minmax(0, 1fr); row-gap: 2px; } .bm-sa-dist li em { grid-column: 2; white-space: normal; } .bm-sa-anos { display: flex; flex-wrap: nowrap; overflow-x: auto; } .bm-sa-anos button { flex: 0 0 auto; padding: 0 16px; } .bm-sa-nums b { font-size: 24px; } .bm-dc-ano { font-size: 32px; } .bm-le { grid-template-columns: 82px minmax(0, 1fr); } }
 .bm-hero::after { background: linear-gradient(90deg, rgba(16,19,26,.95) 0%, rgba(16,19,26,.86) 45%, rgba(16,19,26,.5) 68%, rgba(16,19,26,.08) 100%), linear-gradient(0deg, #15171B 0%, rgba(21,23,27,0) 35%) !important; }
+@media (max-width: 760px) { .bm-hero::after { background: linear-gradient(180deg, rgba(16,19,26,.78) 0%, rgba(16,19,26,.86) 55%, #15171B 100%) !important; } }
 .bm-hero::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: 2; background: linear-gradient(90deg, #E2231A 0%, #E2231A 22%, #8AB0E6 22%, #8AB0E6 60%, #E9C46A 60%, #E9C46A 78%, #7CC79A 78%); }
 .bm-mos img { filter: saturate(1.15) contrast(1.05); }
 .bm-kicker { color: #FF8A80; }
