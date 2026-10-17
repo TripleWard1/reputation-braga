@@ -13,6 +13,7 @@ import { db, obterAuth } from '../firebase';
 import { useAdmin } from './modo';
 import { carregarLeaflet } from '@/app/lib/bibliotecas';
 import { PRODUTOS, type Lingua, type Edicao, type ProdutoBase } from '@/app/lib/produtos-dados';
+import Imersiva from '@/app/components/Imersiva';
 import { descarregarDados, type Linha } from '@/app/lib/exportar-dados';
 import { t, getLang } from '@/app/lib/i18n';
 import { dispAnalysis } from '@/app/lib/ai-translate';
@@ -1691,6 +1692,8 @@ export function LocaisLista(props: {
       const ra = a.x && a.x.robustez !== 'insuficiente' ? 1 : 0, rb = b.x && b.x.robustez !== 'insuficiente' ? 1 : 0;
       return rb - ra || (b.x?.idx ?? -1) - (a.x?.idx ?? -1) || (b.x?.n ?? 0) - (a.x?.n ?? 0) || a.l.name.localeCompare(b.l.name, 'pt');
     });
+  const todos = props.locations.map((l) => ({ l, x: numeros(l), al: alerta(l.reviewStats) }));
+  const melhor = todos.filter((o) => o.x && o.x.robustez !== 'insuficiente').sort((a, b) => b.x!.idx - a.x!.idx)[0];
   const temImportados = props.locations.some((l) => l.reviewStats);
   const situacao = (o: { l: LocV; x: Numeros | null; al: string | null }): ReactNode => {
     if (!o.x) return <span style={{ color: 'var(--rb-text2)' }}>{t('Sem avaliações', 'No reviews')}</span>;
@@ -1702,10 +1705,10 @@ export function LocaisLista(props: {
   return (
     <div className="rbx">
       <style>{ESTILO}</style>
-      <div className="rb-wrap">
-        <Cabecalho foto="/fotos/cab-bom-jesus.jpg" kicker={t('Reputação', 'Reputation')} titulo={t('Locais', 'Places')}
-          sub={t(`${props.locations.length} locais monitorizados · do índice mais alto para o mais baixo · locais com menos de ${MIN_ROBUSTO} avaliações ficam no fim, sem índice`, `${props.locations.length} places monitored · highest to lowest index · places with fewer than ${MIN_ROBUSTO} reviews are listed last, without an index`)}
-          direita={admin ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <Imersiva altura="medio" foto="/fotos/bom-jesus-g.jpg" kicker={t('Reputação', 'Reputation')}
+        titulo={<>{t('O que dizem de', 'What people say about')} <span>{t('cada lugar.', 'every place.')}</span></>}
+        sub={t(`${props.locations.length} locais monitorizados · do índice mais alto para o mais baixo · locais com menos de ${MIN_ROBUSTO} avaliações ficam no fim, sem índice`, `${props.locations.length} places monitored · highest to lowest index · places with fewer than ${MIN_ROBUSTO} reviews are listed last, without an index`)}
+        acao={admin ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="rb-btn" onClick={props.onImport}>{t('Importar comentários', 'Import reviews')}</button>
             {props.batchRun ? (
               <button className="rb-btn" onClick={props.onStopBatch} style={{ borderColor: 'var(--rb-warn)', color: 'var(--rb-warn)' }}>{t(`Parar (${props.batchRun.i}/${props.batchRun.total})`, `Stop (${props.batchRun.i}/${props.batchRun.total})`)}</button>
@@ -1716,7 +1719,14 @@ export function LocaisLista(props: {
               </>
             )}
             <button className="rb-btn p" onClick={props.onAdd}>{t('Adicionar local', 'Add place')}</button>
-          </div> : undefined} />
+          </div> : undefined}
+        numeros={[
+          { v: String(props.locations.length), l: t('locais monitorizados', 'places monitored') },
+          { v: String(todos.filter((o) => o.x && o.x.robustez !== 'insuficiente').length), l: t('com índice de reputação', 'with a reputation index'), s: t(`${MIN_ROBUSTO} ou mais avaliações`, `${MIN_ROBUSTO} or more reviews`) },
+          { v: String(todos.filter((o) => o.al).length), l: t('com alerta no último trimestre', 'with an alert last quarter') },
+          ...(melhor ? [{ v: fmt(melhor.x!.idx, 1), l: t('índice mais alto', 'highest index'), s: melhor.l.name }] : []),
+        ]}>
+      <div className="rb-wrap">
         {props.batchRun && (
           <div style={{ marginTop: 20, background: 'var(--rb-accent-bg)', borderRadius: 4, padding: '12px 16px', fontSize: 14.5 }}>
             {t('A analisar', 'Analysing')} {props.batchRun.i} {t('de', 'of')} {props.batchRun.total}: <strong>{props.batchRun.name}</strong>. {t('Mantém esta página aberta até ao fim.', 'Keep this page open until it finishes.')}
@@ -1751,6 +1761,7 @@ export function LocaisLista(props: {
         </table>
         {linhas.length === 0 && <p className="rb-sub">{t('Nenhum local corresponde à pesquisa.', 'No place matches the search.')}</p>}
       </div>
+      </Imersiva>
     </div>
   );
 }
@@ -2511,9 +2522,15 @@ export function MercadosView(props: { locations: LocV[] }) {
   return (
     <div className="rbx">
       <style>{ESTILO + ESTILO_EXTRA}</style>
+      <Imersiva altura="medio" foto="/fotos/avenida-liberdade-g.jpg" kicker={t('Reputação × Procura', 'Reputation × Demand')}
+        titulo={mp ? t(`${mp.pais}: o maior mercado externo de Braga`, `${mp.pais}: Braga’s largest foreign market`) : t('Mercados: procura e satisfação', 'Markets: demand and satisfaction')}
+        sub={t(`Mercados externos: ${fmt(pctEstrangeiros, 1)}% das dormidas de janeiro a junho de 2026 foram de estrangeiros. Cruza o peso de cada mercado nessas dormidas (INE) e nos atendimentos do Posto de Turismo com a voz e a satisfação nos comentários do Google (últimos 3 anos). Agrupados por língua; os anos completos, com o verão, reforçam o peso do mercado espanhol.`, 'Crosses each market’s share of overnight stays (INE, 1st half 2026) and Tourist Office visits with its voice and satisfaction in Google reviews (last 3 years). Markets are grouped by language.')}
+        numeros={[
+          { v: `${fmt(pctEstrangeiros, 1)}%`, l: t('das dormidas de estrangeiros', 'of overnight stays by foreign guests'), s: t('janeiro a junho de 2026', 'January–June 2026') },
+          ...(mp ? [{ v: mp.pais, l: t('maior mercado externo', 'largest foreign market'), s: `${fmt(mp.v)} ${t('dormidas (jan.–jun. 2026)', 'overnight stays (Jan–Jun 2026)')}` }] : []),
+          { v: String(externos.length), l: t('línguas de mercados externos em análise', 'foreign-market languages analysed') },
+        ]}>
       <div className="rb-wrap" style={{ maxWidth: 1400 }}>
-        <Cabecalho foto="/fotos/cab-avenida-liberdade.jpg" kicker={t('Reputação × Procura', 'Reputation × Demand')} titulo={mp ? t(`${mp.pais}: o maior mercado externo de Braga`, `${mp.pais}: Braga’s largest foreign market`) : t('Mercados: procura e satisfação', 'Markets: demand and satisfaction')}
-          sub={t(`Mercados externos: ${fmt(pctEstrangeiros, 1)}% das dormidas de janeiro a junho de 2026 foram de estrangeiros. Cruza o peso de cada mercado nessas dormidas (INE) e nos atendimentos do Posto de Turismo com a voz e a satisfação nos comentários do Google (últimos 3 anos). Agrupados por língua; os anos completos, com o verão, reforçam o peso do mercado espanhol.`, 'Crosses each market’s share of overnight stays (INE, 1st half 2026) and Tourist Office visits with its voice and satisfaction in Google reviews (last 3 years). Markets are grouped by language.')} />
         {insights.length > 0 && (
           <section className="rb-sec" style={{ paddingTop: 26 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
@@ -2558,6 +2575,7 @@ export function MercadosView(props: { locations: LocV[] }) {
         )}
         <p className="rb-sub" style={{ marginTop: 32 }}>{t(`Notas: a língua do comentário não é a nacionalidade (o inglês, por exemplo, é usado por muitos visitantes de outros países). Dormidas: INE/TravelBI, 1.º semestre de 2026. Atendimentos: Posto de Turismo, ${anoB || ''}. Comentários: Google Maps, últimos 3 anos, só com texto.`, `Notes: review language is not nationality (English, for instance, is used by many visitors from other countries). Stays: INE/TravelBI, 1st half 2026. Visits: Tourist Office, ${anoB || ''}. Reviews: Google Maps, last 3 years, text only.`)}</p>
       </div>
+      </Imersiva>
     </div>
   );
 }
@@ -2689,9 +2707,16 @@ export function ProdutosView() {
   return (
     <div className="rbx">
       <style>{ESTILO + ESTILO_EXTRA + ESTILO_PRODUTOS}</style>
+      <Imersiva foto="/fotos/parque-ponte-g.jpg" kicker={t('Visit Braga · Divisão de Atividades Económicas e Turismo', 'Visit Braga · Economic Activities and Tourism Division')}
+        titulo={<>{t('Braga, contada em', 'Braga, told through')} <span>{t('mapas e roteiros.', 'maps and itineraries.')}</span></>}
+        sub={t('Mapas, brochuras e roteiros criados pela Divisão nos últimos três anos, em todas as línguas disponíveis.', 'Maps, brochures and itineraries created by the Division over the last three years, in every available language.')}
+        numeros={[
+          { v: String(PRODUTOS.length), l: t('produtos criados', 'products created'), s: t('nos últimos três anos', 'in the last three years') },
+          { v: `${comPdf}/${edicoes.length}`, l: t('edições com PDF para descarregar', 'editions with a downloadable PDF') },
+          { v: String(cobertura.filter((c) => c.total > 0).length), l: t('línguas disponíveis', 'languages available'), s: 'PT · ES · FR · EN' },
+          { v: String(tipos.length), l: t('tipos de produto', 'product types'), s: tipos.join(' · ') },
+        ]}>
       <div className="rb-wrap" style={{ maxWidth: 1400 }}>
-        <Cabecalho foto="/fotos/cab-parque-ponte.jpg" kicker={t('Visit Braga · Divisão de Atividades Económicas e Turismo', 'Visit Braga · Economic Activities and Tourism Division')} titulo={t('Produtos turísticos', 'Tourism products')}
-          sub={t('Mapas, brochuras e roteiros criados pela Divisão nos últimos três anos, em todas as línguas disponíveis.', 'Maps, brochures and itineraries created by the Division over the last three years, in every available language.')} />
         <section className="rb-sec" style={{ paddingTop: 26 }}>
           <div className="rb-prod-resumo">
             {/* 1. Produtos por tipo */}
@@ -2761,6 +2786,7 @@ export function ProdutosView() {
           </div>
         </section>
       </div>
+      </Imersiva>
     </div>
   );
 }

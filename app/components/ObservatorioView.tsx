@@ -6,6 +6,7 @@ import { abrirJanelaDocumento } from '@/app/lib/abrir-documento';
 import { NotaMetodologica } from './obs/Metodologia';
 import { comRecuperacao } from '@/app/lib/carregar';
 import { BarraPesquisa } from './PesquisaGlobal';
+import Imersiva from './Imersiva';
 
 import { useState, useEffect, useRef } from 'react';
 import { estadaRecente, dec2 } from '@/app/lib/estada-media';
@@ -16,7 +17,7 @@ import { CAMINHOS } from '@/app/lib/caminhos-santiago-dados';
 import { openPremiumDoc, Section } from '@/app/lib/premium-doc';
 import { t, dl, getLang } from '@/app/lib/i18n';
 import { obterFotoBraga } from '@/app/lib/foto-braga';
-import { C, PAL, SUS_PAL, YEAR_COLORS } from './obs/comum';
+import { C, PAL, SUS_PAL, YEAR_COLORS, ContaTexto } from './obs/comum';
 
 
 // Cada separador é um ficheiro próprio, descarregado só quando é aberto (mais rápido, sobretudo no telemóvel)
@@ -333,12 +334,32 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
   const [foto, setFoto] = useState<string | null>(null);
   // Ao mudar de separador, se estiveres mais abaixo, a página volta ao início do conteúdo (menu visível no topo)
   const primeiroTab = useRef(true);
+  const ultimoScroll = useRef(0);
+  useEffect(() => {
+    let raf = 0;
+    const f = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { ultimoScroll.current = window.scrollY; }); };
+    window.addEventListener('scroll', f, { passive: true });
+    return () => { window.removeEventListener('scroll', f); cancelAnimationFrame(raf); };
+  }, []);
   useEffect(() => {
     if (primeiroTab.current) { primeiroTab.current = false; return; }
-    const hero = document.querySelector('.obs-hero') as HTMLElement | null;
+    const folha = document.querySelector('.obs .im-folha') as HTMLElement | null;
     const tabs = document.querySelector('.obs-tabs') as HTMLElement | null;
-    const alvo = hero ? hero.getBoundingClientRect().bottom + window.scrollY : tabs ? tabs.getBoundingClientRect().top + window.scrollY : 0;
-    if (window.scrollY > alvo + 2) window.scrollTo({ top: alvo, behavior: 'smooth' });
+    const alvo = folha ? folha.getBoundingClientRect().top + window.scrollY : tabs ? tabs.getBoundingClientRect().top + window.scrollY : 0;
+    // Posição antes da troca (ao trocar, a página encolhe por instantes e o browser já moveu o scroll)
+    if (Math.max(window.scrollY, ultimoScroll.current) > alvo + 2) {
+      // O novo separador ainda está a desenhar os gráficos (a página encolhe por instantes): repete até a posição ficar certa
+      let n = 0;
+      const acertar = () => {
+        if (Math.abs(window.scrollY - alvo) > 4) window.scrollTo({ top: alvo });
+        if (++n < 12) t1 = window.setTimeout(acertar, 120);
+      };
+      let t1 = window.setTimeout(acertar, 0);
+      const parar = () => { n = 99; };
+      window.addEventListener('wheel', parar, { passive: true, once: true });
+      window.addEventListener('touchstart', parar, { passive: true, once: true });
+      return () => { window.clearTimeout(t1); window.removeEventListener('wheel', parar); window.removeEventListener('touchstart', parar); };
+    }
   }, [tab]);
   useEffect(() => { let vivo = true; obterFotoBraga().then((x) => { if (vivo) setFoto(x); }); return () => { vivo = false; }; }, []);
 
@@ -842,23 +863,25 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
       <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
         <defs>{CORES_GRAD.map((c) => <linearGradient key={c} id={gradId(c)} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={c} stopOpacity={1} /><stop offset="100%" stopColor={c} stopOpacity={0.55} /></linearGradient>)}</defs>
       </svg>
-      <div className="obs-hero">
-        {(fotoTopo || foto) && <div className="obs-hero-img" style={{ backgroundImage: `url(${fotoTopo || foto})` }} />}
-        <div className="obs-hero-shade" />
-        <div className="obs-hero-in">
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: C.accent }}>Braga</div>
-          <h1 className="obs-h1">{t('Observatório de Turismo de Braga', 'Braga Tourism Observatory')}</h1>
-          <p style={{ color: C.textMuted, fontSize: 15, margin: 0, maxWidth: 760, lineHeight: 1.55 }}>{t('Análise integrada de dados do INE/TravelBI, do Município e de parceiros · fonte indicada em cada gráfico', 'Integrated analysis of data from INE/TravelBI, the Municipality and partners · source shown on each chart')}</p>
+      {copiado && <div className="obs-toast" role="status" aria-live="polite"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7CC79A" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7" /></svg>{t('Ligação copiada', 'Link copied')}</div>}
+      <Imersiva foto={fotoTopo || foto || '/fotos/avenida-liberdade-g.jpg'} kicker={t('Observatório de Turismo de Braga', 'Braga Tourism Observatory')}
+        titulo={<>{t('Os números do turismo', 'The numbers behind tourism')} <span>{t('em Braga.', 'in Braga.')}</span></>}
+        sub={t('Análise integrada de dados do INE/TravelBI, do Município e de parceiros · fonte indicada em cada gráfico', 'Integrated analysis of data from INE/TravelBI, the Municipality and partners · source shown on every chart')}
+        acao={<>
+          <BarraPesquisa grande />
           {tab !== 'meteo' && (
             <button className="obs-pdf-m" onClick={exportarAtual}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v11m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></svg>
               {t('Exportar PDF', 'Export PDF')}
             </button>
           )}
-        </div>
-      </div>
-      {copiado && <div className="obs-toast" role="status" aria-live="polite"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7CC79A" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7" /></svg>{t('Ligação copiada', 'Link copied')}</div>}
-      <div className="obs-pesq"><BarraPesquisa grande /></div>
+        </>}
+        numeros={[
+          { v: <ContaTexto texto={HEADLINE.dormidas2025.toLocaleString(t('pt-PT', 'en-GB'))} />, l: t('dormidas em 2025', 'overnight stays in 2025'), s: `${HEADLINE.dormidasVar >= 0 ? '+' : ''}${String(HEADLINE.dormidasVar).replace('.', t(',', '.'))}% ${t('face a 2024', 'vs 2024')}` },
+          { v: <ContaTexto texto={HEADLINE.hospedes2025.toLocaleString(t('pt-PT', 'en-GB'))} />, l: t('hóspedes em 2025', 'guests in 2025'), s: `${HEADLINE.hospedesVar >= 0 ? '+' : ''}${String(HEADLINE.hospedesVar).replace('.', t(',', '.'))}% ${t('face a 2024', 'vs 2024')}` },
+          ...(ER ? [{ v: <>{ER.valorAnoCompleto.toLocaleString(t('pt-PT', 'en-GB'), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <small style={{ fontSize: '.5em', fontWeight: 600, color: '#A3A8B1' }}>{t('noites', 'nights')}</small></>, l: t(`estada média em ${ER.anoCompleto}`, `average stay in ${ER.anoCompleto}`) }] : []),
+          { v: <ContaTexto texto={String(INFRA.empreendimentos)} />, l: t('empreendimentos turísticos', 'tourist establishments'), s: `${INFRA.alojamentoLocal.toLocaleString(t('pt-PT', 'en-GB'))} ${t('registos de Alojamento Local', 'short-term rental listings')}` },
+        ]}>
 
       <div className="obs-tabs">
         <div className="obs-tabs-in">
@@ -954,6 +977,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         {tab !== 'metodologia' && <NotaMetodologica id={tab} onVer={verMetodologia} />}
       </div>
       </div>
+      </Imersiva>
     </div>
   );
 }

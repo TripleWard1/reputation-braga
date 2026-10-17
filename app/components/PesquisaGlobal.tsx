@@ -325,8 +325,8 @@ export function BarraPesquisa({ grande, className }: { grande?: boolean; classNa
       <style>{CSS_BARRA}</style>
       <button type="button" className="pgb-campo" onClick={() => abrirPesquisa()}>
         <svg width={grande ? 22 : 17} height={grande ? 22 : 17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
-        <span className="pgb-txt">{grande ? t('Pesquise ou pergunte qualquer coisa sobre o turismo em Braga…', 'Search or ask anything about tourism in Braga…') : t('Pesquisar ou perguntar…', 'Search or ask…')}</span>
-        <kbd>{mac ? '⌘' : 'Ctrl'} K</kbd>
+        <span className="pgb-txt">{grande ? t('Pesquise ou pergunte qualquer coisa sobre o turismo em Braga…', 'Search or ask anything about tourism in Braga…') : t('Pesquisar…', 'Search…')}</span>
+        <kbd>{mac ? '⌘K' : grande ? 'Ctrl K' : '⌃K'}</kbd>
       </button>
       <button type="button" className="pgb-mic" onClick={() => abrirPesquisa({ voz: true })} aria-label={t('Pesquisar por voz', 'Search by voice')} title={t('Pesquisar por voz', 'Search by voice')}>
         <svg width={grande ? 22 : 17} height={grande ? 22 : 17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0014 0M12 17v4M8 21h8" /></svg>

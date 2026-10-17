@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { t } from '@/app/lib/i18n';
 import Insto from './obs/Insto';
 import { gerarRelatorioInsto } from '@/app/lib/relatorio-insto';
+import Imersiva from './Imersiva';
+import { AREAS } from '@/app/lib/insto-areas';
+import { INSTO_DADOS } from '@/app/lib/insto-dados';
 
 // Página própria da Rede INSTO (menu lateral). Reutiliza as 11 áreas e os dados de ambiente, clima e governança;
 // os botões de cada área levam ao separador do Observatório com os dados completos.
@@ -39,24 +42,27 @@ export default function InstoPagina({ irPara }: { irPara: (id: string) => void }
   return (
     <div className="ip">
       <style>{CSS}</style>
-      <header className="ip-hero">
-        <div className="ip-hero-in">
-          <div className="ip-txt">
-            <div className="ip-kicker">{t('ONU Turismo · INSTO', 'UN Tourism · INSTO')}</div>
-            <h1>{t('Rede INSTO', 'INSTO network')}</h1>
-            <p>{t('A rede internacional de observatórios de turismo sustentável da ONU Turismo exige que cada destino monitorize 11 áreas. Braga já tem indicadores nas 11 áreas nesta plataforma; algumas ainda são parciais (ver o estado de cada área).', 'UN Tourism’s international network of sustainable tourism observatories requires each destination to monitor 11 areas. Braga already has indicators for all 11 areas on this platform; some are still partial (see each area’s status).')}</p>
-            <button type="button" className="ip-rel" onClick={() => gerarRelatorioInsto()}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M12 18v-6M9 15l3 3 3-3" /></svg>
-              {t('Gerar Relatório Anual INSTO (PDF)', 'Generate INSTO Annual Report (PDF)')}
-            </button>
-            <span className="ip-rel-n">{t('Documento institucional completo: ficha técnica, sumário executivo, as 11 áreas com indicadores, leitura e próximos passos, lacunas e fontes.', 'Full institutional document: technical record, executive summary, the 11 areas with indicators, interpretation and next steps, data gaps and sources.')}</span>
-          </div>
-          <Anel valor={11} total={11} />
-        </div>
-      </header>
+      <Imersiva foto="/fotos/jardim-santa-barbara-g.jpg" kicker={t('ONU Turismo · Rede INSTO', 'UN Tourism · INSTO network')}
+        titulo={<>{t('Turismo sustentável,', 'Sustainable tourism,')} <span>{t('medido.', 'measured.')}</span></>}
+        sub={t('A rede internacional de observatórios de turismo sustentável da ONU Turismo exige que cada destino monitorize 11 áreas. Braga já tem indicadores nas 11 áreas nesta plataforma; algumas ainda são parciais (ver o estado de cada área).', 'UN Tourism’s international network of sustainable tourism observatories requires each destination to monitor 11 areas. Braga already has indicators for all 11 areas on this platform; some are still partial (see each area’s status).')}
+        lado={<Anel valor={11} total={11} />}
+        acao={<>
+          <button type="button" className="ip-rel" onClick={() => gerarRelatorioInsto()}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M12 18v-6M9 15l3 3 3-3" /></svg>
+            {t('Gerar Relatório Anual INSTO (PDF)', 'Generate INSTO Annual Report (PDF)')}
+          </button>
+          <span className="ip-rel-n">{t('Documento institucional completo: ficha técnica, sumário executivo, as 11 áreas com indicadores, leitura e próximos passos, lacunas e fontes.', 'Full institutional document: technical record, executive summary, the 11 areas with indicators, interpretation and next steps, gaps and sources.')}</span>
+        </>}
+        numeros={[
+          { v: String(AREAS.filter((a) => a.estado === 'coberta').length), l: t('áreas totalmente cobertas', 'areas fully covered'), s: t(`${AREAS.filter((a) => a.estado === 'parcial').length} em parte`, `${AREAS.filter((a) => a.estado === 'parcial').length} partial`) },
+          { v: `−${Math.round((1 - (INSTO_DADOS.clima.total[2] as number) / (INSTO_DADOS.clima.total[0] as number)) * 100)}%`, l: t('emissões de CO₂ do concelho, 2008 → 2024', 'municipal CO₂ emissions, 2008 → 2024') },
+          { v: `${((INSTO_DADOS.aguasResiduais.Braga.terciario / INSTO_DADOS.aguasResiduais.Braga.total) * 100).toLocaleString(t('pt-PT', 'en-GB'), { maximumFractionDigits: 1 })}%`, l: t(`águas residuais com tratamento terciário (${INSTO_DADOS.aguasResiduais.ano})`, `wastewater with tertiary treatment (${INSTO_DADOS.aguasResiduais.ano})`) },
+          { v: `${INSTO_DADOS.residuos.porHab.Braga.toLocaleString(t('pt-PT', 'en-GB'))} kg`, l: t(`resíduos urbanos por habitante (${INSTO_DADOS.residuos.ano})`, `municipal waste per inhabitant (${INSTO_DADOS.residuos.ano})`), s: `Portugal: ${INSTO_DADOS.residuos.porHab.Portugal.toLocaleString(t('pt-PT', 'en-GB'))} kg` },
+        ]}>
       <div className="obs ip-corpo">
         <Insto semTitulo irPara={irPara} nomeSeparador={nomeSeparador} />
       </div>
+      </Imersiva>
     </div>
   );
 }
@@ -75,7 +81,9 @@ const CSS = `
 .ip-anel { position: relative; flex: 0 0 auto; filter: drop-shadow(0 0 28px rgba(124,199,154,.35)); }
 .ip-anel-t { position: absolute; inset: 0; display: flex; align-items: baseline; justify-content: center; gap: 4px; padding-top: 58px; }
 .ip-anel-t b { font-size: 42px; font-weight: 800; letter-spacing: -0.03em; } .ip-anel-t span { font-size: 16px; color: #A3A8B1; font-weight: 600; }
-.ip-corpo { max-width: 1400px; margin: 0 auto; padding: 28px 40px 56px; }
+.ip-corpo { max-width: 1400px; margin: 0 auto; padding: 40px 48px 56px; }
+.ip .im-lado .ip-anel { transform: scale(1.1); transform-origin: right bottom; }
+@media (max-width: 900px) { .ip .im-lado { display: none; } }
 .ip .obs-leit-ir { padding: 8px 14px; border-radius: 999px; font: 600 13px 'Public Sans', system-ui, sans-serif; cursor: pointer; border: 1px solid rgba(138,176,230,.45); background: rgba(138,176,230,.12); color: #ECEDEF; }
 .ip .obs-leit-ir:hover { background: rgba(138,176,230,.22); }
 .ip li { transition: transform .25s ease, border-color .25s ease; } .ip ul li:hover { transform: translateY(-2px); }

@@ -614,8 +614,8 @@ export default function BragaMundo() {
           {MOSAICO.slice(0, 5).map((m) => <div key={m.src} className="bm-mos"><img src={m.src} alt="" /></div>)}
         </div>
         <div className="bm-hero-in">
-          <div className="bm-kicker">{t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}</div>
-          <h1 className="bm-h1">{t('Internacionalização', 'Internationalisation')}</h1>
+          <div className="bm-kicker">{t('Internacionalização · Município de Braga', 'Internationalisation · Braga City Council')}</div>
+          <h1 className="bm-h1">{t('Braga,', 'Braga,')} <span>{t('no mundo.', 'worldwide.')}</span></h1>
           <p className="bm-sub">{t('Participação em feiras de turismo, projetos de cooperação europeia e distinções do destino, de 2023 a 2027.', 'Participation in tourism fairs, European cooperation projects and destination distinctions, from 2023 to 2027.')}</p>
           <div className="bm-nums">
             <div className="bm-num"><div className="bm-num-v"><Contador valor={contarTipos(['vencedora'])} /></div><div className="bm-num-r">{t('títulos internacionais', 'international titles')}</div></div>
@@ -624,7 +624,11 @@ export default function BragaMundo() {
             <div className="bm-num"><div className="bm-num-v"><Contador valor={grupos.length} /></div><div className="bm-num-r">{t('projetos europeus', 'EU projects')}</div></div>
           </div>
         </div>
+        <button type="button" className="bm-cue" onClick={() => { const f = document.querySelector('.bm-folha') as HTMLElement | null; if (f) window.scrollTo({ top: f.getBoundingClientRect().top + window.scrollY - 4, behavior: 'smooth' }); }} aria-label={t('Ir para o conteúdo', 'Go to the content')}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
       </header>
+      <div className="bm-folha">
       <nav className="bm-abas-wrap" aria-label={t('Secções', 'Sections')}>
         <div className="bm-abas">{CAPS.map(([id, nome]) => <button key={id} type="button" onClick={() => irPara(id)}>{nome}</button>)}</div>
       </nav>
@@ -658,6 +662,7 @@ export default function BragaMundo() {
         <Capitulo id="bm-momentos" kicker="05" titulo={t('Registo fotográfico', 'Photo record')} resumo={t('Fotografias das participações em feiras e eventos.', 'Photographs of participations in fairs and events.')}>
           <Galeria admin={admin} semTitulo />
         </Capitulo>
+      </div>
       </div>
     </div>
   );
@@ -1020,4 +1025,26 @@ const CSS = `
 .bm .leaflet-container { background: #1C1F24; font-family: 'Public Sans', system-ui, sans-serif; }
 .bm .leaflet-control-attribution { background: rgba(21,23,27,.7) !important; color: #8A909B !important; }
 .bm .leaflet-control-attribution a { color: #A3A8B1 !important; }
+/* Topo imersivo, como a Visão Geral: ocupa o ecrã, fica fixo e recua; o conteúdo sobe numa folha */
+.bm-hero { min-height: max(640px, 100svh); display: flex; flex-direction: column; justify-content: flex-end; }
+.bm-hero-in { width: 100%; box-sizing: border-box; padding-bottom: 96px !important; }
+.bm-h1 { font-size: clamp(44px, 6.6vw, 96px) !important; letter-spacing: -0.035em !important; line-height: .98 !important; margin: 16px 0 18px !important; }
+.bm-h1 span { color: #B7CDF0; }
+.bm-kicker { display: inline-flex; align-items: center; gap: 10px; letter-spacing: .16em !important; }
+.bm-kicker::before { content: ''; width: 26px; height: 2px; border-radius: 2px; background: #8AB0E6; }
+.bm-cue { position: absolute; left: 50%; bottom: 30px; z-index: 4; width: 44px; height: 44px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(21,23,27,.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: #ECEDEF; display: flex; align-items: center; justify-content: center; cursor: pointer; animation: bmCue 2.4s ease-in-out infinite; }
+@keyframes bmCue { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 7px); } }
+.bm-folha { position: relative; z-index: 2; margin-top: -40px; background: #15171B; border-radius: 34px 34px 0 0; box-shadow: 0 -30px 60px -20px rgba(0,0,0,.75), 0 -1px 0 rgba(255,255,255,.07); overflow: clip; }
+.bm-folha .bm-abas-wrap { border-radius: 34px 34px 0 0; }
+.bm-hero::before { display: none !important; }
+@media (min-width: 901px) {
+  .bm-hero { position: sticky; top: 0; z-index: 0; }
+  @supports (animation-timeline: scroll()) {
+    .bm-hero { animation: bmRecua linear both; animation-timeline: scroll(root); animation-range: 0 100svh; }
+    @keyframes bmRecua { from { transform: scale(1); border-radius: 0; } to { transform: scale(.93); border-radius: 34px; } }
+  }
+}
+@media (max-width: 900px) { .bm-hero { min-height: 88svh; } .bm-hero-in { padding-bottom: 74px !important; } .bm-h1 { font-size: clamp(38px, 11vw, 52px) !important; } .bm-folha { margin-top: -28px; border-radius: 26px 26px 0 0; } .bm-cue { bottom: 18px; } }
+@media (prefers-reduced-motion: reduce) { .bm-hero, .bm-cue { animation: none !important; } }
+@media print { .bm-hero { min-height: 0; position: relative; } .bm-cue { display: none; } .bm-folha { margin: 0; box-shadow: none; border-radius: 0; } }
 `;
