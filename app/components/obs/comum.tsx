@@ -21,6 +21,8 @@ export const YEAR_COLORS: Record<string, string> = {
   '2022': '#E39AC0', '2023': '#7CC79A', '2024': '#EDA06B',
   '2025': '#8AB0E6', '2026': '#F2C14E',
 };
+// Superfície dos cartões (mesmo registo da Visão Geral: cantos largos, relevo suave)
+export const SUP: React.CSSProperties = { background: 'linear-gradient(180deg, #1E2228 0%, #1A1D22 100%)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 16, boxShadow: 'inset 0 1px 0 rgba(255,255,255,.04), 0 18px 40px -30px rgba(0,0,0,.85)' };
 export const PAL = [C.accent, C.positive, C.orange, C.purple, C.cyan, C.pink, C.info, '#6F747D'];
 export const fmt = (n: number | null | undefined, c = 0) =>
   n == null || isNaN(n as number) ? '-' : (n as number).toLocaleString('pt-PT', { minimumFractionDigits: c, maximumFractionDigits: c });
@@ -97,11 +99,11 @@ export function BarrasPct({ dados, cor, max }: { dados: [string, number][]; cor:
 export function KPI({ label, value, sub, color = C.accent }: { label: string; value: string; sub?: string; color?: string }) {
   const [kref, kvis] = useVisivelObs<HTMLDivElement>();
   return (
-    <div ref={kref} className={`obs-card obs-kpi${kvis ? ' in' : ''}`} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden' }}>
+    <div ref={kref} className={`obs-card obs-kpi${kvis ? ' in' : ''}`} style={{ ...SUP, padding: '20px 22px 22px', position: 'relative', overflow: 'hidden', containerType: 'inline-size' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.textMuted, marginBottom: 10, lineHeight: 1.35 }}>
         <span style={{ width: 8, height: 8, borderRadius: 999, background: color, boxShadow: `0 0 10px ${color}`, flexShrink: 0 }} />{label}
       </div>
-      <div className="obs-kpi-v" style={{ fontSize: 36, fontWeight: 700, color: C.text, lineHeight: 1.05, marginBottom: 8, letterSpacing: '-0.02em' }}><ContaTexto texto={value} /></div>
+      <div className="obs-kpi-v" style={{ fontSize: 'clamp(24px, 17cqi, 38px)', fontWeight: 700, color: C.text, lineHeight: 1.05, marginBottom: 8, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}><ContaTexto texto={value} /></div>
       {sub && <div style={{ fontSize: 13, color: color, lineHeight: 1.4 }}>{sub}</div>}
       <div className="obs-kpi-linha" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, background: `linear-gradient(90deg, ${color}, transparent 75%)` }} />
     </div>
@@ -157,7 +159,7 @@ export function Card({ title, children, right }: { title: string; children: Reac
   try { recolherDados(children, rec); } catch { /* sem dados exportáveis */ }
   const folhas = rec.conjuntos.map((c) => paraLinhas(c, rec.nomes)).filter((l) => l.length && Object.keys(l[0]).length);
   return (
-    <div ref={cref} role="group" aria-labelledby={idTitulo} className={`obs-card${cvis ? ' in' : ''}`} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '22px 24px', marginBottom: 16 }}>
+    <div ref={cref} role="group" aria-labelledby={idTitulo} className={`obs-card${cvis ? ' in' : ''}`} style={{ ...SUP, padding: '22px 24px', marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 10 }}>
         <div id={idTitulo} style={{ fontSize: 16, fontWeight: 700, color: C.text, letterSpacing: '-0.01em', lineHeight: 1.35 }}>{title}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -249,10 +251,10 @@ export function Badge({ icon, value, label, color = C.accent, hint }: { icon: st
   const path = BADGE_ICON[icon] || BADGE_ICON[icon.replace(/\uFE0F/g, '')];
   const [bref, bvis] = useVisivelObs<HTMLDivElement>();
   return (
-    <div ref={bref} className={`obs-card${bvis ? ' in' : ''}`} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: '16px 18px' }}>
+    <div ref={bref} className={`obs-card${bvis ? ' in' : ''}`} style={{ ...SUP, padding: '16px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         {path && (
-          <div style={{ width: 42, height: 42, borderRadius: 6, background: `${color}1f`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: `${color}1f`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={path} /></svg>
           </div>
         )}
@@ -267,9 +269,10 @@ export function Badge({ icon, value, label, color = C.accent, hint }: { icon: st
 }
 export function SectionTitle({ children, sub }: { children: React.ReactNode; sub?: string }) {
   return (
-    <div style={{ margin: '36px 0 16px' }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: '-0.015em', lineHeight: 1.25 }}>{children}</div>
-      {sub && <div style={{ fontSize: 13, color: C.textMuted, marginTop: 6, lineHeight: 1.5 }}>{sub}</div>}
+    <div style={{ margin: '44px 0 18px' }}>
+      <div aria-hidden="true" style={{ width: 32, height: 3, borderRadius: 3, background: `linear-gradient(90deg, ${C.accent}, rgba(138,176,230,0))`, marginBottom: 12 }} />
+      <div style={{ fontSize: 'clamp(21px, 2vw, 26px)', fontWeight: 700, color: C.text, letterSpacing: '-0.02em', lineHeight: 1.22 }}>{children}</div>
+      {sub && <div style={{ fontSize: 13.5, color: C.textMuted, marginTop: 8, lineHeight: 1.55, maxWidth: 900 }}>{sub}</div>}
     </div>
   );
 }

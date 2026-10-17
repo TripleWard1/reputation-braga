@@ -169,7 +169,7 @@ function useMiniaturas(): Record<string, string> {
 
 function Miniatura({ src }: { src?: string }) {
   return (
-    <span className="rb-th" style={{ width: 84, height: 56, borderRadius: 4, overflow: 'hidden', background: 'var(--rb-muted)', flexShrink: 0, display: 'inline-block' }}>
+    <span className="rb-th" style={{ width: 84, height: 56, borderRadius: 10, overflow: 'hidden', background: 'var(--rb-muted)', flexShrink: 0, display: 'inline-block' }}>
       {src ? <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform .6s cubic-bezier(.2,.7,.2,1)' }} /> : null}
     </span>
   );
@@ -323,6 +323,44 @@ const ESTILO = `
   .rb-only-m { display: block; }
   .rb-h1-m { font-size: 34px !important; }
 }
+.rb-cab { position: relative; margin: 0 0 8px; isolation: isolate; animation: rbEnter .8s cubic-bezier(.2,.7,.2,1) both; }
+.rb-cab.com-foto { min-height: 300px; display: flex; align-items: flex-end; border-radius: 24px; overflow: hidden; background: #1C1F24; border: 1px solid rgba(255,255,255,.07); box-shadow: 0 34px 70px -36px rgba(0,0,0,.85); color: #ECEDEF; }
+.rb-cab-foto { position: absolute; inset: -24px; z-index: -2; background-size: cover; background-position: center; animation: rbCabKb 28s ease-in-out infinite alternate; }
+@keyframes rbCabKb { from { transform: scale(1.04); } to { transform: scale(1.14) translate(-12px, 6px); } }
+.rb-cab-sombra { position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(12,14,17,.92) 0%, rgba(12,14,17,.66) 48%, rgba(12,14,17,.22) 100%), linear-gradient(0deg, rgba(12,14,17,.8) 0%, rgba(12,14,17,0) 58%); }
+.rb-cab-in { position: relative; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+.com-foto .rb-cab-in { padding: 72px 40px 34px; }
+.rb-cab-txt { max-width: 820px; min-width: 0; }
+.rb-cab-kicker { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--rb-accent); }
+.com-foto .rb-cab-kicker { color: #B7CDF0; }
+.rb-cab-h1 { font-size: clamp(36px, 4.6vw, 58px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.04; margin: 10px 0 0; }
+.com-foto .rb-cab-h1 { text-shadow: 0 2px 24px rgba(0,0,0,.45); }
+.rb-cab-sub { font-size: 15px; color: var(--rb-text2); line-height: 1.6; margin: 12px 0 0; max-width: 760px; }
+.com-foto .rb-cab-sub { color: rgba(236,237,239,.84); }
+.rb-cab-dir { display: flex; gap: 8px; flex-wrap: wrap; }
+.com-foto .rb-cab-dir .rb-btn, .com-foto .rb-cab-dir .rb-chip.ghost { background: rgba(21,23,27,.55); border-color: rgba(255,255,255,.18); color: #ECEDEF; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+@media (max-width: 900px) {
+  .rb-cab.com-foto { min-height: 240px; border-radius: 18px; }
+  .com-foto .rb-cab-in { padding: 56px 20px 22px; }
+  .rb-cab-h1 { font-size: 32px; }
+  .rb-cab-sub { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .rb-cab, .rb-cab-foto { animation: none !important; } }
+@media print {
+  .rb-cab-foto, .rb-cab-sombra { display: none !important; }
+  .rb-cab.com-foto { min-height: 0; border: 0; border-radius: 0; box-shadow: none; background: none; color: var(--rb-text); }
+  .com-foto .rb-cab-in { padding: 0; }
+  .com-foto .rb-cab-h1 { text-shadow: none; } .com-foto .rb-cab-sub { color: var(--rb-text2); } .com-foto .rb-cab-kicker { color: var(--rb-accent); }
+}
+.rb-idx { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 7px; color: var(--c, var(--rb-text)); font-size: 19px; letter-spacing: -0.01em; }
+.rb-idx-pista { display: block; width: 52px; height: 4px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+.rb-idx-pista i { display: block; height: 100%; border-radius: 999px; background: var(--c, var(--rb-accent)); box-shadow: 0 0 10px var(--c, transparent); }
+.rb-busca { height: 44px; border-radius: 999px; padding: 0 18px 0 44px; background: #1C1F24 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23A3A8B1' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E") no-repeat 16px center; border-color: rgba(255,255,255,.1); font-size: 14.5px; transition: border-color .2s ease, box-shadow .2s ease; }
+.rb-busca:focus { border-color: var(--rb-accent); box-shadow: 0 0 0 4px rgba(138,176,230,.14); outline: none; }
+.rb-busca-sel { height: 44px; border-radius: 999px; padding: 0 16px; background: #1C1F24; border-color: rgba(255,255,255,.1); cursor: pointer; }
+.rb-row td { transition: background .2s ease; }
+.rb-row:hover td:first-child { box-shadow: inset 3px 0 0 var(--rb-accent); }
+@media print { .rb-idx-pista { display: none; } .rb-idx { color: var(--rb-text); } }
 @media print {
   .rb-sidebar, .rb-noprint, .rb-mobile-bar { display: none !important; }
   .rbx { --rb-bg:#FFFFFF; --rb-surface:#FFFFFF; --rb-text:#16171A; --rb-text2:#52555C; --rb-line:#DDDAD2; --rb-accent:#1B4F8F; --rb-accent-bg:#E3EBF5;
@@ -1663,13 +1701,9 @@ export function LocaisLista(props: {
     <div className="rbx">
       <style>{ESTILO}</style>
       <div className="rb-wrap">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 20, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontSize: 14, color: 'var(--rb-text2)' }}>{t('Reputação', 'Reputation')}</div>
-            <h1 className="rb-h1-m" style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.02em', margin: '8px 0 0' }}>{t('Locais', 'Places')}</h1>
-            <p className="rb-cap" style={{ fontSize: 14 }}>{t(`${props.locations.length} locais monitorizados · do índice mais alto para o mais baixo · locais com menos de ${MIN_ROBUSTO} avaliações ficam no fim, sem índice`, `${props.locations.length} places monitored · highest to lowest index · places with fewer than ${MIN_ROBUSTO} reviews are listed last, without an index`)}</p>
-          </div>
-          {admin && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Cabecalho foto="/fotos/cab-bom-jesus.jpg" kicker={t('Reputação', 'Reputation')} titulo={t('Locais', 'Places')}
+          sub={t(`${props.locations.length} locais monitorizados · do índice mais alto para o mais baixo · locais com menos de ${MIN_ROBUSTO} avaliações ficam no fim, sem índice`, `${props.locations.length} places monitored · highest to lowest index · places with fewer than ${MIN_ROBUSTO} reviews are listed last, without an index`)}
+          direita={admin ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="rb-btn" onClick={props.onImport}>{t('Importar comentários', 'Import reviews')}</button>
             {props.batchRun ? (
               <button className="rb-btn" onClick={props.onStopBatch} style={{ borderColor: 'var(--rb-warn)', color: 'var(--rb-warn)' }}>{t(`Parar (${props.batchRun.i}/${props.batchRun.total})`, `Stop (${props.batchRun.i}/${props.batchRun.total})`)}</button>
@@ -1680,16 +1714,15 @@ export function LocaisLista(props: {
               </>
             )}
             <button className="rb-btn p" onClick={props.onAdd}>{t('Adicionar local', 'Add place')}</button>
-          </div>}
-        </div>
+          </div> : undefined} />
         {props.batchRun && (
           <div style={{ marginTop: 20, background: 'var(--rb-accent-bg)', borderRadius: 4, padding: '12px 16px', fontSize: 14.5 }}>
             {t('A analisar', 'Analysing')} {props.batchRun.i} {t('de', 'of')} {props.batchRun.total}: <strong>{props.batchRun.name}</strong>. {t('Mantém esta página aberta até ao fim.', 'Keep this page open until it finishes.')}
           </div>
         )}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '28px 0 8px' }}>
-          <input className="rb-field" style={{ flex: '1 1 260px', maxWidth: 360 }} placeholder={t('Pesquisar local', 'Search place')} aria-label={t('Pesquisar local', 'Search place')} value={q} onChange={(e) => setQ(e.target.value)} />
-          <select className="rb-field" value={cat} onChange={(e) => setCat(e.target.value)} aria-label={t('Categoria', 'Category')}>
+          <input className="rb-field rb-busca" type="search" style={{ flex: '1 1 260px', maxWidth: 380 }} placeholder={t('Pesquisar local', 'Search place')} aria-label={t('Pesquisar local', 'Search place')} value={q} onChange={(e) => setQ(e.target.value)} />
+          <select className="rb-field rb-busca-sel" value={cat} onChange={(e) => setCat(e.target.value)} aria-label={t('Categoria', 'Category')}>
             <option value="">{t('Todas as categorias', 'All categories')}</option>
             {cats.map((c) => <option key={c} value={c}>{props.catLabel(c)}</option>)}
           </select>
@@ -1705,7 +1738,7 @@ export function LocaisLista(props: {
               return (
                 <tr key={o.l.id} className="rb-row" onClick={() => props.onOpen(o.l.id)}>
                   <td><div style={{ display: 'flex', gap: 16, alignItems: 'center' }}><Miniatura src={mini[o.l.id]} /><div><div style={{ fontWeight: 700 }}>{o.l.name}</div><div style={{ fontSize: 13, color: 'var(--rb-text2)' }}>{props.catLabel(o.l.category)}{props.analyzing === o.l.id ? ` · ${t('a analisar…', 'analysing…')}` : ''}</div><div className="rb-only-m" style={{ fontSize: 13, marginTop: 4, lineHeight: 1.4 }}>{situacao(o)}</div></div></div></td>
-                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>-</span> : fmt(o.x!.idx, 1)}</td>
+                  <td className="n" style={{ fontWeight: 700, fontSize: 17 }}>{insuf ? <span style={{ color: 'var(--rb-text2)', fontWeight: 400, fontSize: 15 }}>-</span> : <span className="rb-idx" style={{ ['--c' as any]: corIndice(o.x) }}>{fmt(o.x!.idx, 1)}<span className="rb-idx-pista" aria-hidden="true"><i className="rb-bar" style={{ width: `${Math.min(100, o.x!.idx * 10)}%` }} /></span></span>}</td>
                   <td className="n rb-hide-m">{o.x ? fmt(o.x.avg, 2) : '-'}</td>
                   <td className="n rb-hide-m">{o.x ? fmt(o.x.n) : '-'}</td>
                   <td className="rb-hide-m" style={{ paddingLeft: 24, fontSize: 14 }}>{situacao(o)}</td>
@@ -1906,15 +1939,20 @@ const ESTILO_EXTRA = `
 }
 `;
 
-function Cabecalho({ kicker, titulo, sub, direita }: { kicker: string; titulo: string; sub?: string; direita?: ReactNode }) {
+/** Cabeçalho das páginas: com fotografia fica uma "folha" imersiva, no mesmo registo da Visão Geral. */
+function Cabecalho({ kicker, titulo, sub, direita, foto }: { kicker: string; titulo: string; sub?: string; direita?: ReactNode; foto?: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 20, flexWrap: 'wrap', marginBottom: 8 }}>
-      <div style={{ maxWidth: 820 }}>
-        <div style={{ fontSize: 14, color: 'var(--rb-text2)' }}>{kicker}</div>
-        <h1 className="rb-h1-m" style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.02em', margin: '8px 0 0', lineHeight: 1.08 }}>{titulo}</h1>
-        {sub && <p className="rb-cap" style={{ fontSize: 14.5 }}>{sub}</p>}
+    <div className={`rb-cab${foto ? ' com-foto' : ''}`}>
+      {foto && <div className="rb-cab-foto" style={{ backgroundImage: `url(${foto})` }} aria-hidden="true" />}
+      {foto && <div className="rb-cab-sombra" aria-hidden="true" />}
+      <div className="rb-cab-in">
+        <div className="rb-cab-txt">
+          <div className="rb-cab-kicker">{kicker}</div>
+          <h1 className="rb-cab-h1">{titulo}</h1>
+          {sub && <p className="rb-cab-sub">{sub}</p>}
+        </div>
+        {direita && <div className="rb-cab-dir">{direita}</div>}
       </div>
-      {direita}
     </div>
   );
 }
@@ -1999,7 +2037,7 @@ export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => st
     <div className="rbx">
       <style>{ESTILO + ESTILO_EXTRA}</style>
       <div className="rb-wrap" style={{ maxWidth: 1400 }}>
-        <Cabecalho kicker={t('Reputação', 'Reputation')} titulo={t('Mapa de reputação', 'Reputation map')}
+        <Cabecalho foto="/fotos/cab-jardim-santa-barbara.jpg" kicker={t('Reputação', 'Reputation')} titulo={t('Mapa de reputação', 'Reputation map')}
           sub={t(`${comCoords.length} locais no mapa${nAl ? ` · ${nAl} com alerta no último trimestre` : ''} · a nota dentro de cada ponto é o índice /10`, `${comCoords.length} places on the map${nAl ? ` · ${nAl} with an alert last quarter` : ''} · the number in each point is the /10 index`)}
           direita={admin ? <button className={`rb-chip${mover ? ' warn' : ' ghost'}`} onClick={() => setMover((v) => !v)}>{mover ? t('Concluir reposicionamento', 'Finish repositioning') : t('Reposicionar marcadores', 'Reposition markers')}</button> : undefined} />
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 13, color: 'var(--rb-text2)', margin: '18px 0 14px' }}>
@@ -2478,7 +2516,7 @@ export function MercadosView(props: { locations: LocV[] }) {
     <div className="rbx">
       <style>{ESTILO + ESTILO_EXTRA}</style>
       <div className="rb-wrap" style={{ maxWidth: 1400 }}>
-        <Cabecalho kicker={t('Reputação × Procura', 'Reputation × Demand')} titulo={mp ? t(`${mp.pais}: o maior mercado externo de Braga`, `${mp.pais}: Braga’s largest foreign market`) : t('Mercados: procura e satisfação', 'Markets: demand and satisfaction')}
+        <Cabecalho foto="/fotos/cab-avenida-liberdade.jpg" kicker={t('Reputação × Procura', 'Reputation × Demand')} titulo={mp ? t(`${mp.pais}: o maior mercado externo de Braga`, `${mp.pais}: Braga’s largest foreign market`) : t('Mercados: procura e satisfação', 'Markets: demand and satisfaction')}
           sub={t(`Mercados externos: ${fmt(pctEstrangeiros, 1)}% das dormidas de janeiro a junho de 2026 foram de estrangeiros. Cruza o peso de cada mercado nessas dormidas (INE) e nos atendimentos do Posto de Turismo com a voz e a satisfação nos comentários do Google (últimos 3 anos). Agrupados por língua; os anos completos, com o verão, reforçam o peso do mercado espanhol.`, 'Crosses each market’s share of overnight stays (INE, 1st half 2026) and Tourist Office visits with its voice and satisfaction in Google reviews (last 3 years). Markets are grouped by language.')} />
         {insights.length > 0 && (
           <section className="rb-sec" style={{ paddingTop: 26 }}>
@@ -2675,7 +2713,7 @@ export function ProdutosView() {
     <div className="rbx">
       <style>{ESTILO + ESTILO_EXTRA + ESTILO_PRODUTOS}</style>
       <div className="rb-wrap" style={{ maxWidth: 1400 }}>
-        <Cabecalho kicker={t('Visit Braga · Divisão de Atividades Económicas e Turismo', 'Visit Braga · Economic Activities and Tourism Division')} titulo={t('Produtos turísticos', 'Tourism products')}
+        <Cabecalho foto="/fotos/cab-parque-ponte.jpg" kicker={t('Visit Braga · Divisão de Atividades Económicas e Turismo', 'Visit Braga · Economic Activities and Tourism Division')} titulo={t('Produtos turísticos', 'Tourism products')}
           sub={t('Mapas, brochuras e roteiros criados pela Divisão nos últimos três anos, em todas as línguas disponíveis.', 'Maps, brochures and itineraries created by the Division over the last three years, in every available language.')} />
         <section className="rb-sec" style={{ paddingTop: 26 }}>
           <div className="rb-prod-resumo">
@@ -2751,7 +2789,7 @@ export function ProdutosView() {
 }
 const ESTILO_PRODUTOS = `
 .rb-prod-resumo { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.1fr); gap: 14px; }
-.rb-prod-bloco { background: var(--rb-surface); border: 1px solid var(--rb-line); border-radius: 10px; padding: 20px 22px; position: relative; overflow: hidden; }
+.rb-prod-bloco { background: linear-gradient(180deg, #1E2228 0%, #1A1D22 100%); border: 1px solid rgba(255,255,255,.07); box-shadow: 0 18px 40px -30px rgba(0,0,0,.85); border-radius: 18px; padding: 20px 22px; position: relative; overflow: hidden; }
 .rb-prod-bloco::before { content: ''; position: absolute; inset: 0; background: radial-gradient(360px 140px at 0% 0%, rgba(138,176,230,.08), transparent); pointer-events: none; }
 .rb-prod-tipo { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--rb-line); background: rgba(255,255,255,.02); color: var(--rb-text2); font: inherit; font-size: 13px; cursor: pointer; transition: border-color .2s ease, color .2s ease, background .2s ease; }
 .rb-prod-tipo strong { color: var(--rb-text); font-size: 14px; }
@@ -2761,9 +2799,9 @@ const ESTILO_PRODUTOS = `
 @keyframes rbAnelP { from { stroke-dasharray: 0 100; } }
 @media (max-width: 1000px) { .rb-prod-resumo { grid-template-columns: 1fr; } }
 .rb-produtos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
-.rb-produto { background: var(--rb-surface); border: 1px solid var(--rb-line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
-.rb-produto:hover { transform: translateY(-3px); border-color: #3A404B; box-shadow: 0 18px 44px -20px rgba(0,0,0,.75); }
-.rb-produto-capa { position: relative; height: 230px; overflow: hidden; background: #1C1F24; }
+.rb-produto { background: linear-gradient(180deg, #1E2228 0%, #1A1D22 100%); border: 1px solid rgba(255,255,255,.07); box-shadow: 0 18px 40px -30px rgba(0,0,0,.85); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+.rb-produto:hover { transform: translateY(-4px); border-color: rgba(138,176,230,.28); box-shadow: 0 18px 44px -20px rgba(0,0,0,.75); }
+.rb-produto-capa { position: relative; height: 240px; overflow: hidden; background: #1C1F24; }
 .rb-produto-capa img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .6s ease, transform .9s cubic-bezier(.2,.7,.2,1); }
 .rb-produto:hover .rb-produto-capa img { transform: scale(1.05); }
 .rb-produto-carrega { position: absolute; inset: 0; background: linear-gradient(90deg, #1C1F24 0%, #262A31 50%, #1C1F24 100%); background-size: 200% 100%; animation: rbBrilhoP 1.3s ease-in-out infinite; }

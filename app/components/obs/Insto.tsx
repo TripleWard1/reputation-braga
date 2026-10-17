@@ -64,7 +64,7 @@ export default function Insto({ irPara, nomeSeparador, semTitulo }: { irPara: (i
       </>)}
       <ul style={{ listStyle: 'none', margin: '0 0 26px', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
         {AREAS.map((a) => (
-          <li key={a.pt} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '16px 18px', borderRadius: 10, background: C.card, border: `1px solid ${C.border}`, borderTop: `3px solid ${COR[a.estado]}` }}>
+          <li key={a.pt} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '18px 20px', borderRadius: 16, background: 'linear-gradient(180deg, #1E2228 0%, #1A1D22 100%)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 18px 40px -30px rgba(0,0,0,.85)', borderTop: `3px solid ${COR[a.estado]}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
               <strong style={{ fontSize: 15, color: C.text }}>{t(a.pt, a.en)}</strong>
               <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 10px', borderRadius: 999, color: COR[a.estado], border: `1px solid ${COR[a.estado]}66`, whiteSpace: 'nowrap' }}>{rotulo[a.estado]}</span>

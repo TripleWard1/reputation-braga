@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import type { ReactNode, ChangeEvent } from 'react';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip,
@@ -42,6 +42,8 @@ const ObservatorioView = dynamic(comRecuperacao(() => import('@/app/components/O
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
 const LOGO_URL = 'https://i.imgur.com/Vij12Qd.png';
+// Logótipo em ecrã: ficheiro do próprio site (carrega de imediato e não depende de serviços externos)
+const LOGO_ECRA = '/visit-braga-logo-negativo.png';
 
 const CATEGORIES = ['Monumento', 'Museu', 'Restaurante', 'Alojamento', 'Experiência', 'Espaço Público', 'Outro'];
 const PLATFORMS = ['Google Maps', 'TripAdvisor', 'Booking.com', 'Outro'];
@@ -875,7 +877,15 @@ export default function Home() {
       .rbs-arco { animation: rbsArco 1.6s cubic-bezier(.2,.7,.2,1) .3s both; filter: drop-shadow(0 0 6px rgba(138,176,230,.45)); }
       @keyframes rbsArco { from { stroke-dasharray: 0 100; } }
       .rb-splash-foto { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .5; animation: rbsKb 18s ease-in-out infinite alternate; }
-      .rb-nav:hover { background: rgba(255,255,255,0.04) !important; color: #d8d7d2 !important; }
+      .rb-nav { transition: background .25s ease, color .2s ease, transform .2s ease !important; }
+      .rb-nav:hover { background: rgba(255,255,255,0.05) !important; color: #ECEDEF !important; transform: translateX(2px); }
+      .rb-nav.on, .rb-nav.on:hover { background: linear-gradient(90deg, rgba(138,176,230,.22), rgba(138,176,230,.06)) !important; color: #ECEDEF !important; box-shadow: inset 0 0 0 1px rgba(138,176,230,.22), 0 8px 22px -14px rgba(138,176,230,.6); transform: none; }
+      .rb-nav.on svg { filter: drop-shadow(0 0 6px rgba(138,176,230,.6)); }
+      .rb-nav-marca { position: absolute; left: -10px; top: 50%; width: 4px; height: 22px; margin-top: -11px; border-radius: 0 4px 4px 0; background: #8AB0E6; box-shadow: 0 0 12px rgba(138,176,230,.8); animation: rbMarca .35s cubic-bezier(.2,.9,.3,1.2) both; }
+      @keyframes rbMarca { from { transform: scaleY(0); } to { transform: none; } }
+      .rbs-grupo { padding: 12px 12px 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #6F7682; }
+      .rbs-grupo:first-child { padding-top: 4px; }
+      .rb-sidebar { background: linear-gradient(180deg, #101215 0%, #0E1013 60%, #0C0E11 100%) !important; }
       .rb-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
       .rb-card:hover { border-color: rgba(138,176,230,0.35) !important; box-shadow: 0 18px 50px -22px rgba(0,0,0,0.75); }
       @keyframes rbFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -1981,6 +1991,12 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     { id: 'problemas', label: t('Temas', 'Themes'), icon: '▦' },
     { id: 'prioridades', label: t('Prioridades de gestão', 'Management priorities'), icon: '▲' },
   ];
+  // Secções da barra lateral: ajudam a perceber de relance onde está cada tipo de informação
+  const GRUPO_NAV: Partial<Record<ViewType, [string, string]>> = {
+    overview: ['Destino', 'Destination'], observatorio: ['Destino', 'Destination'], insto: ['Destino', 'Destination'],
+    produtos: ['Promoção', 'Promotion'], mundo: ['Promoção', 'Promotion'],
+    locais: ['Reputação', 'Reputation'], mapa: ['Reputação', 'Reputation'], mercados: ['Reputação', 'Reputation'], problemas: ['Reputação', 'Reputation'], prioridades: ['Reputação', 'Reputation'],
+  };
 
   // ── Report generator ──
   const generateReport = (locFilter?: Location[]) => {
@@ -2063,7 +2079,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         <div className="rb-splash-foto" style={{ backgroundImage: `url(/login-avenida.jpg), url(${FOTO_LOGIN_MINI})` }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(21,23,27,.55) 0%, rgba(21,23,27,.9) 70%, #15171B 100%)' }} />
         <div style={{ position: 'relative', textAlign: 'center', animation: 'rbFadeUp 0.8s ease both', padding: 24 }}>
-          <img src={LOGO_URL} alt="Visit Braga" style={{ width: 210, height: 'auto', marginBottom: 28 }} />
+          <img src={LOGO_ECRA} alt="Visit Braga" style={{ width: 210, height: 'auto', marginBottom: 28 }} />
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#8AB0E6', marginBottom: 10 }}>Braga</div>
           <div style={{ fontSize: 'clamp(24px, 4vw, 34px)', fontWeight: 700, color: '#ECEDEF', letterSpacing: '-0.02em', marginBottom: 28 }}>
             {t('Observatório de Turismo e Reputação', 'Tourism and Reputation Observatory')}
@@ -2082,7 +2098,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
     if (!detailLoc || (!detailLoc.analysis && !detailLoc.reviewStats)) {
       return (
         <div style={{ background: '#15171B', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: "'Public Sans', system-ui, sans-serif" }}>
-          <img src={LOGO_URL} alt="Visit Braga" style={{ width: 150, height: 'auto' }} />
+          <img src={LOGO_ECRA} alt="Visit Braga" style={{ width: 150, height: 'auto' }} />
           <p style={{ color: '#A3A8B1', fontSize: 14 }}>{t('Relatório não encontrado.', 'Report not found.')}</p>
         </div>
       );
@@ -2113,11 +2129,11 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 20,
         fontFamily: "'Public Sans', system-ui, sans-serif", overflowY: 'auto',
       }}>
-        <div className="rbs-top" style={{ position: 'relative', overflow: 'hidden', padding: '26px 16px 18px', borderBottom: '1px solid #23262C' }}>
+        <div className="rbs-top" style={{ position: 'relative', overflow: 'hidden', padding: '26px 16px 18px', borderBottom: '1px solid #23262C', flexShrink: 0 }}>
           {fotoBraga && <div className="rbs-foto" style={{ backgroundImage: `url(${fotoBraga})` }} />}
           <div className="rbs-shade" />
           <div className="rbs-inner" style={{ position: 'relative' }}>
-            <img src={LOGO_URL} alt="Visit Braga" style={{ height: 34, width: 'auto', display: 'block' }} />
+            <img src={LOGO_ECRA} alt="Visit Braga" style={{ width: 176, maxWidth: '100%', height: 'auto', display: 'block', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,.45))' }} />
             <div className="rbs-sub" style={{ fontSize: 12.5, color: '#A3A8B1', marginTop: 10, lineHeight: 1.4 }}>{t('Observatório de Turismo e Reputação', 'Tourism and Reputation Observatory')}</div>
             {avgScore !== null && (
               <button className="rbs-indice" onClick={() => setView('overview')} title={t('Ver a Visão Geral', 'See the Overview')} style={{
@@ -2176,20 +2192,24 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
         </div>
 
         <nav style={{ padding: '12px 10px', flex: 1 }}>
-          {NAV.filter(itemVisivel).map((item) => {
+          {NAV.filter(itemVisivel).map((item, i, lista) => {
             const isActive = view === item.id || (item.id === 'locais' && view === 'detalhe');
             const ic = NAV_ICON[item.id];
+            const grupo = GRUPO_NAV[item.id];
+            const novoGrupo = grupo && (i === 0 || GRUPO_NAV[lista[i - 1].id]?.[0] !== grupo[0]);
             return (
-              <button key={item.id} onClick={() => abrirVista(item.id)} className="rb-nav"
+              <Fragment key={item.id}>
+              {novoGrupo && <div className="rbs-grupo">{t(grupo[0], grupo[1])}</div>}
+              <button onClick={() => abrirVista(item.id)} className={`rb-nav${isActive ? ' on' : ''}`} aria-current={isActive ? 'page' : undefined}
                 style={{
                   position: 'relative', display: 'flex', alignItems: 'center', gap: 12, width: '100%',
                   padding: '10px 12px', borderRadius: 6, border: 'none',
-                  background: isActive ? '#22324A' : 'transparent',
+                  background: 'transparent',
                   color: isActive ? '#ECEDEF' : '#A3A8B1',
                   cursor: 'pointer', fontSize: 14, fontWeight: isActive ? 600 : 500,
                   marginBottom: 2, textAlign: 'left', fontFamily: 'inherit',
                 }}>
-                {isActive && <span style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: 3, height: 20, borderRadius: 3, background: '#8AB0E6' }} />}
+                {isActive && <span className="rb-nav-marca" />}
                 {ic ? (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isActive ? '#8AB0E6' : 'currentColor'} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}><path d={ic} /></svg>
                 ) : <span style={{ fontSize: 15, lineHeight: 1, width: 18, textAlign: 'center' }}>{item.icon}</span>}
@@ -2200,6 +2220,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   </span>
                 )}
               </button>
+              </Fragment>
             );
           })}
         </nav>
@@ -2352,7 +2373,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
                   <div className="rb-mais" role="dialog" aria-modal="true" aria-label={t('Mais secções', 'More sections')} onClick={(e) => e.stopPropagation()}>
                     <div className="rb-mais-pega" />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                      <img src={LOGO_URL} alt="Visit Braga" style={{ height: 26, width: 'auto' }} />
+                      <img src={LOGO_ECRA} alt="Visit Braga" style={{ height: 26, width: 'auto' }} />
                       <button type="button" onClick={() => setMaisAberto(false)} aria-label={t('Fechar', 'Close')} style={{ width: 40, height: 40, borderRadius: 999, border: '1px solid #2D3139', background: 'transparent', color: '#A3A8B1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
                       </button>
