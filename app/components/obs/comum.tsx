@@ -32,7 +32,7 @@ export const fmtE = (n: number | null | undefined) => {
 };
 // ─── Efeitos como nos Locais (só aspeto): aparecer ao descer e números a contar ───
 export const semMov = () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-export function useVisivelObs<T extends Element>(): [React.RefObject<T>, boolean] {
+export function useVisivelObs<T extends Element>(): [React.RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
   const [vis, setVis] = useState(false);
   useEffect(() => {

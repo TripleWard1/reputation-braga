@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { eAdmin } from '@/app/lib/sessao-servidor';
 import {
   MESES, DORMIDAS_BRAGA, HOSPEDES_BRAGA, DORMIDAS_ANUAL, HOSPEDES_ANUAL, ESTADA_MEDIA, HEADLINE, RESIDENTES,
   SEMESTRE_2026, ADR_ANUAL, REVPAR_MENSAL, TAXA_TURISTICA, BALCAO, SUSTENTABILIDADE, CAPACIDADE_CAMAS,
@@ -229,13 +230,12 @@ function excedeLimite(chave: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  const TOKEN = process.env.APP_SESSION_TOKEN;
-  const admin = !process.env.APP_PASSWORD || !TOKEN || req.cookies.get('rb_session')?.value === TOKEN;
+  const admin = await eAdmin(req);
   if (!admin) {
     const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'anonimo';
     if (excedeLimite(ip)) return NextResponse.json({ erro: 'Fez muitas perguntas seguidas. Tente de novo dentro de alguns minutos. / Too many questions in a row. Please try again in a few minutes.' }, { status: 429 });
   }
-  const apiKey = process.env.GROQ_KEY || process.env.NEXT_PUBLIC_GROQ_KEY;
+  const apiKey = process.env.GROQ_KEY;
   if (!apiKey) return NextResponse.json({ erro: 'GROQ_KEY não está configurada no servidor.' }, { status: 500 });
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ erro: 'Pedido inválido.' }, { status: 400 }); }

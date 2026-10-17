@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 
 // Moldura das páginas legais (acessibilidade e privacidade): mesma identidade da plataforma, em PT, EN e ES.
@@ -29,7 +30,7 @@ export default function PaginaLegal({ titulo, lingua, mudar, children }: { titul
       <style>{CSS}</style>
       <a href="#conteudo-legal" className="lg-saltar">{{ pt: 'Saltar para o conteúdo', en: 'Skip to content', es: 'Saltar al contenido' }[lingua]}</a>
       <header className="lg-topo">
-        <a href="/" className="lg-voltar">{voltar}</a>
+        <Link href="/" className="lg-voltar">{voltar}</Link>
         <div className="lg-linguas" role="group" aria-label={{ pt: 'Língua', en: 'Language', es: 'Idioma' }[lingua]}>
           {(['pt', 'en', 'es'] as LinguaLegal[]).map((x) => (
             <button key={x} type="button" aria-pressed={lingua === x} onClick={() => mudar(x)}>{x.toUpperCase()}</button>

@@ -53,7 +53,7 @@ const rico = (s: string): ReactNode[] => s.split(/(\*\*[^*]+\*\*)/g).map((p, i) 
 // ─── Efeitos (respeitam "reduzir movimento"; na impressão ficam estáticos) ────
 const semMovimento = () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function useVisivel<T extends Element>(): [RefObject<T>, boolean] {
+function useVisivel<T extends Element>(): [RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
   const [vis, setVis] = useState(false);
   useEffect(() => {

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { t, setLangGlobal, type Lang } from '@/app/lib/i18n';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -24,6 +25,7 @@ const C = {
 };
 
 const CSS = `
+html, body { margin: 0; background: #15171B; }
 @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
 .lg-foto { position: absolute; inset: -40px; background-size: cover; background-position: center; opacity: 1; animation: lgKb 26s ease-in-out infinite alternate; }
 .lg-foto.on { opacity: 1; }
@@ -41,7 +43,7 @@ const CSS = `
 export default function LoginPage() {
   const [lang, setLang] = useState<Lang>('pt');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<'' | 'senha' | 'limite' | 'config' | 'rede'>('');
   const [loading, setLoading] = useState(false);
   // Fotografia do login: Avenida da Liberdade. A miniatura aparece de imediato; a foto completa por cima assim que chega.
 
@@ -61,7 +63,7 @@ export default function LoginPage() {
   const submit = async () => {
     if (!password || loading) return;
     setLoading(true);
-    setError(false);
+    setError('');
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
@@ -77,11 +79,11 @@ export default function LoginPage() {
         }
         window.location.href = '/';
       } else {
-        setError(true);
+        setError(res.status === 429 ? 'limite' : res.status === 503 ? 'config' : 'senha');
         setLoading(false);
       }
     } catch {
-      setError(true);
+      setError('rede');
       setLoading(false);
     }
   };
@@ -128,7 +130,7 @@ export default function LoginPage() {
             className="lg-input"
             type="password"
             value={password}
-            onChange={(e) => { setPassword(e.target.value); if (error) setError(false); }}
+            onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
             onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
             placeholder="••••••••"
             autoFocus
@@ -137,7 +139,10 @@ export default function LoginPage() {
 
           {error && (
             <div style={{ fontSize: 13, color: C.negative, background: C.negativeBg, borderRadius: 4, padding: '9px 12px', marginBottom: 12 }}>
-              {t('Palavra-passe incorreta. Tenta novamente.', 'Incorrect password. Please try again.')}
+              {error === 'limite' ? t('Demasiadas tentativas. Tenta novamente dentro de alguns minutos.', 'Too many attempts. Please try again in a few minutes.')
+                : error === 'config' ? t('O acesso de administração não está disponível de momento.', 'Administrator access is not available at the moment.')
+                : error === 'rede' ? t('Sem ligação ao servidor. Tenta novamente.', 'Could not reach the server. Please try again.')
+                : t('Palavra-passe incorreta. Tenta novamente.', 'Incorrect password. Please try again.')}
             </div>
           )}
 
@@ -147,7 +152,7 @@ export default function LoginPage() {
           }}>
             {loading ? t('A entrar…', 'Signing in…') : t('Entrar', 'Sign in')}
           </button>
-          <a href="/" style={{ display: 'block', textAlign: 'center', marginTop: 16, fontSize: 13.5, color: '#A3A8B1', textDecoration: 'none' }}>{t('← Voltar à versão pública', '← Back to the public version')}</a>
+          <Link href="/" style={{ display: 'block', textAlign: 'center', marginTop: 16, fontSize: 13.5, color: '#A3A8B1', textDecoration: 'none' }}>{t('← Voltar à versão pública', '← Back to the public version')}</Link>
 
           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 22, lineHeight: 1.5 }}>
             {t('Município de Braga · Divisão de Atividades Económicas e Turismo', 'Braga City Council · Economic Activities and Tourism Division')}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { eAdmin } from '@/app/lib/sessao-servidor';
 
 // Proxy serverless para o Groq. A chave fica SÓ no servidor (GROQ_KEY),
 // nunca é enviada para o browser. O cliente chama /api/groq com { messages }.
@@ -13,13 +14,10 @@ const MODELO_PADRAO = 'openai/gpt-oss-120b';
 
 export async function POST(req: NextRequest) {
   // Só administradores: análises, traduções e relatórios gastam o limite da IA.
-  const PASS = process.env.APP_PASSWORD;
-  const TOKEN = process.env.APP_SESSION_TOKEN;
-  if (PASS && TOKEN && req.cookies.get('rb_session')?.value !== TOKEN) {
+  if (!(await eAdmin(req))) {
     return NextResponse.json({ error: 'Sessão de administração necessária.' }, { status: 401 });
   }
-  // Aceita GROQ_KEY (recomendado, server-side) com fallback à antiga durante a transição.
-  const apiKey = process.env.GROQ_KEY || process.env.NEXT_PUBLIC_GROQ_KEY;
+  const apiKey = process.env.GROQ_KEY;
   if (!apiKey) {
     return NextResponse.json(
       { error: 'GROQ_KEY não está configurada no servidor.' },
