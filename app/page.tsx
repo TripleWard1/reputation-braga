@@ -11,6 +11,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ModoAdmin } from '@/app/components/modo';
 import LimiteErro from '@/app/components/LimiteErro';
 import { abrirJanelaDocumento } from '@/app/lib/abrir-documento';
+import { carregarLeaflet } from '@/app/lib/bibliotecas';
 import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc, getDoc, deleteField } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import { comRecuperacao } from '@/app/lib/carregar';
@@ -1891,10 +1892,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
       if ((window as any).L) {
         initMap();
       } else {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.onload = () => setTimeout(initMap, 50);
-        document.head.appendChild(script);
+        carregarLeaflet().then(() => setTimeout(initMap, 50)).catch(() => {});
       }
     }, 100);
 

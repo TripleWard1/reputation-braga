@@ -4,8 +4,8 @@
 // e das janelas de impressão/exportação; o resto está limitado aos domínios que a plataforma usa.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://apis.google.com https://www.gstatic.com",
-  "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com",
+  "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",

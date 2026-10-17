@@ -10,14 +10,9 @@ function carregarXlsx(): Promise<any> {
   const w = window as any;
   if (w.XLSX && w.XLSX.__comEstilos) return Promise.resolve(w.XLSX);
   if (!xlsxPromessa) {
-    xlsxPromessa = new Promise((ok, ko) => {
-      const sc = document.createElement('script');
-      sc.src = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
-      sc.async = true;
-      sc.onload = () => { if (w.XLSX) { w.XLSX.__comEstilos = true; ok(w.XLSX); } else ko(new Error('xlsx')); };
-      sc.onerror = () => { xlsxPromessa = null; ko(new Error('xlsx')); };
-      document.head.appendChild(sc);
-    });
+    // Pacote npm servido pelo próprio site (não depende de servidores externos)
+    xlsxPromessa = import('xlsx-js-style').then((m: any) => { const X = m.default || m; try { X.__comEstilos = true; } catch { /* objeto só de leitura */ } w.XLSX = X; return X; })
+      .catch((e) => { xlsxPromessa = null; throw e; });
   }
   return xlsxPromessa;
 }

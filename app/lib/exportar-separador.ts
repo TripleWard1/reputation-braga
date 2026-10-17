@@ -1,5 +1,6 @@
 import { t } from '@/app/lib/i18n';
-import { carregar, aviso } from '@/app/lib/abrir-documento';
+import { aviso } from '@/app/lib/abrir-documento';
+import { carregarPdf } from '@/app/lib/bibliotecas';
 
 // Exportação COMPLETA de um separador do Observatório para PDF A4, com o aspeto da plataforma em versão clara.
 // 1) Mostra todos os cartões (mesmo os que ainda não apareceram ao descer) e espera que os gráficos e números acabem.
@@ -8,8 +9,6 @@ import { carregar, aviso } from '@/app/lib/abrir-documento';
 // 4) Corta em páginas sem partir cartões nem títulos, com cabeçalho (logótipo, título) e rodapé numerado.
 // Funções de topo, só com ciclos (o compressor do Next.js parte funções aninhadas que usam parâmetros de fora).
 
-const H2C = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-const JSPDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 const LARGURA = 1040; // px do conteúdo durante a exportação
 const MARGEM = 10; // mm
 const CAB_MM = 30; // altura do cabeçalho da 1.ª página
@@ -246,7 +245,7 @@ export async function exportarSeparador(el: HTMLElement, o: OpcoesSeparador): Pr
     // Imagens que só carregavam ao descer passam a carregar já
     const imgs = el.querySelectorAll('img');
     for (let i = 0; i < imgs.length; i++) { const im = imgs[i] as HTMLImageElement; if (im.loading === 'lazy') im.loading = 'eager'; }
-    await Promise.all([carregar(H2C), carregar(JSPDF), esperar(2200)]);
+    await Promise.all([carregarPdf(), esperar(2200)]);
     mexidos = abrirFaixas(el);
     el.setAttribute(ATRIB, '1');
     await Promise.all([esperarImagens(el), esperar(400)]);

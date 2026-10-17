@@ -1,4 +1,5 @@
 import { t } from '@/app/lib/i18n';
+import { carregarPdf } from '@/app/lib/bibliotecas';
 
 // Exportação para PDF que funciona em todo o lado (computador, telemóvel e app instalada).
 // O documento é montado numa moldura própria com a largura de uma folha A4 e os seus próprios estilos;
@@ -8,22 +9,6 @@ import { t } from '@/app/lib/i18n';
 // Margem: 10 mm por omissão; um documento com <meta name="pdf-margem" content="0"> controla as suas margens.
 
 const LARGURA_PX = 794; // A4 a 96 ppp
-const H2C = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-const JSPDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-const cache: Record<string, Promise<void>> = {};
-export function carregar(src: string): Promise<void> {
-  if (!cache[src]) {
-    cache[src] = new Promise((ok, falha) => {
-      const sc = document.createElement('script');
-      sc.src = src; sc.async = true;
-      sc.onload = () => ok();
-      sc.onerror = () => { delete cache[src]; falha(new Error(src)); };
-      document.head.appendChild(sc);
-    });
-  }
-  return cache[src];
-}
-
 export function aviso(texto: string): { mudar: (x: string) => void; fechar: () => void } {
   const el = document.createElement('div');
   el.setAttribute('role', 'status');
@@ -153,7 +138,7 @@ async function gerarPdf(html: string) {
     if (fontes && fontes.ready) { try { await fontes.ready; } catch { /* segue */ } }
     const imagens = Array.from(doc.images);
     await Promise.all(imagens.map(esperarImagem));
-    await Promise.all([carregar(H2C), carregar(JSPDF)]);
+    await Promise.all([carregarPdf()]);
     const w = window as any;
     const html2canvas = w.html2canvas; const JsPDF = w.jspdf && w.jspdf.jsPDF;
     if (!html2canvas || !JsPDF) throw new Error('bibliotecas');

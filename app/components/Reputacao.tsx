@@ -11,6 +11,7 @@ import type { CSSProperties, ReactNode, RefObject } from 'react';
 import { doc, getDoc, setDoc, getDocs, collection, deleteDoc } from 'firebase/firestore';
 import { db, obterAuth } from '../firebase';
 import { useAdmin } from './modo';
+import { carregarLeaflet } from '@/app/lib/bibliotecas';
 import { descarregarDados, type Linha } from '@/app/lib/exportar-dados';
 import { t, getLang } from '@/app/lib/i18n';
 import { dispAnalysis } from '@/app/lib/ai-translate';
@@ -1983,13 +1984,7 @@ export function MapaView(props: { locations: LocV[]; catLabel: (c: string) => st
   useEffect(() => {
     let cancelado = false;
     const w = window as any;
-    if (!document.getElementById('leaflet-css')) {
-      const lk = document.createElement('link'); lk.id = 'leaflet-css'; lk.rel = 'stylesheet'; lk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(lk);
-    }
-    const pronto = new Promise<any>((ok) => {
-      if (w.L) return ok(w.L);
-      const sc = document.createElement('script'); sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; sc.onload = () => ok(w.L); document.head.appendChild(sc);
-    });
+    const pronto = carregarLeaflet().catch(() => null);
     pronto.then((L: any) => {
       if (cancelado || !caixa.current || !L) return;
       if (mapa.current) { mapa.current.remove(); mapa.current = null; }
