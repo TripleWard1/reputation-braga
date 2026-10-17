@@ -2565,6 +2565,7 @@ function CartaoProduto({ p, guardado, onGuardar }: { p: ProdutoBase; guardado: P
   const [editar, setEditar] = useState<Lingua | null>(null);
   const [rasc, setRasc] = useState<Edicao>({});
   const [erro, setErro] = useState<string | null>(null);
+  const [aGravar, setAGravar] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => { getDoc(doc(db, 'produtosCapas', p.id)).then((d) => setCapa(d.exists() ? ((d.data() as any).data || null) : null)).catch(() => setCapa(null)); }, [p.id]);
   const carregarCapa = async (fl: File) => {
@@ -2583,8 +2584,15 @@ function CartaoProduto({ p, guardado, onGuardar }: { p: ProdutoBase; guardado: P
   const gravar = async () => {
     if (!editar) return;
     if (!urlValido(rasc.pdf || '') || !urlValido(rasc.pagina || '')) { setErro(t('Os links têm de começar por http:// ou https://', 'Links must start with http:// or https://')); return; }
-    await onGuardar(editar, { pagina: (rasc.pagina || '').trim(), pdf: (rasc.pdf || '').trim() });
-    setEditar(null);
+    setAGravar(true); setErro(null);
+    try {
+      await onGuardar(editar, { pagina: (rasc.pagina || '').trim(), pdf: (rasc.pdf || '').trim() });
+      setEditar(null);
+    } catch (e: any) {
+      setErro(String(e?.code || '').includes('permission')
+        ? t('Sem permissão para gravar: a sessão do Firebase não está ativa. Sai e volta a entrar.', 'No permission to save: the Firebase session is not active. Sign out and sign in again.')
+        : t('Não foi possível gravar. Tenta novamente.', 'Could not save. Please try again.') + (e?.code ? ` (${e.code})` : ''));
+    } finally { setAGravar(false); }
   };
   const nPdf = p.linguas.filter((l) => ed(l).pdf).length;
   return (
@@ -2613,7 +2621,7 @@ function CartaoProduto({ p, guardado, onGuardar }: { p: ProdutoBase; guardado: P
                     <input className="rb-field" placeholder={t('Link do PDF (https://…)', 'PDF link (https://…)')} value={rasc.pdf || ''} onChange={(ev) => setRasc((r) => ({ ...r, pdf: ev.target.value }))} aria-label={t('Link do PDF', 'PDF link')} autoFocus />
                     <input className="rb-field" placeholder={t('Link da página no visitbraga.travel (opcional)', 'Page link on visitbraga.travel (optional)')} value={rasc.pagina || ''} onChange={(ev) => setRasc((r) => ({ ...r, pagina: ev.target.value }))} aria-label={t('Link da página', 'Page link')} />
                     {erro && <div style={{ fontSize: 12.5, color: 'var(--rb-warn)' }}>{erro}</div>}
-                    <div style={{ display: 'flex', gap: 6 }}><button className="rb-btn p" onClick={gravar}>{t('Guardar', 'Save')}</button><button className="rb-btn" onClick={() => setEditar(null)}>{t('Cancelar', 'Cancel')}</button></div>
+                    <div style={{ display: 'flex', gap: 6 }}><button className="rb-btn p" onClick={gravar} disabled={aGravar}>{aGravar ? t('A guardar…', 'Saving…') : t('Guardar', 'Save')}</button><button className="rb-btn" onClick={() => setEditar(null)}>{t('Cancelar', 'Cancel')}</button></div>
                   </div>
                 ) : (
                   <>
