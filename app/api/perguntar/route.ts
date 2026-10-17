@@ -23,6 +23,10 @@ import { TUB } from '@/app/lib/tub-dados';
 import { UNESCO_BOM_JESUS } from '@/app/lib/unesco-bom-jesus';
 import { DATAS as CALENDARIO_MERCADOS, MERCADOS as CAL_MERCADOS } from '@/app/lib/calendario-mercados-dados';
 import { MOB_URBANA, BAIRROS, GEO_VISITAS } from '@/app/lib/mobilidade-bairros-dados';
+import { PRODUTOS } from '@/app/lib/produtos-dados';
+import { DISTINCOES, FEIRAS, PROJETOS } from '@/app/lib/braga-mundo-dados';
+import { AREAS as AREAS_INSTO } from '@/app/lib/insto-areas';
+import { INSTO_DADOS } from '@/app/lib/insto-dados';
 
 // "Pergunte ao Observatório": responde a perguntas com os dados da plataforma.
 // Para não esgotar o limite do Groq, envia só os blocos de dados relevantes para cada pergunta (máx. ~14 000 caracteres).
@@ -184,7 +188,32 @@ const BLOCOS: Bloco[] = [
     palavras: ['bairro', 'wi-fi', 'wifi', 'rua do souto', 'centro historico', 'permanencia', 'autocarros de fora', 'terminal', 'expresso', 'comercio'],
     dados: () => { const B: any = BAIRROS; const d: any[] = B.diario || []; let s = 0; for (let i = 0; i < d.length; i++) s += Number(d[i][1]) || 0; return { notas: 'Wi-Fi de 1/1 a 7/10/2026. Contam dispositivos, não pessoas. Média diária calculada = soma/dias com registo (o painel da plataforma Braga Smart Retail indica 356, calculado de outra forma). Zonas = soma das contagens diárias (não dispositivos diferentes). cmbraga_bcd = nome da rede sem zona. LISTA BRANCA = categoria do ficheiro, significado por confirmar, só aparece desde janeiro de 2026. Autocarros CCTTB: 9/10/2025 a 7/10/2026. Telemóveis (Geoanalytics) só out–dez 2025.', mediaDispositivosDia: d.length ? Math.round(s / d.length) : null, diasComRegisto: d.length, mensal: B.mensal, semana: B.semana, hora: B.hora, zonasTotal: B.zonasTotal, sessaoPorZona: (B.zonas || []).map((z: any) => [z.zona, z.sessao]), sessaoSemana: B.sessaoSemana, semanaGeoWifi: B.semanaGeoWifi, autocarros: B.autocarros }; },
   },
+  {
+    id: 'produtos', titulo: 'Produtos turísticos da Divisão (mapas, brochuras, roteiros) e línguas disponíveis', separador: 'vista:produtos', fonte: 'Município de Braga · Divisão de Atividades Económicas e Turismo',
+    palavras: ['produto', 'brochura', 'mapa turistico', 'roteiro', 'folheto', 'pdf', 'descarregar', 'lojas com historia', 'caminho', 'infantojuvenil', 'linguas', 'traduc'],
+    dados: () => PRODUTOS.map((p) => ({ nome: p.nome, tipo: p.tipo, descricao: p.descricao[0], linguas: p.linguas })),
+  },
+  {
+    id: 'internacional', titulo: 'Internacionalização: distinções e prémios do destino, feiras de turismo e projetos de cooperação europeia (2017–2027)', separador: 'vista:mundo', fonte: 'Município de Braga; World Travel Awards; European Best Destinations; UNESCO; Green Destinations; Comissão Europeia',
+    palavras: ['premio', 'distinc', 'galardao', 'world travel', 'european best', 'melhor destino', 'finalista', 'certificac', 'green destinations', 'feira', 'fitur', 'btl', 'itb', 'b-travel', 'expovacaciones', 'navartur', 'projeto europeu', 'cooperac', 'internacionaliz', 'capital europeia', 'cidade criativa', 'bandeira azul'],
+    dados: () => {
+      const tx = (x: any) => (typeof x === 'string' ? x : x?.pt || '');
+      return {
+        distincoes: DISTINCOES.map((d) => [d.ano, tx(d.titulo), d.entidade, d.tipo]),
+        feiras: FEIRAS.map((e) => [tx(e.nome), e.cidade || '', e.pais, e.ini.slice(0, 7), e.aConfirmar ? 'prevista' : '']),
+        projetos: PROJETOS.map((e) => [tx(e.nome), e.cidade || '', e.pais, e.ini.slice(0, 7), e.tipo || '']),
+        notas: 'distincoes: [ano, título, entidade, tipo]; finalista e emCurso não são vitórias. feiras e projetos: [nome, cidade, país, ano-mês, estado].',
+      };
+    },
+  },
+  {
+    id: 'insto', titulo: 'Rede INSTO da ONU Turismo: as 11 áreas obrigatórias, estado na plataforma e dados de ambiente, clima e governança', separador: 'vista:insto', fonte: 'ONU Turismo (INSTO); INE; PAESC de Braga (maio de 2026)',
+    palavras: ['insto', 'onu turismo', 'observatorio sustentavel', 'areas obrigatorias', 'emissoes', 'co2', 'clima', 'agua', 'energia', 'residuos', 'aguas residuais', 'governanc', 'paesc'],
+    dados: () => ({ areas: AREAS_INSTO.map((a) => ({ area: a.pt, estado: a.estado, tem: a.tem[0], nota: a.nota ? a.nota[0] : undefined })), ambiente: INSTO_DADOS }),
+  },
 ];
+// Páginas da plataforma (fora do Observatório) que uma resposta pode indicar
+const VISTAS = ['vista:produtos', 'vista:mundo', 'vista:insto'];
 const IDS_SEPARADORES = ['geral', 'procura', 'estimativa', 'mercados', 'aeroporto', 'caminhos', 'perfil', 'balcao', 'economia', 'emprego', 'cartoes', 'taxa', 'hotelaria', 'alojamento', 'animacao', 'cultura', 'lojas', 'digital', 'ferramentas', 'sustentabilidade', 'mobilidade', 'acessibilidade', 'meteo', 'cruzamentos', 'calendario', 'urbana', 'bairros', 'visitas'];
 const PALAVRAS_REPUTACAO = ['reputa', 'avalia', 'estrela', 'google maps', 'comentari', 'critica', 'elogi', 'indice do destino', 'nota', 'opiniao', 'review', 'satisfac'];
 
@@ -256,7 +285,7 @@ export async function POST(req: NextRequest) {
   const sistema = es ? sistemaES : en
     ? 'You are the assistant of the Braga Tourism Observatory (Braga City Council). Answer ONLY with the data in the BLOCKS. Rules: (1) Use only numbers present in the blocks; never invent or guess values. You may do simple arithmetic with them, saying it is a calculation. (2) If the data does not answer the question, say clearly that the platform does not have that data and mention the closest available data. (3) State the period of each number. (4) Answer in English, directly, in 1–4 sentences or a short list. (5) Return ONLY JSON: {"resposta": string, "fontes": [block ids used], "separador": id of the most useful tab or null}.'
     : 'És o assistente do Observatório de Turismo de Braga (Município de Braga). Respondes APENAS com os dados dos BLOCOS. Regras: (1) Usa só números que estejam nos blocos; nunca inventes nem adivinhes valores. Podes fazer contas simples com eles, dizendo que é um cálculo. (2) Se os dados não respondem à pergunta, diz claramente que a plataforma não tem esse dado e indica o dado mais próximo que existe. (3) Indica o período de cada número. (4) Responde em português de Portugal, de forma direta, em 1 a 4 frases ou numa lista curta; números com espaço nos milhares e vírgula decimal. (5) Devolve SÓ JSON: {"resposta": string, "fontes": [ids dos blocos usados], "separador": id do separador mais útil ou null}.';
-  const utilizador = `${en ? 'QUESTION' : 'PERGUNTA'}: ${pergunta}\n\n${en ? 'TOPICS AVAILABLE ON THE PLATFORM' : 'TEMAS DISPONÍVEIS NA PLATAFORMA'}:\n${indice}\n\n${en ? 'VALID TAB IDS' : 'IDS DE SEPARADOR VÁLIDOS'}: ${IDS_SEPARADORES.join(', ')}\n\nBLOCOS:\n${partes.length ? partes.join('\n\n') : (en ? '(no block matched the question)' : '(nenhum bloco corresponde à pergunta)')}`;
+  const utilizador = `${en ? 'QUESTION' : 'PERGUNTA'}: ${pergunta}\n\n${en ? 'TOPICS AVAILABLE ON THE PLATFORM' : 'TEMAS DISPONÍVEIS NA PLATAFORMA'}:\n${indice}\n\n${en ? 'VALID TAB IDS' : 'IDS DE SEPARADOR VÁLIDOS'}: ${[...IDS_SEPARADORES, ...VISTAS].join(', ')}\n\nBLOCOS:\n${partes.length ? partes.join('\n\n') : (en ? '(no block matched the question)' : '(nenhum bloco corresponde à pergunta)')}`;
   const model = process.env.GROQ_MODEL || MODELO_PADRAO;
   const messages = [{ role: 'system', content: sistema }, { role: 'user', content: utilizador }];
 
@@ -277,7 +306,7 @@ export async function POST(req: NextRequest) {
     const fontes = (Array.isArray(obj?.fontes) ? obj.fontes : [])
       .filter((id: unknown): id is string => typeof id === 'string' && (enviados.has(id) || (id === 'reputacao' && usaReputacao)))
       .map((id: string) => (id === 'reputacao' ? { id, titulo: en ? 'Online reputation (Google Maps)' : 'Reputação online (Google Maps)', separador: null, fonte: 'Google Maps' } : { id, titulo: enviados.get(id)!.titulo, separador: enviados.get(id)!.separador, fonte: enviados.get(id)!.fonte }));
-    const separador = typeof obj?.separador === 'string' && IDS_SEPARADORES.includes(obj.separador) ? obj.separador : (fontes.find((f: any) => f.separador)?.separador || null);
+    const separador = typeof obj?.separador === 'string' && (IDS_SEPARADORES.includes(obj.separador) || VISTAS.includes(obj.separador)) ? obj.separador : (fontes.find((f: any) => f.separador)?.separador || null);
     return NextResponse.json({ resposta, fontes, separador });
   } catch (e: any) {
     return NextResponse.json({ erro: e?.message || 'Erro ao contactar a IA.' }, { status: 502 });

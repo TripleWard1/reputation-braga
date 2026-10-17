@@ -5,7 +5,7 @@ import { exportarSeparador } from '@/app/lib/exportar-separador';
 import { abrirJanelaDocumento } from '@/app/lib/abrir-documento';
 import { NotaMetodologica } from './obs/Metodologia';
 import { comRecuperacao } from '@/app/lib/carregar';
-import Perguntar from './obs/Perguntar';
+import { BarraPesquisa } from './PesquisaGlobal';
 
 import { useState, useEffect, useRef } from 'react';
 import { estadaRecente, dec2 } from '@/app/lib/estada-media';
@@ -68,6 +68,8 @@ const dEur = (n: number) => (n >= 1e6 ? dDec(+(n / 1e6).toFixed(2)) + ' M€' : 
 
 // Estilos da identidade nova (só aspeto)
 const OBS_CSS = `
+.obs-pesq { position: relative; z-index: 3; max-width: 1760px; margin: -34px auto 0; padding: 0 40px 18px; }
+@media (max-width: 820px) { .obs-pesq { margin-top: -20px; padding: 0 14px 12px; } }
 .obs-perg { max-width: 1760px; margin: 0 auto; padding: 22px 40px 6px; }
 .obs-perg-in { background: radial-gradient(700px 200px at 0% 0%, rgba(138,176,230,.16), transparent), linear-gradient(180deg, #1E2228 0%, #1A1D22 100%); border: 1px solid rgba(138,176,230,.18); border-radius: 20px; padding: 20px 22px; box-shadow: 0 24px 50px -34px rgba(0,0,0,.9); }
 .obs-perg-titulo { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; font-size: 15px; font-weight: 700; color: #ECEDEF; }
@@ -856,7 +858,7 @@ export default function ObservatorioView({ reputacaoMedia, reputacaoLocais, repu
         </div>
       </div>
       {copiado && <div className="obs-toast" role="status" aria-live="polite"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7CC79A" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7" /></svg>{t('Ligação copiada', 'Link copied')}</div>}
-      <Perguntar onIrPara={irPara} reputacao={reputacaoResumo} nomeSeparador={nomeSeparador} />
+      <div className="obs-pesq"><BarraPesquisa grande /></div>
 
       <div className="obs-tabs">
         <div className="obs-tabs-in">

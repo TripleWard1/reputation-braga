@@ -12,6 +12,7 @@ import { ModoAdmin } from '@/app/components/modo';
 import LimiteErro from '@/app/components/LimiteErro';
 import { abrirJanelaDocumento } from '@/app/lib/abrir-documento';
 import { carregarLeaflet } from '@/app/lib/bibliotecas';
+import PesquisaGlobal, { BarraPesquisa, abrirPesquisa } from '@/app/components/PesquisaGlobal';
 import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc, getDoc, deleteField } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import { comRecuperacao } from '@/app/lib/carregar';
@@ -2189,6 +2190,7 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
           </div>
         </div>
 
+        <div className="rbs-pesq" style={{ padding: '14px 10px 0' }}><BarraPesquisa /></div>
         <nav style={{ padding: '12px 10px', flex: 1 }}>
           {NAV.filter(itemVisivel).map((item, i, lista) => {
             const isActive = view === item.id || (item.id === 'locais' && view === 'detalhe');
@@ -2411,10 +2413,17 @@ ${partials.map((p, idx) => `=== Bloco ${idx + 1}/${chunks.length} (${chunks[idx]
             </>
           );
         })()}
+        <button type="button" className="rb-fab-pesq" onClick={() => abrirPesquisa()} aria-label={t('Pesquisar ou perguntar', 'Search or ask')}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+        </button>
+        <PesquisaGlobal locais={locations} reputacao={reputacaoResumo}
+          irVista={(v) => { abrirVista(v as ViewType); window.scrollTo({ top: 0 }); }}
+          irSeparador={(sep) => { abrirSeparadorObs(sep); window.scrollTo({ top: 0 }); }}
+          irLocal={(id) => { setDetailId(id); setView('detalhe'); window.scrollTo({ top: 0 }); }} />
         <button className={`rb-topo${verTopo ? ' on' : ''}`} aria-label={t('Voltar ao topo', 'Back to top')} title={t('Voltar ao topo', 'Back to top')} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
         </button>
-        <style>{`.rb-saltar{position:fixed;left:14px;top:-80px;z-index:400;background:#8AB0E6;color:#0F1216;padding:12px 18px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;transition:top .15s ease}.rb-saltar:focus{top:14px;outline:3px solid #ECEDEF;outline-offset:2px}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid #8AB0E6;outline-offset:2px}@media (prefers-reduced-motion: reduce){.rb-saltar{transition:none}}.rb-topo{position:fixed;right:26px;bottom:26px;z-index:30;width:50px;height:50px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:#0F1216;background:#8AB0E6;border:2px solid rgba(255,255,255,.35);box-shadow:0 12px 30px -8px rgba(0,0,0,.7),0 0 0 6px rgba(138,176,230,.16);cursor:pointer;opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;transition:opacity .25s ease,transform .25s ease,background .2s ease,box-shadow .2s ease}.rb-topo.on{opacity:1;transform:none;pointer-events:auto}.rb-topo:hover{background:#B7CDF0;box-shadow:0 14px 34px -8px rgba(0,0,0,.75),0 0 0 8px rgba(138,176,230,.22)}.rb-topo:focus-visible{outline:3px solid #ECEDEF;outline-offset:3px}@media (max-width:900px){.rb-topo{right:16px;bottom:18px;width:46px;height:46px}}@media print{.rb-topo{display:none}}`}</style>
+        <style>{`.rb-saltar{position:fixed;left:14px;top:-80px;z-index:400;background:#8AB0E6;color:#0F1216;padding:12px 18px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;transition:top .15s ease}.rb-saltar:focus{top:14px;outline:3px solid #ECEDEF;outline-offset:2px}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid #8AB0E6;outline-offset:2px}@media (prefers-reduced-motion: reduce){.rb-saltar{transition:none}}.rb-topo{position:fixed;right:26px;bottom:26px;z-index:30;width:50px;height:50px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:#0F1216;background:#8AB0E6;border:2px solid rgba(255,255,255,.35);box-shadow:0 12px 30px -8px rgba(0,0,0,.7),0 0 0 6px rgba(138,176,230,.16);cursor:pointer;opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;transition:opacity .25s ease,transform .25s ease,background .2s ease,box-shadow .2s ease}.rb-topo.on{opacity:1;transform:none;pointer-events:auto}.rb-topo:hover{background:#B7CDF0;box-shadow:0 14px 34px -8px rgba(0,0,0,.75),0 0 0 8px rgba(138,176,230,.22)}.rb-topo:focus-visible{outline:3px solid #ECEDEF;outline-offset:3px}@media (max-width:900px){.rb-topo{right:16px;bottom:18px;width:46px;height:46px}}@media print{.rb-topo{display:none}}.rb-fab-pesq{display:none}@media (max-width:820px){.rb-fab-pesq{display:flex;position:fixed;right:14px;top:calc(12px + env(safe-area-inset-top,0px));z-index:900;width:46px;height:46px;border-radius:999px;align-items:center;justify-content:center;color:#ECEDEF;background:rgba(21,23,27,.6);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(14px) saturate(150%);-webkit-backdrop-filter:blur(14px) saturate(150%);box-shadow:0 10px 26px -10px rgba(0,0,0,.8);cursor:pointer}}@media print{.rb-fab-pesq{display:none!important}}`}</style>
         </LimiteErro>
       </main>
 
