@@ -11,7 +11,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ModoAdmin } from '@/app/components/modo';
 import LimiteErro from '@/app/components/LimiteErro';
 import { abrirJanelaDocumento } from '@/app/lib/abrir-documento';
-import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, updateDoc, getDoc, deleteField } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import { comRecuperacao } from '@/app/lib/carregar';
 import { t, setLangGlobal, carregarEspanhol, temEspanhol, type Lang } from '@/app/lib/i18n';
@@ -518,16 +518,29 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // O Firestore recusa campos com valor undefined: remove-os antes de gravar.
 const semIndefinidos = <T,>(o: T): T => JSON.parse(JSON.stringify(o));
 
+// Os textos dos comentários colados à mão ficam em 'locationReviews' (só administração pode ler);
+// o documento público do local ('locations') nunca leva o campo reviews.
+const refTextos = (id: string) => doc(db, 'locationReviews', id);
+async function gravarTextos(id: string, reviews: Review[]): Promise<void> {
+  await setDoc(refTextos(id), { items: semIndefinidos(reviews) });
+}
+function semTextos<T extends Partial<Location>>(o: T): Omit<T, 'reviews'> {
+  const { reviews: _r, ...resto } = o;
+  return resto;
+}
+
 // Grava alterações num local. Se o documento não existir no Firestore (ex.: local criado
 // antes desta correção e que nunca chegou a ser gravado), grava o local completo.
 async function gravarLocal(loc: Location, changes: Partial<Location>): Promise<void> {
   const ref = doc(db, 'locations', loc.id);
-  const dados = semIndefinidos(changes) as Record<string, any>;
+  if (changes.reviews) await gravarTextos(loc.id, changes.reviews);
+  const dados = semIndefinidos(semTextos(changes)) as Record<string, any>;
+  if (!Object.keys(dados).length) return;
   try {
     await updateDoc(ref, dados);
   } catch (e: any) {
     if (e?.code === 'not-found' || /No document to update/i.test(String(e?.message))) {
-      await setDoc(ref, semIndefinidos({ ...loc, ...changes }));
+      await setDoc(ref, semIndefinidos(semTextos({ ...loc, ...changes })));
     } else {
       throw e;
     }
@@ -955,9 +968,21 @@ export default function Home() {
       }
       try {
         const snap = await getDocs(collection(db, 'locations'));
+        // Textos dos comentários: só a administração os pode ler (as regras recusam o público)
+        const textos: Record<string, Review[]> = {};
+        if (sessao.admin) {
+          try {
+            const st = await getDocs(collection(db, 'locationReviews'));
+            st.forEach((d) => { textos[d.id] = ((d.data() as any).items || []) as Review[]; });
+          } catch { /* sem sessão do Firebase: segue sem textos */ }
+        }
         const locs: Location[] = [];
+        const migrar: Location[] = [];
         snap.forEach((d) => {
           const loc = d.data() as Location;
+          // Locais antigos ainda com os textos no documento público: passam para locationReviews
+          if (sessao.admin && Array.isArray(loc.reviews) && loc.reviews.length && !textos[loc.id]) migrar.push({ ...loc });
+          if (textos[loc.id]) loc.reviews = textos[loc.id];
           loc.reviews = (loc.reviews || []).map((r: any, i: number) => ({
             id: r.id || `${loc.id}_rev_${i}`,
             text: typeof r === 'string' ? r : r.text || '',
@@ -966,6 +991,16 @@ export default function Home() {
           locs.push(loc);
         });
         setLocations(locs);
+        for (const m of migrar) {
+          try {
+            await gravarTextos(m.id, m.reviews);
+            await updateDoc(doc(db, 'locations', m.id), { reviews: deleteField() });
+          } catch { /* tenta de novo no próximo arranque */ }
+        }
+        if (sessao.admin) {
+          // Também tira o campo vazio dos locais que já não têm textos no documento público
+          snap.forEach((d) => { if ('reviews' in (d.data() as any) && !migrar.some((m) => m.id === d.id)) updateDoc(d.ref, { reviews: deleteField() }).catch(() => {}); });
+        }
       } catch (e) {
         console.error('Firestore load error:', e);
       }
@@ -1020,7 +1055,10 @@ export default function Home() {
   const save = useCallback(async (locs: Location[]) => {
     setLocations(locs);
     try {
-      for (const loc of locs) await setDoc(doc(db, 'locations', loc.id), semIndefinidos(loc));
+      for (const loc of locs) {
+        await setDoc(doc(db, 'locations', loc.id), semIndefinidos(semTextos(loc)));
+        await gravarTextos(loc.id, loc.reviews || []);
+      }
     } catch (e: any) {
       console.error('Firestore save error:', e);
       setError(t('Erro ao gravar na base de dados: ', 'Error saving to the database: ') + (e?.message || ''));
@@ -1091,6 +1129,7 @@ export default function Home() {
   const deleteLoc = async (id: string) => {
     try { await deleteLocationReviews(id); } catch {}
     try { await deleteDoc(doc(db, 'locations', id)); } catch {}
+    try { await deleteDoc(refTextos(id)); } catch {}
     setLocations((prev) => prev.filter((l) => l.id !== id));
     if (selId === id) setSelId(null);
     if (detailId === id) { setDetailId(null); setView('locais'); }
@@ -1336,7 +1375,7 @@ RULES:
             id: `${Date.now()}${Math.floor(Math.random() * 1000)}`, name: g.title, category: 'Monumento', platform: 'Google Maps',
             reviews: [], analysis: null, lastAnalyzed: null, ...(coords ? { coords } : {}),
           };
-          await setDoc(doc(db, 'locations', nl.id), nl);
+          await setDoc(doc(db, 'locations', nl.id), semTextos(nl));
           setLocations((prev) => [...prev, nl]);
           locId = nl.id;
         }

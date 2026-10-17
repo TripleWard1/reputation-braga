@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Clipping de notícias via RSS público (sem API key). Corre no servidor (evita CORS).
 // Tenta Google News e, em caso de falha, recorre ao Bing News.
+// Cada pesquisa fica 15 minutos em cache na rede da Vercel: pedidos repetidos não chegam ao servidor.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -66,7 +67,7 @@ export async function GET(req: NextRequest) {
   for (const s of sources) {
     try {
       const items = await fetchRss(s.url);
-      if (items.length > 0) return NextResponse.json({ items, query: q, provider: s.name });
+      if (items.length > 0) return NextResponse.json({ items, query: q, provider: s.name }, { headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=3600' } });
       errors.push(`${s.name}: 0 resultados`);
     } catch (e: any) {
       errors.push(`${s.name}: ${e?.message || 'erro'}`);
@@ -74,6 +75,6 @@ export async function GET(req: NextRequest) {
   }
   return NextResponse.json(
     { error: `Não foi possível obter notícias. Detalhe: ${errors.join(' · ')}` },
-    { status: 502 },
+    { status: 502, headers: { 'Cache-Control': 'no-store' } },
   );
 }
