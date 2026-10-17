@@ -45,6 +45,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<'' | 'senha' | 'limite' | 'config' | 'rede'>('');
   const [loading, setLoading] = useState(false);
+  const [erroFb, setErroFb] = useState<string | null>(null);
   // Fotografia do login: Avenida da Liberdade. A miniatura aparece de imediato; a foto completa por cima assim que chega.
 
   useEffect(() => {
@@ -75,7 +76,16 @@ export default function LoginPage() {
         const email = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
         const a = obterAuth();
         if (email && a) {
-          try { await signInWithEmailAndPassword(a, email, password); } catch { /* conta ainda não criada no Firebase: entra na mesma; gravar depende das regras */ }
+          try { await signInWithEmailAndPassword(a, email, password); } catch (e: any) {
+            // Entrou no site mas o Firebase recusou: sem isto não é possível gravar. Mostra o motivo em vez de seguir em silêncio.
+            setErroFb(String(e?.code || e?.message || 'erro'));
+            setLoading(false);
+            return;
+          }
+        } else {
+          setErroFb(!email ? 'NEXT_PUBLIC_ADMIN_EMAIL em falta' : 'auth indisponível');
+          setLoading(false);
+          return;
         }
         window.location.href = '/';
       } else {
@@ -143,6 +153,13 @@ export default function LoginPage() {
                 : error === 'config' ? t('O acesso de administração não está disponível de momento.', 'Administrator access is not available at the moment.')
                 : error === 'rede' ? t('Sem ligação ao servidor. Tenta novamente.', 'Could not reach the server. Please try again.')
                 : t('Palavra-passe incorreta. Tenta novamente.', 'Incorrect password. Please try again.')}
+            </div>
+          )}
+
+          {erroFb && (
+            <div style={{ fontSize: 13, color: C.negative, background: C.negativeBg, borderRadius: 4, padding: '9px 12px', marginBottom: 12, lineHeight: 1.5 }}>
+              {t('Entraste no site, mas o Firebase recusou a sessão, por isso não vais conseguir gravar.', 'You are signed in to the site, but Firebase refused the session, so you will not be able to save.')} ({erroFb}){' '}
+              <Link href="/" style={{ color: C.text }}>{t('Continuar mesmo assim', 'Continue anyway')}</Link>
             </div>
           )}
 

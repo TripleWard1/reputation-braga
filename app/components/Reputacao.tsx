@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, RefObject } from 'react';
 import { doc, getDoc, setDoc, getDocs, collection, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, obterAuth } from '../firebase';
 import { useAdmin } from './modo';
 import { descarregarDados, type Linha } from '@/app/lib/exportar-dados';
 import { t, getLang } from '@/app/lib/i18n';
@@ -2589,8 +2589,10 @@ function CartaoProduto({ p, guardado, onGuardar }: { p: ProdutoBase; guardado: P
       await onGuardar(editar, { pagina: (rasc.pagina || '').trim(), pdf: (rasc.pdf || '').trim() });
       setEditar(null);
     } catch (e: any) {
+      const u = obterAuth()?.currentUser;
       setErro(String(e?.code || '').includes('permission')
-        ? t('Sem permissão para gravar: a sessão do Firebase não está ativa. Sai e volta a entrar.', 'No permission to save: the Firebase session is not active. Sign out and sign in again.')
+        ? (u ? t(`Sem permissão para gravar: a conta ${u.email} está ligada ao Firebase, mas as regras do Firestore não a aceitam para esta coleção.`, `No permission to save: the account ${u.email} is signed in to Firebase, but the Firestore rules do not accept it for this collection.`)
+          : t('Sem permissão para gravar: a sessão do Firebase não está ativa. Sai e volta a entrar.', 'No permission to save: the Firebase session is not active. Sign out and sign in again.'))
         : t('Não foi possível gravar. Tenta novamente.', 'Could not save. Please try again.') + (e?.code ? ` (${e.code})` : ''));
     } finally { setAGravar(false); }
   };
